@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "132332477934",
+    "project_id": "zigtruckapppush",
+    "storage_bucket": "zigtruckapppush.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:132332477934:android:78b7ec02cee6db52f682ff",
+        "android_client_info": {
+          "package_name": "com.zigtruck.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgqKAxeqS-Ow_yeL128-oCIJ_tvIalxgI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:132332477934:android:a3c9798b8a2b7fa7f682ff",
+        "android_client_info": {
+          "package_name": "com.zigtruck.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgqKAxeqS-Ow_yeL128-oCIJ_tvIalxgI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

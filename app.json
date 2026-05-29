@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "직트럭",
+    "slug": "ZigtruckApp",
+    "version": "1.0.9",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "zigtruckapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "versionCode": 18,
+      "package": "com.zigtruck.android",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#5B4FD9",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
+      },
+      "softwareKeyboardLayoutMode": "resize",
+      "edgeToEdgeEnabled": false,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/push/ic_stat_logo.png",
+          "color": "#397AFF",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "계약서 이미지를 갤러리에 저장하기 위해 사진 접근 권한이 필요합니다.",
+          "savePhotosPermission": "계약서 이미지를 갤러리에 저장하기 위해 권한이 필요합니다."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-intro.png",
+          "imageWidth": 280,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF",
+          "enableFullScreenImage_legacy": true,
+          "android": {
+            "backgroundColor": "#FFFFFF",
+            "resizeMode": "contain"
+          },
+          "dark": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
