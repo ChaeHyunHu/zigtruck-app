@@ -9,6 +9,7 @@ import { SALESTYPE } from "@/src/constants/products";
 import {
   getArea2Options,
   getArea3Options,
+  isOneTonRange,
   sanitizePowerInput,
 } from "@/src/features/products/edit/utils";
 import {
@@ -25,7 +26,7 @@ import {
   OptionPickerSheet,
 } from "@/src/features/sell-car/registration/OptionPickerSheet";
 import { getStepIndex } from "@/src/features/sell-car/registration/productUtils";
-import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
+import { SellCarRegistrationHeader } from "@/src/features/sell-car/registration/SellCarRegistrationHeader";
 import { SelectField } from "@/src/features/sell-car/registration/SelectField";
 import { StepBadge } from "@/src/features/sell-car/registration/StepBadge";
 import { useHorsepowerField } from "@/src/features/sell-car/registration/useHorsepowerField";
@@ -75,7 +76,7 @@ export default function AdditionalInfoFormScreen() {
     SALESTYPE[(productFormData?.type?.code as keyof typeof SALESTYPE) ?? "DIRECT"];
 
   const tonsValue = Number(productFormData?.tons ?? 0);
-  const isOneTon = tonsValue === 1;
+  const isOneTon = isOneTonRange(tonsValue);
 
   const area1 = (productFormData?.area1 as string | undefined) ?? "";
   const area2 = (productFormData?.area2 as string | undefined) ?? "";
@@ -347,7 +348,7 @@ export default function AdditionalInfoFormScreen() {
   return (
     <Screen variant="stack" className="flex-1 bg-white">
       <View className="flex-1">
-        <RegistrationHeader title={title} onBack={goToPreviousStep} />
+        <SellCarRegistrationHeader title={title} />
         <ScrollView
           className="flex-1 px-4 pt-6"
           keyboardShouldPersistTaps="always"

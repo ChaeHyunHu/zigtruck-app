@@ -13,18 +13,25 @@ const googleServicesSrc = path.join(root, "google-services.json");
 const googleServicesDest = path.join(root, "android/app/google-services.json");
 const rootGradlePath = path.join(root, "android/build.gradle");
 const appGradlePath = path.join(root, "android/app/build.gradle");
-const manifestPath = path.join(root, "android/app/src/main/AndroidManifest.xml");
+const manifestPath = path.join(
+  root,
+  "android/app/src/main/AndroidManifest.xml",
+);
 const pushIconAssetsDir = path.join(root, "assets/push");
 const resRoot = path.join(root, "android/app/src/main/res");
 const SMALL_ICON = "ic_stat_logo";
 const LARGE_ICON = "notification_large_icon";
-const colorIconSrc = fs.existsSync(path.join(pushIconAssetsDir, `${LARGE_ICON}.png`))
+const colorIconSrc = fs.existsSync(
+  path.join(pushIconAssetsDir, `${LARGE_ICON}.png`),
+)
   ? path.join(pushIconAssetsDir, `${LARGE_ICON}.png`)
   : path.join(root, "assets/images/icon.png");
 const DPI_FOLDERS = ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"];
 
-const REMOVED_EXPO_FCM = "expo.modules.notifications.service.ExpoFirebaseMessagingService";
-const REMOVED_RN_FCM_SERVICE = "io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService";
+const REMOVED_EXPO_FCM =
+  "expo.modules.notifications.service.ExpoFirebaseMessagingService";
+const REMOVED_RN_FCM_SERVICE =
+  "io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService";
 
 const MANIFEST_METAS = [
   '<meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="default" tools:replace="android:value"/>',
@@ -37,12 +44,16 @@ const MANIFEST_METAS = [
 
 function copyGoogleServices() {
   if (!fs.existsSync(googleServicesSrc)) {
-    console.warn("[patch-android-fcm] google-services.json not found at project root.");
+    console.warn(
+      "[patch-android-fcm] google-services.json not found at project root.",
+    );
     return;
   }
   fs.mkdirSync(path.dirname(googleServicesDest), { recursive: true });
   fs.copyFileSync(googleServicesSrc, googleServicesDest);
-  console.log("[patch-android-fcm] copied google-services.json -> android/app/");
+  console.log(
+    "[patch-android-fcm] copied google-services.json -> android/app/",
+  );
 }
 
 function copyDrawableSet(iconName, assetsSubdir) {
@@ -50,7 +61,11 @@ function copyDrawableSet(iconName, assetsSubdir) {
   const fallback = path.join(pushIconAssetsDir, `${iconName}.png`);
 
   for (const dpi of DPI_FOLDERS) {
-    const src = path.join(pushIconAssetsDir, `drawable-${dpi}`, `${iconName}.png`);
+    const src = path.join(
+      pushIconAssetsDir,
+      `drawable-${dpi}`,
+      `${iconName}.png`,
+    );
     if (!fs.existsSync(src)) {
       continue;
     }
@@ -76,7 +91,9 @@ function resolveLargeIconSource() {
   }
   try {
     const { execSync } = require("child_process");
-    const fileType = execSync(`file -b "${colorIconSrc}"`, { encoding: "utf8" }).trim();
+    const fileType = execSync(`file -b "${colorIconSrc}"`, {
+      encoding: "utf8",
+    }).trim();
     if (fileType.startsWith("PNG ")) {
       return colorIconSrc;
     }
@@ -106,7 +123,9 @@ function copyLargeIconFromAppIcon() {
     fs.mkdirSync(assetsDir, { recursive: true });
     const dest = path.join(destDir, `${LARGE_ICON}.png`);
     try {
-      execSync(`sips -z ${px} ${px} "${source}" --out "${dest}"`, { stdio: "ignore" });
+      execSync(`sips -z ${px} ${px} "${source}" --out "${dest}"`, {
+        stdio: "ignore",
+      });
       fs.copyFileSync(dest, path.join(assetsDir, `${LARGE_ICON}.png`));
     } catch {
       fs.copyFileSync(source, dest);
@@ -116,17 +135,27 @@ function copyLargeIconFromAppIcon() {
 
   fs.mkdirSync(path.join(resRoot, "drawable"), { recursive: true });
   fs.mkdirSync(pushIconAssetsDir, { recursive: true });
-  execSync(`sips -Z 192 "${source}" --out "${path.join(resRoot, "drawable", `${LARGE_ICON}.png`)}"`, {
-    stdio: "ignore",
-  });
-  fs.copyFileSync(path.join(resRoot, "drawable", `${LARGE_ICON}.png`), path.join(pushIconAssetsDir, `${LARGE_ICON}.png`));
-  console.log(`[patch-android-fcm] copied color large notification icon (${path.basename(source)})`);
+  execSync(
+    `sips -Z 192 "${source}" --out "${path.join(resRoot, "drawable", `${LARGE_ICON}.png`)}"`,
+    {
+      stdio: "ignore",
+    },
+  );
+  fs.copyFileSync(
+    path.join(resRoot, "drawable", `${LARGE_ICON}.png`),
+    path.join(pushIconAssetsDir, `${LARGE_ICON}.png`),
+  );
+  console.log(
+    `[patch-android-fcm] copied color large notification icon (${path.basename(source)})`,
+  );
 }
 
 function copyLargeIconDrawableSet() {
   const copied = copyDrawableSet(LARGE_ICON);
   if (copied > 0) {
-    console.log(`[patch-android-fcm] large icon drawable set (${copied} densities)`);
+    console.log(
+      `[patch-android-fcm] large icon drawable set (${copied} densities)`,
+    );
   }
 }
 
@@ -137,7 +166,9 @@ function copyNotificationIcons() {
       "[patch-android-fcm] ic_stat_logo missing. Add assets/push/drawable-*/ic_stat_logo.png from ic_stat_logo.zip",
     );
   } else {
-    console.log(`[patch-android-fcm] small icon ${SMALL_ICON} (${smallCopied} densities)`);
+    console.log(
+      `[patch-android-fcm] small icon ${SMALL_ICON} (${smallCopied} densities)`,
+    );
   }
   copyLargeIconFromAppIcon();
   copyLargeIconDrawableSet();
@@ -193,17 +224,37 @@ function ensureRemovalBlock(contents, tag, name) {
 }
 
 function removeNotificationTapActivity(contents) {
-  return contents.replace(/\s*<activity android:name="\.NotificationTapActivity"[\s\S]*?\/>\s*/g, "\n");
+  return contents.replace(
+    /\s*<activity android:name="\.NotificationTapActivity"[\s\S]*?\/>\s*/g,
+    "\n",
+  );
 }
 
 function ensurePushOpenIntentFilter(contents) {
-  const hasPrimary = contents.includes('android:name="com.zigtruck.android.PUSH_OPEN"');
-  const hasFlutter = contents.includes('android:name="FLUTTER_NOTIFICATION_CLICK"');
-  const hasExpoOpen = contents.includes('android:name="expo.modules.notifications.OPEN_APP_ACTION"');
+  const hasPrimary = contents.includes(
+    'android:name="com.zigtruck.android.PUSH_OPEN"',
+  );
+  const hasFlutter = contents.includes(
+    'android:name="FLUTTER_NOTIFICATION_CLICK"',
+  );
+  const hasExpoOpen = contents.includes(
+    'android:name="expo.modules.notifications.OPEN_APP_ACTION"',
+  );
   const hasLegacy1 = contents.includes('android:name=".MainActivity"');
-  const hasLegacy2 = contents.includes('android:name="com.zigtruck.app.MainActivity"');
-  const hasViewDefaultOnly = contents.includes('<intent-filter>\n        <action android:name="android.intent.action.VIEW"/>\n        <category android:name="android.intent.category.DEFAULT"/>\n      </intent-filter>');
-  if (hasPrimary && hasFlutter && hasExpoOpen && hasLegacy1 && hasLegacy2 && hasViewDefaultOnly) {
+  const hasLegacy2 = contents.includes(
+    'android:name="com.zigtruck.app.MainActivity"',
+  );
+  const hasViewDefaultOnly = contents.includes(
+    '<intent-filter>\n        <action android:name="android.intent.action.VIEW"/>\n        <category android:name="android.intent.category.DEFAULT"/>\n      </intent-filter>',
+  );
+  if (
+    hasPrimary &&
+    hasFlutter &&
+    hasExpoOpen &&
+    hasLegacy1 &&
+    hasLegacy2 &&
+    hasViewDefaultOnly
+  ) {
     return contents;
   }
   let next = contents.replace(
@@ -216,7 +267,9 @@ function ensurePushOpenIntentFilter(contents) {
       `$1\n      <intent-filter>\n        <action android:name="FLUTTER_NOTIFICATION_CLICK"/>\n        <category android:name="android.intent.category.DEFAULT"/>\n      </intent-filter>`,
     );
   }
-  if (!next.includes('android:name="expo.modules.notifications.OPEN_APP_ACTION"')) {
+  if (
+    !next.includes('android:name="expo.modules.notifications.OPEN_APP_ACTION"')
+  ) {
     next = next.replace(
       /(<action android:name="com\.zigtruck\.android\.PUSH_OPEN"\/>\s*<category android:name="android\.intent\.category\.DEFAULT"\/>\s*<\/intent-filter>)/,
       `$1\n      <intent-filter>\n        <action android:name="expo.modules.notifications.OPEN_APP_ACTION"/>\n        <category android:name="android.intent.category.DEFAULT"/>\n      </intent-filter>`,
@@ -234,7 +287,11 @@ function ensurePushOpenIntentFilter(contents) {
       `$1\n      <intent-filter>\n        <action android:name="com.zigtruck.app.MainActivity"/>\n        <category android:name="android.intent.category.DEFAULT"/>\n      </intent-filter>`,
     );
   }
-  if (!next.includes('<intent-filter>\n        <action android:name="android.intent.action.VIEW"/>\n        <category android:name="android.intent.category.DEFAULT"/>\n      </intent-filter>')) {
+  if (
+    !next.includes(
+      '<intent-filter>\n        <action android:name="android.intent.action.VIEW"/>\n        <category android:name="android.intent.category.DEFAULT"/>\n      </intent-filter>',
+    )
+  ) {
     next = next.replace(
       /(<action android:name="com\.zigtruck\.android\.PUSH_OPEN"\/>\s*<category android:name="android\.intent\.category\.DEFAULT"\/>\s*<\/intent-filter>)/,
       `$1\n      <intent-filter>\n        <action android:name="android.intent.action.VIEW"/>\n        <category android:name="android.intent.category.DEFAULT"/>\n      </intent-filter>`,
@@ -283,7 +340,9 @@ function removeNotificationColorMeta(contents) {
     '    <meta-data android:name="com.google.firebase.messaging.default_notification_color" tools:node="remove"/>\n';
   if (!next.includes("default_notification_color")) {
     next = next.replace("  </application>", `${block}  </application>`);
-  } else if (!next.includes('default_notification_color" tools:node="remove"')) {
+  } else if (
+    !next.includes('default_notification_color" tools:node="remove"')
+  ) {
     next = next.replace(
       /<meta-data android:name="com\.google\.firebase\.messaging\.default_notification_color"[^>]*\/>/,
       block.trim(),
@@ -318,7 +377,9 @@ function patchManifest() {
   contents = removeNotificationColorMeta(contents);
 
   fs.writeFileSync(manifestPath, contents);
-  console.log("[patch-android-fcm] manifest patched (small + large icon, delegation off)");
+  console.log(
+    "[patch-android-fcm] manifest patched (small + large icon, delegation off)",
+  );
 }
 
 copyGoogleServices();

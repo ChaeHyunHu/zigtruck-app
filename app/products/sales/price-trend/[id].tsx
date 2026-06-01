@@ -18,7 +18,7 @@ import {
   formatRegistrationTruckTitle,
   getStepIndex,
 } from "@/src/features/sell-car/registration/productUtils";
-import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
+import { SellCarRegistrationHeader } from "@/src/features/sell-car/registration/SellCarRegistrationHeader";
 import { StepBadge } from "@/src/features/sell-car/registration/StepBadge";
 import { useScreenInsets } from "@/src/hooks/useScreenInsets";
 
@@ -51,7 +51,7 @@ export default function PriceTrendScreen() {
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
-      <RegistrationHeader title={title} />
+      <SellCarRegistrationHeader title={title} />
       <ScrollView
         className="flex-1 px-4 pt-6"
         contentContainerStyle={{ paddingBottom: scrollBottomPadding }}

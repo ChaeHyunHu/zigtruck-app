@@ -8,7 +8,7 @@ import { SALESTYPE } from "@/src/constants/products";
 import { DualFooterButtons } from "@/src/features/sell-car/registration/DualFooterButtons";
 import { usePatchProduct, useRegistrationProduct } from "@/src/features/sell-car/registration/hooks";
 import { getStepIndex } from "@/src/features/sell-car/registration/productUtils";
-import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
+import { SellCarRegistrationHeader } from "@/src/features/sell-car/registration/SellCarRegistrationHeader";
 import { StepBadge } from "@/src/features/sell-car/registration/StepBadge";
 import { getTonnageErrorMessage } from "@/src/features/sell-car/registration/validation";
 
@@ -41,7 +41,7 @@ export default function TonsFormScreen() {
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
-      <RegistrationHeader title={title} />
+      <SellCarRegistrationHeader title={title} />
       <KeyboardAwareScrollView className="flex-1 px-4 pt-6" footerInset={88}>
         <View className="flex-row items-start justify-between pt-6">
           <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">

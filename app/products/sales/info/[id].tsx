@@ -21,7 +21,7 @@ import {
   OriginInfoTabContent,
   OriginInfoTabs,
 } from "@/src/features/sell-car/registration/OriginInfoSections";
-import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
+import { SellCarRegistrationHeader } from "@/src/features/sell-car/registration/SellCarRegistrationHeader";
 import type { RegistrationProduct } from "@/src/features/sell-car/registration/types";
 import { useProductRegistration } from "@/src/providers/ProductRegistrationProvider";
 
@@ -86,7 +86,7 @@ export default function ProductOriginInfoScreen() {
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
-      <RegistrationHeader title={SALESTYPE[salesType]} />
+      <SellCarRegistrationHeader title={SALESTYPE[salesType]} />
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 120 }}>
         <View className="px-4 pt-[60px]">

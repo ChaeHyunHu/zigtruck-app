@@ -9,12 +9,8 @@ import {
 } from "@/src/features/sell-car/registration/productUtils";
 import type { RegistrationProduct } from "@/src/features/sell-car/registration/types";
 import { LoginRequiredView } from "@/src/components/auth/LoginRequiredView";
-import {
-  BottomSheet,
-  BottomSheetHeader,
-} from "@/src/components/common/BottomSheet";
-import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
+import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { Screen } from "@/src/components/common/Screen";
 import {
   PRODUCT_STATUS_COMPLETE,
@@ -22,6 +18,11 @@ import {
   PRODUCT_STATUS_SALE,
 } from "@/src/constants/products";
 import { IMAGE_BASE_URL } from "@/src/constants/url";
+import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEditOptionSheet";
+import {
+  ProductStatusBadge,
+  PRODUCT_STATUS_DESC,
+} from "@/src/features/products/productStatusBadge";
 import { formatPrice } from "@/src/features/home/utils";
 import { InlineProductPriceEditor } from "@/src/features/products/InlineProductPriceEditor";
 import { PauseSaleModal } from "@/src/features/products/PauseSaleModal";
@@ -52,14 +53,15 @@ import React, {
 import {
   ActivityIndicator,
   AppState,
+  BackHandler,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BEFORE_SALE = "BEFORE_SALE";
 const SALE = "SALE";
@@ -200,7 +202,6 @@ const formatYYYYMMDD = (value?: string) => {
 
 export default function ManageScreen() {
   const { fabListPaddingBottom } = useScreenInsets();
-  const { bottom: safeBottom } = useSafeAreaInsets();
   const { alert, confirm } = useAppDialog();
   const { isAuthenticated, isInitializing, token, memberId } = useAuth();
   const isFocused = useIsFocused();
@@ -225,6 +226,7 @@ export default function ManageScreen() {
   const [editingPriceValue, setEditingPriceValue] = useState("");
   const [priceReduceModalOpen, setPriceReduceModalOpen] = useState(false);
   const pendingPriceSaveIdRef = useRef<number | null>(null);
+  const pauseTargetProductIdRef = useRef<number | null>(null);
   const [isSavingPrice, setIsSavingPrice] = useState(false);
 
   const [menuProductId, setMenuProductId] = useState<number | null>(null);
@@ -282,6 +284,41 @@ export default function ManageScreen() {
     }
     return [];
   }, [statusSheetProduct?.status?.code]);
+
+  const menuProduct = useMemo(
+    () => myProducts.find((item) => item.id === menuProductId) ?? null,
+    [myProducts, menuProductId],
+  );
+
+  const productMenuItems = useMemo(() => {
+    const items = [
+      {
+        label: "번호판 관리",
+        onPress: () => {
+          if (menuProductId == null) return;
+          router.push({
+            pathname: "/product/license-plate/[id]",
+            params: { id: String(menuProductId) },
+          });
+        },
+      },
+    ];
+
+    if (menuProduct?.status?.code !== PRODUCT_STATUS_COMPLETE) {
+      items.unshift({
+        label: "수정하기",
+        onPress: () => {
+          if (menuProductId == null) return;
+          router.push({
+            pathname: "/product/edit/[id]",
+            params: { id: String(menuProductId) },
+          });
+        },
+      });
+    }
+
+    return items;
+  }, [menuProduct?.status?.code, menuProductId]);
 
   const loadMyProducts = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -418,14 +455,14 @@ export default function ManageScreen() {
       if (data.status?.code === ORIGIN_DATA_REGISTER) {
         router.push({
           pathname: "/products/sales/info/[id]",
-          params: { id: String(productId) },
+          params: { id: String(productId), from: "manage" },
         });
         return;
       }
       router.push({
         pathname:
           `/products/sales/${step}/[id]` as "/products/sales/model/[id]",
-        params: { id: String(productId) },
+        params: { id: String(productId), from: "manage" },
       });
     } catch {
       alert({ title: "오류", message: "등록 정보를 불러오지 못했습니다." });
@@ -495,7 +532,10 @@ export default function ManageScreen() {
             item.id === productId
               ? {
                   ...item,
-                  status: responseData?.status ?? { code: nextStatus },
+                  status: responseData?.status ?? {
+                    code: nextStatus,
+                    desc: PRODUCT_STATUS_DESC[nextStatus],
+                  },
                 }
               : item,
           ),
@@ -523,27 +563,32 @@ export default function ManageScreen() {
 
   const onConfirmPause = useCallback(
     async (pauseReason: string) => {
-      if (!statusSheetProductId) return;
+      const productId = pauseTargetProductIdRef.current;
+      if (!productId) return;
       try {
         setIsChangingStatus(true);
         const response = await patchProductPause({
-          productId: statusSheetProductId,
+          productId,
           pauseReason,
         });
         const responseData = response.data as ProductDetailResponse;
         setMyProducts((prev) =>
           prev.map((item) =>
-            item.id === statusSheetProductId
+            item.id === productId
               ? {
                   ...item,
-                  status: responseData?.status ?? { code: PRODUCT_STATUS_PAUSE },
+                  status: responseData?.status ?? {
+                    code: PRODUCT_STATUS_PAUSE,
+                    desc: PRODUCT_STATUS_DESC[PRODUCT_STATUS_PAUSE],
+                  },
                 }
               : item,
           ),
         );
         setShowPauseModal(false);
         setStatusSheetProductId(null);
-        invalidateProductCaches(statusSheetProductId);
+        pauseTargetProductIdRef.current = null;
+        invalidateProductCaches(productId);
         alert({ title: "완료", message: "판매중지로 변경되었어요." });
       } catch {
         alert({ title: "오류", message: "상태 변경에 실패했습니다." });
@@ -551,12 +596,13 @@ export default function ManageScreen() {
         setIsChangingStatus(false);
       }
     },
-    [alert, statusSheetProductId],
+    [alert],
   );
 
   const onPressStatusMenu = useCallback(
     (nextStatus: string) => {
-      if (!statusSheetProductId) return;
+      const productId = statusSheetProductId;
+      if (!productId) return;
       if (nextStatus === PRODUCT_STATUS_COMPLETE) {
         confirm({
           title: "상태 변경",
@@ -564,15 +610,16 @@ export default function ManageScreen() {
             "판매 완료로 상태를 변경할까요?\n\n* 판매완료 처리 후 판매중으로 상태 변경이 불가능합니다.",
           leftLabel: "취소",
           rightLabel: "변경",
-          onRight: () => void onChangeStatus(statusSheetProductId, nextStatus),
+          onRight: () => void onChangeStatus(productId, nextStatus),
         });
         return;
       }
       if (nextStatus === PRODUCT_STATUS_PAUSE) {
+        pauseTargetProductIdRef.current = productId;
         setShowPauseModal(true);
         return;
       }
-      void onChangeStatus(statusSheetProductId, nextStatus);
+      void onChangeStatus(productId, nextStatus);
     },
     [confirm, onChangeStatus, statusSheetProductId],
   );
@@ -810,22 +857,12 @@ export default function ManageScreen() {
 
                       <View className="flex-1 pr-2">
                         <View className="flex-row items-center gap-3">
-                          <Pressable
-                            disabled={!canOpenStatusSheet}
+                          <ProductStatusBadge
+                            statusCode={item.status?.code}
+                            statusDesc={item.status?.desc}
+                            canChangeStatus={canOpenStatusSheet}
                             onPress={() => setStatusSheetProductId(item.id)}
-                            className="flex-row items-center rounded-[8px] bg-primary-10 px-2 py-1"
-                          >
-                            <Text className="pr-1 text-[14px] font-bold text-white">
-                              {item.status?.desc ?? "판매중"}
-                            </Text>
-                            {canOpenStatusSheet ? (
-                              <Ionicons
-                                name="chevron-down"
-                                size={14}
-                                color="#fff"
-                              />
-                            ) : null}
-                          </Pressable>
+                          />
                           <Text className="rounded-md bg-gray100 px-2 py-1 text-[14px] font-bold text-[#1f8f5f]">
                             {item.salesType?.desc ?? "직거래"}
                           </Text>
@@ -880,7 +917,7 @@ export default function ManageScreen() {
                                 반려 사유 확인
                               </Text>
                             </Pressable>
-                          ) : (
+                          ) : item.status?.code !== PRODUCT_STATUS_COMPLETE ? (
                             <Pressable
                               onPress={() => setInstantSaleProductId(item.id)}
                             >
@@ -888,7 +925,7 @@ export default function ManageScreen() {
                                 직트럭에 즉시 매각
                               </Text>
                             </Pressable>
-                          )}
+                          ) : null}
                         </Pressable>
                       </View>
 
@@ -948,28 +985,7 @@ export default function ManageScreen() {
       <MenuBottomSheet
         visible={menuProductId !== null}
         onClose={() => setMenuProductId(null)}
-        items={[
-          {
-            label: "수정하기",
-            onPress: () => {
-              if (menuProductId == null) return;
-              router.push({
-                pathname: "/product/edit/[id]",
-                params: { id: String(menuProductId) },
-              });
-            },
-          },
-          {
-            label: "번호판 관리",
-            onPress: () => {
-              if (menuProductId == null) return;
-              router.push({
-                pathname: "/product/license-plate/[id]",
-                params: { id: String(menuProductId) },
-              });
-            },
-          },
-        ]}
+        items={productMenuItems}
       />
 
       <ConfirmDialog
@@ -1003,40 +1019,27 @@ export default function ManageScreen() {
         </View>
       </ConfirmDialog>
 
-      <BottomSheet
-        visible={statusSheetProductId !== null}
-        onClose={() => setStatusSheetProductId(null)}
-        sheetHeight={56 + statusMenuItems.length * 57 + Math.max(safeBottom, 12)}
-        contentLayout="hug"
-      >
-        <View
-          className="bg-white px-4"
-          style={{ paddingBottom: Math.max(safeBottom, 12) }}
-        >
-          <BottomSheetHeader
-            title="상태 변경"
-            onClose={() => setStatusSheetProductId(null)}
-            bordered={false}
-          />
-          {statusMenuItems.map((item) => (
-            <Pressable
-              key={item.code}
-              disabled={isChangingStatus}
-              onPress={() => onPressStatusMenu(item.code)}
-              className="border-t border-gray200 py-4"
-            >
-              <Text className="text-[16px] font-semibold text-gray900">
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </BottomSheet>
+      {statusSheetProductId !== null && !showPauseModal ? (
+        <ProductEditOptionSheet
+          visible
+          title="상태 변경"
+          options={statusMenuItems.map((item) => ({
+            code: item.code,
+            desc: item.label,
+          }))}
+          selectedCode={statusSheetProduct?.status?.code}
+          onClose={() => setStatusSheetProductId(null)}
+          onSelect={(item) => onPressStatusMenu(item.code)}
+        />
+      ) : null}
 
       <PauseSaleModal
         visible={showPauseModal}
         loading={isChangingStatus}
-        onClose={() => setShowPauseModal(false)}
+        onClose={() => {
+          setShowPauseModal(false);
+          pauseTargetProductIdRef.current = null;
+        }}
         onConfirm={onConfirmPause}
       />
 

@@ -4,6 +4,7 @@ import { LoginRequiredView } from "@/src/components/auth/LoginRequiredView";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  BackHandler,
   Modal,
   Pressable,
   Text,
@@ -28,6 +29,7 @@ import {
   normalizeCarRegisterResponse,
 } from "@/src/features/sell-car/registration/productUtils";
 import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
+import { useRegistrationExitGuard } from "@/src/features/sell-car/registration/RegistrationExitGuard";
 import type { OwnerErrorInfo, OwnerInfo } from "@/src/features/sell-car/registration/types";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useProductRegistration } from "@/src/providers/ProductRegistrationProvider";
@@ -53,15 +55,28 @@ export default function ProductSalesEntryScreen() {
     onConfirm: () => void;
   } | null>(null);
 
+  const { requestExit } = useRegistrationExitGuard();
+
   useEffect(() => {
     resetRegistration();
     setSalesType(salesType);
   }, [resetRegistration, salesType, setSalesType]);
 
   const goPrev = useCallback(() => {
-    if (pageNum === 1) router.back();
-    else setPageNum((p) => p - 1);
-  }, [pageNum]);
+    if (pageNum === 1) {
+      requestExit();
+      return;
+    }
+    setPageNum((p) => p - 1);
+  }, [pageNum, requestExit]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      goPrev();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [goPrev]);
 
   const navigateToInfo = useCallback(
     (id: number) => {

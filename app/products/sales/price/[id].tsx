@@ -18,7 +18,7 @@ import {
 import { LicenseSaleChoiceGroup } from "@/src/features/sell-car/registration/LicenseSaleChoiceGroup";
 import { PriceInputField } from "@/src/features/sell-car/registration/PriceInputField";
 import { getStepIndex } from "@/src/features/sell-car/registration/productUtils";
-import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
+import { SellCarRegistrationHeader } from "@/src/features/sell-car/registration/SellCarRegistrationHeader";
 import { SalesLicenseInfoSheet } from "@/src/features/sell-car/registration/SalesLicenseInfoSheet";
 import { StepBadge } from "@/src/features/sell-car/registration/StepBadge";
 import { syncProductLicense } from "@/src/features/sell-car/registration/syncProductLicense";
@@ -137,7 +137,7 @@ export default function PriceFormScreen() {
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
-      <RegistrationHeader title={title} />
+      <SellCarRegistrationHeader title={title} />
       <ScrollView
         className="flex-1 px-4 pt-6"
         keyboardShouldPersistTaps="handled"

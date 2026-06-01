@@ -7,10 +7,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Animated,
+  BackHandler,
   Dimensions,
   Easing,
   FlatList,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -180,6 +182,17 @@ export default function HomeScreen() {
   >([]);
   const badgeScale = useRef(new Animated.Value(1)).current;
   const badgeRipple = useRef(new Animated.Value(0)).current;
+
+  useFocusEffect(
+    useCallback(() => {
+      if (Platform.OS !== "android") return;
+      const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+        BackHandler.exitApp();
+        return true;
+      });
+      return () => subscription.remove();
+    }, []),
+  );
 
   const homeBanners = useMemo(
     () => banners.filter((banner) => banner.bannerLocation?.code === "HOME"),

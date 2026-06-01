@@ -12,7 +12,7 @@ import {
   OptionPickerSheet,
 } from "@/src/features/sell-car/registration/OptionPickerSheet";
 import { getStepIndex } from "@/src/features/sell-car/registration/productUtils";
-import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
+import { SellCarRegistrationHeader } from "@/src/features/sell-car/registration/SellCarRegistrationHeader";
 import { StepBadge } from "@/src/features/sell-car/registration/StepBadge";
 import { UnderlineSelectField } from "@/src/features/sell-car/registration/UnderlineSelectField";
 import { validateLoadedInnerLength } from "@/src/features/sell-car/registration/validation";
@@ -88,7 +88,7 @@ export default function LoadedFormScreen() {
   return (
     <Screen variant="stack" className="flex-1 bg-white">
       <View className="flex-1">
-        <RegistrationHeader title={title} />
+        <SellCarRegistrationHeader title={title} />
         <ScrollView
           className="flex-1 px-4 pt-6"
           keyboardShouldPersistTaps="always"

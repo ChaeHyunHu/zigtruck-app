@@ -1,7 +1,3 @@
-import {
-  BottomSheet,
-  BottomSheetHeader,
-} from "@/src/components/common/BottomSheet";
 import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
 import { Screen } from "@/src/components/common/Screen";
 import { Ionicons } from "@expo/vector-icons";
@@ -39,8 +35,13 @@ import {
 import { IMAGE_BASE_URL } from "@/src/constants/url";
 import { formatPrice } from "@/src/features/home/utils";
 import { findInterestProductIdByProductId } from "@/src/features/interest-products/interestProductService";
+import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEditOptionSheet";
 import { LoanCalculator } from "@/src/features/products/LoanCalculator";
 import { PauseSaleModal } from "@/src/features/products/PauseSaleModal";
+import {
+  ProductStatusBadge,
+  PRODUCT_STATUS_DESC,
+} from "@/src/features/products/productStatusBadge";
 import { ProductDetailBuyerFooter } from "@/src/features/products/ProductDetailBuyerFooter";
 import { ProductDetailLicenseNotice } from "@/src/features/products/ProductDetailLicenseNotice";
 import { ProductDetailPriceTrendSection } from "@/src/features/products/ProductDetailPriceTrendSection";
@@ -154,7 +155,10 @@ export default function ProductDetailScreen() {
           prev
             ? {
                 ...prev,
-                status: responseData?.status ?? { code: nextStatus },
+                status: responseData?.status ?? {
+                  code: nextStatus,
+                  desc: PRODUCT_STATUS_DESC[nextStatus],
+                },
               }
             : prev,
         );
@@ -192,7 +196,10 @@ export default function ProductDetailScreen() {
           prev
             ? {
                 ...prev,
-                status: responseData?.status ?? { code: PRODUCT_STATUS_PAUSE },
+                status: responseData?.status ?? {
+                  code: PRODUCT_STATUS_PAUSE,
+                  desc: PRODUCT_STATUS_DESC[PRODUCT_STATUS_PAUSE],
+                },
               }
             : prev,
         );
@@ -364,6 +371,14 @@ export default function ProductDetailScreen() {
     }, 320);
   }, [detail]);
 
+  const productMoreMenuItems = useMemo(() => {
+    const items = [{ label: "번호판 관리", onPress: goToLicensePlate }];
+    if (statusCode !== PRODUCT_STATUS_COMPLETE) {
+      items.unshift({ label: "수정하기", onPress: goToEdit });
+    }
+    return items;
+  }, [goToEdit, goToLicensePlate, statusCode]);
+
   const headerTitle = toText(detail?.truckNumber ?? detail?.vehicleNumber, "");
 
   return (
@@ -436,53 +451,20 @@ export default function ProductDetailScreen() {
 
             <View className="px-4 pt-5">
               {isMine ? (
-                canChangeStatus ? (
-                  <Pressable
-                    onPress={() => setShowStatusSheet(true)}
-                    className={`flex-row items-center self-start rounded-[10px] px-3 py-1.5 ${
-                      statusCode === PRODUCT_STATUS_PAUSE
-                        ? "border border-danger bg-white"
-                        : "bg-primary-10"
-                    }`}
-                  >
-                    <Text
-                      className={`text-[14px] font-bold ${
-                        statusCode === PRODUCT_STATUS_PAUSE
-                          ? "text-danger"
-                          : "text-white"
-                      }`}
-                    >
-                      {enumDesc(detail.status) ?? "판매중"}
-                    </Text>
-                    <Ionicons
-                      name="chevron-down"
-                      size={14}
-                      color={
-                        statusCode === PRODUCT_STATUS_PAUSE ? "#ef4444" : "#fff"
-                      }
-                      style={{ marginLeft: 4 }}
-                    />
-                  </Pressable>
+                latestApprovalCode === APPROVAL_STATUS_WAITING ? (
+                  <ProductStatusBadge
+                    size="detail"
+                    statusCode={statusCode}
+                    statusDesc="승인 대기중"
+                  />
                 ) : (
-                  <View
-                    className={`flex-row items-center self-start rounded-[10px] px-3 py-1.5 ${
-                      statusCode === PRODUCT_STATUS_PAUSE
-                        ? "border border-danger bg-white"
-                        : "bg-primary-10"
-                    }`}
-                  >
-                    <Text
-                      className={`text-[14px] font-bold ${
-                        statusCode === PRODUCT_STATUS_PAUSE
-                          ? "text-danger"
-                          : "text-white"
-                      }`}
-                    >
-                      {latestApprovalCode === APPROVAL_STATUS_WAITING
-                        ? "승인 대기중"
-                        : (enumDesc(detail.status) ?? "판매중")}
-                    </Text>
-                  </View>
+                  <ProductStatusBadge
+                    size="detail"
+                    statusCode={statusCode}
+                    statusDesc={enumDesc(detail.status) ?? undefined}
+                    canChangeStatus={canChangeStatus}
+                    onPress={() => setShowStatusSheet(true)}
+                  />
                 )
               ) : (
                 <View className="self-start rounded-md bg-[#e7f0ff] px-2.5 py-1">
@@ -615,43 +597,22 @@ export default function ProductDetailScreen() {
       <MenuBottomSheet
         visible={showMoreSheet}
         onClose={() => setShowMoreSheet(false)}
-        items={[
-          { label: "수정하기", onPress: goToEdit },
-          { label: "번호판 관리", onPress: goToLicensePlate },
-        ]}
+        items={productMoreMenuItems}
       />
 
-      <BottomSheet
-        visible={showStatusSheet}
-        onClose={() => setShowStatusSheet(false)}
-        sheetHeight={
-          56 + statusMenuItems.length * 57 + Math.max(bottomInset, 12)
-        }
-        contentLayout="hug"
-      >
-        <View
-          className="bg-white px-4"
-          style={{ paddingBottom: Math.max(bottomInset, 12) }}
-        >
-          <BottomSheetHeader
-            title="상태 변경"
-            onClose={() => setShowStatusSheet(false)}
-            bordered={false}
-          />
-          {statusMenuItems.map((item) => (
-            <Pressable
-              key={item.code}
-              disabled={isChangingStatus}
-              onPress={() => onPressStatusMenu(item.code)}
-              className="border-t border-gray200 py-4"
-            >
-              <Text className="text-[16px] font-semibold text-gray900">
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </BottomSheet>
+      {showStatusSheet && !showPauseModal ? (
+        <ProductEditOptionSheet
+          visible
+          title="상태 변경"
+          options={statusMenuItems.map((item) => ({
+            code: item.code,
+            desc: item.label,
+          }))}
+          selectedCode={statusCode}
+          onClose={() => setShowStatusSheet(false)}
+          onSelect={(item) => onPressStatusMenu(item.code)}
+        />
+      ) : null}
 
       <PauseSaleModal
         visible={showPauseModal}

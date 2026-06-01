@@ -8,7 +8,7 @@ import { AxisRadioBoxList } from "@/src/features/sell-car/registration/AxisRadio
 import { DualFooterButtons } from "@/src/features/sell-car/registration/DualFooterButtons";
 import { usePatchProduct, useRegistrationProduct } from "@/src/features/sell-car/registration/hooks";
 import { getStepIndex, isUnderFourTons } from "@/src/features/sell-car/registration/productUtils";
-import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
+import { SellCarRegistrationHeader } from "@/src/features/sell-car/registration/SellCarRegistrationHeader";
 import { StepBadge } from "@/src/features/sell-car/registration/StepBadge";
 import { useProductRegistration } from "@/src/providers/ProductRegistrationProvider";
 
@@ -51,7 +51,7 @@ export default function AxisFormScreen() {
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
-      <RegistrationHeader title={title} />
+      <SellCarRegistrationHeader title={title} />
       <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 24 }}>
         <View className="flex-row items-start justify-between pt-6">
           <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">

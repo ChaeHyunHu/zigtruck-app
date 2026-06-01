@@ -10,7 +10,6 @@ import {
   Text,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { createPurchaseAccompanyingServices } from "@/src/api/AdditionalServices/createAdditionalServices";
 import {
@@ -24,6 +23,10 @@ import { appColors } from "@/src/constants/colors";
 import { PurchaseAccompanyingGuideView } from "@/src/features/additional-services/components/PurchaseAccompanyingGuideView";
 import { REPRESENTATIVE_NUMBER } from "@/src/features/additional-services/constants";
 import { useMemberApplyFlag } from "@/src/features/additional-services/hooks/useMemberApplyFlag";
+import {
+  SERVICE_COMPLETED_BUTTON,
+  SERVICE_PRIMARY_BUTTON,
+} from "@/src/features/additional-services/serviceButtonStyles";
 import type { SelectedVehicleInfo } from "@/src/features/additional-services/types";
 import { useAuth } from "@/src/hooks/useAuth";
 import { promptLogin } from "@/src/lib/authNavigation";
@@ -42,7 +45,6 @@ export function PurchaseAccompanyingServiceBottomSheet({
   onClose,
   initialVehicle,
 }: PurchaseAccompanyingServiceBottomSheetProps) {
-  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const sheetModalRef = useRef<BottomSheetRef>(null);
   const dismissSheet = useCallback(() => sheetModalRef.current?.dismiss(), []);
@@ -143,6 +145,10 @@ export function PurchaseAccompanyingServiceBottomSheet({
       ? "서비스 신청하기"
       : "아래로 내리기";
 
+  const footerButtonStyle = isAlreadyApply
+    ? SERVICE_COMPLETED_BUTTON
+    : SERVICE_PRIMARY_BUTTON;
+
   return (
     <>
       <BottomSheet
@@ -199,9 +205,9 @@ export function PurchaseAccompanyingServiceBottomSheet({
             <View className="absolute left-0 right-0 top-[-16px] h-4 bg-gray200 opacity-90" />
             <BasicButton
               name={footerLabel}
-              bgColor={appColors.primary}
-              borderColor={appColors.primary}
-              textColor="#ffffff"
+              bgColor={footerButtonStyle.backgroundColor}
+              borderColor={footerButtonStyle.borderColor}
+              textColor={footerButtonStyle.textColor}
               height={48}
               onClick={
                 isAlreadyApply || submitting
