@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Redirect } from "expo-router";
+import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -40,24 +40,21 @@ export default function Index() {
     }
   }, [isInitializing, storageReady]);
 
-  if (isInitializing || !storageReady) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#FFFFFF",
-        }}
-      >
-        <ActivityIndicator color="#2563EB" />
-      </View>
-    );
-  }
+  useEffect(() => {
+    if (isInitializing || !storageReady) return;
+    router.replace(onboardingDone ? "/(tabs)" : "/intro");
+  }, [isInitializing, onboardingDone, storageReady]);
 
-  if (!onboardingDone) {
-    return <Redirect href="/intro" />;
-  }
-
-  return <Redirect href="/(tabs)" />;
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#FFFFFF",
+      }}
+    >
+      <ActivityIndicator color="#2563EB" />
+    </View>
+  );
 }

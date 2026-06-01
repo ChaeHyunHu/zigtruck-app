@@ -1,12 +1,11 @@
-import * as Linking from "expo-linking";
 import type { Href } from "expo-router";
-import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef } from "react";
-import { AppState } from "react-native";
+import { AppState, DeviceEventEmitter, Platform } from "react-native";
 
 import { useAuth } from "@/src/hooks/useAuth";
 import {
   consumePendingPushRoute,
+  navigateFromPushNotification,
   resolveHrefFromDeepLinkUrl,
   resolveHrefFromPushData,
   setPendingPushRoute,
@@ -18,81 +17,87 @@ import {
 } from "@/src/lib/pushNotifications";
 import { consumeAndroidLaunchPushUrl } from "@/src/lib/zigtruckNotifications";
 
+const ANDROID_PUSH_LAUNCH_EVENT = "ZigtruckPushLaunch";
+
 function pushLog(...args: unknown[]) {
   if (__DEV__) {
     console.log("[push-nav]", ...args);
   }
 }
 
-function navigateToRoute(href: Href) {
-  const path = String(href);
-  pushLog("navigateToRoute", path);
-  try {
-    if (path.startsWith("/(tabs)") || path === "/(tabs)") {
-      router.replace(href);
-      return;
-    }
-    router.push(href);
-  } catch {
-    setPendingPushRoute(href);
-  }
-}
-
-function navigateFromPushUrl(url: string | null) {
-  if (!url) return;
-  pushLog("navigateFromPushUrl", url);
+function navigateFromStoredPushUrl(
+  url: string | null,
+  options?: { coldStart?: boolean },
+): boolean {
+  if (!url) return false;
+  pushLog("navigateFromStoredPushUrl", url, options);
   const href = resolveHrefFromDeepLinkUrl(url);
-  if (href) {
-    navigateToRoute(href);
-  }
+  if (!href) return false;
+  return navigateFromPushNotification(href, options);
 }
 
 export function PushNotificationBootstrap() {
   const { isInitializing, syncPushToken } = useAuth();
-  const lastOpenedRouteRef = useRef<string | null>(null);
   const appReadyRef = useRef(false);
+  const handlingPushRef = useRef(false);
 
-  const openFromPushData = useCallback((data: Record<string, unknown> | undefined) => {
-    pushLog("openFromPushData", data);
-    const href = resolveHrefFromPushData(data);
-    if (!href) return;
-
-    const routeKey = String(href);
-    if (lastOpenedRouteRef.current === routeKey) return;
-    lastOpenedRouteRef.current = routeKey;
-    setTimeout(() => {
-      if (lastOpenedRouteRef.current === routeKey) {
-        lastOpenedRouteRef.current = null;
+  const handleAndroidNotificationLaunch = useCallback(
+    async (options?: { coldStart?: boolean }): Promise<boolean> => {
+      if (handlingPushRef.current) {
+        return false;
       }
-    }, 3000);
 
-    if (!appReadyRef.current || isInitializing) {
-      setPendingPushRoute(href);
-      return;
-    }
+      const url = await consumeAndroidLaunchPushUrl();
+      pushLog("consumeAndroidLaunchPushUrl", url);
+      if (!url) return false;
 
-    navigateToRoute(href);
-  }, [isInitializing]);
+      const href = resolveHrefFromDeepLinkUrl(url);
+      if (!href) return false;
+
+      if (!appReadyRef.current || isInitializing) {
+        setPendingPushRoute(href);
+        return false;
+      }
+
+      handlingPushRef.current = true;
+      try {
+        return navigateFromStoredPushUrl(url, options);
+      } finally {
+        setTimeout(() => {
+          handlingPushRef.current = false;
+        }, 500);
+      }
+    },
+    [isInitializing],
+  );
+
+  const openFromPushData = useCallback(
+    (data: Record<string, unknown> | undefined) => {
+      pushLog("openFromPushData", data);
+      const href = resolveHrefFromPushData(data);
+      if (!href) return;
+
+      if (Platform.OS === "android") {
+        setPendingPushRoute(href);
+        if (appReadyRef.current && !isInitializing) {
+          void handleAndroidNotificationLaunch();
+        }
+        return;
+      }
+
+      if (!appReadyRef.current || isInitializing) {
+        setPendingPushRoute(href);
+        return;
+      }
+
+      navigateFromPushNotification(href);
+    },
+    [handleAndroidNotificationLaunch, isInitializing],
+  );
 
   const runSyncPushToken = useCallback(() => {
     void syncPushToken();
   }, [syncPushToken]);
-
-  const handleAndroidNotificationLaunch = useCallback(async () => {
-    const url = await consumeAndroidLaunchPushUrl();
-    pushLog("consumeAndroidLaunchPushUrl", url);
-    if (!url) return;
-
-    const href = resolveHrefFromDeepLinkUrl(url);
-    if (!href) return;
-
-    if (!appReadyRef.current || isInitializing) {
-      setPendingPushRoute(href);
-      return;
-    }
-
-    navigateToRoute(href);
-  }, [isInitializing]);
 
   useEffect(() => {
     runSyncPushToken();
@@ -107,8 +112,6 @@ export function PushNotificationBootstrap() {
       removeTokenListener = unsubscribe;
     });
 
-    void handleAndroidNotificationLaunch();
-
     const appStateSub = AppState.addEventListener("change", (state) => {
       if (state === "active") {
         runSyncPushToken();
@@ -116,9 +119,18 @@ export function PushNotificationBootstrap() {
       }
     });
 
+    const pushLaunchSub = DeviceEventEmitter.addListener(
+      ANDROID_PUSH_LAUNCH_EVENT,
+      () => {
+        pushLog("ZigtruckPushLaunch event");
+        void handleAndroidNotificationLaunch();
+      },
+    );
+
     return () => {
       removeTokenListener?.();
       appStateSub.remove();
+      pushLaunchSub.remove();
     };
   }, [handleAndroidNotificationLaunch, runSyncPushToken]);
 
@@ -127,6 +139,9 @@ export function PushNotificationBootstrap() {
     let removeFirebaseListener: (() => void) | undefined;
 
     void subscribeToNotificationResponses((response) => {
+      if (Platform.OS === "android") {
+        return;
+      }
       const data = response?.notification.request.content.data as
         | Record<string, unknown>
         | undefined;
@@ -154,41 +169,23 @@ export function PushNotificationBootstrap() {
   }, [openFromPushData]);
 
   useEffect(() => {
-    const handleUrl = (event: { url: string }) => {
-      navigateFromPushUrl(event.url);
-    };
-
-    const subscription = Linking.addEventListener("url", handleUrl);
-
-    void Linking.getInitialURL().then((url) => {
-      if (url) {
-        const href = resolveHrefFromDeepLinkUrl(url);
-        if (href) {
-          setPendingPushRoute(href);
-        }
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
-
-  useEffect(() => {
     if (isInitializing) return;
 
     appReadyRef.current = true;
 
-    const flushPending = () => {
+    const flushPending = async () => {
+      const handled = await handleAndroidNotificationLaunch({ coldStart: true });
+      if (handled) return;
+
       const pending = consumePendingPushRoute();
       if (pending) {
-        navigateToRoute(pending);
-        return;
+        navigateFromPushNotification(pending, { coldStart: true });
       }
-      void handleAndroidNotificationLaunch();
     };
 
-    const timer = setTimeout(flushPending, 400);
+    const timer = setTimeout(() => {
+      void flushPending();
+    }, 600);
     return () => clearTimeout(timer);
   }, [handleAndroidNotificationLaunch, isInitializing]);
 

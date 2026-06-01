@@ -452,16 +452,18 @@ export async function subscribeToNotificationResponses(
   const subscription =
     Notifications.addNotificationResponseReceivedListener(listener);
 
-  try {
-    const lastResponse = await Notifications.getLastNotificationResponseAsync();
-    const data = lastResponse?.notification.request.content.data as
-      | Record<string, unknown>
-      | undefined;
-    if (lastResponse && data && Object.keys(data).length > 0) {
-      listener(lastResponse);
+  if (Platform.OS !== "android") {
+    try {
+      const lastResponse = await Notifications.getLastNotificationResponseAsync();
+      const data = lastResponse?.notification.request.content.data as
+        | Record<string, unknown>
+        | undefined;
+      if (lastResponse && data && Object.keys(data).length > 0) {
+        listener(lastResponse);
+      }
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
   }
 
   return () => subscription.remove();
