@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { Alert, Keyboard, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
 import { SALESTYPE } from "@/src/constants/products";
@@ -25,7 +25,6 @@ export default function ModelFormScreen() {
   const { patch, saving } = usePatchProduct();
 
   const [pickerKey, setPickerKey] = useState<PickerKey | null>(null);
-  const [options, setOptions] = useState<OptionItem[]>([]);
 
   const isEtc = productFormData?.manufacturerCategories?.code === "ETC";
   const selectedModel = useMemo(() => {
@@ -44,34 +43,80 @@ export default function ModelFormScreen() {
   const title =
     SALESTYPE[(productFormData?.type?.code as keyof typeof SALESTYPE) ?? "DIRECT"];
 
-  const openPicker = (key: PickerKey) => {
-    if (!productEnum?.manufacturerAndModel) return;
-    setPickerKey(key);
-    if (key === "model") {
-      const models = productEnum.manufacturerAndModel
+  const pickerOptions = useMemo<OptionItem[]>(() => {
+    if (!pickerKey || !productEnum?.manufacturerAndModel) return [];
+
+    if (pickerKey === "model") {
+      return productEnum.manufacturerAndModel
         .filter(
           (item) =>
             item.manufacturerCategories.id ===
             Number(productFormData?.manufacturerCategories?.id),
         )
-        .flatMap((item) => item.model);
-      setOptions(models.map((m) => ({ code: String(m.id), desc: m.name })));
-    } else if (key === "manufacturerCategories" && isEtc) {
-      setOptions(
-        productEnum.manufacturerAndModel.map((item) => ({
+        .flatMap((item) => item.model)
+        .map((m) => ({ code: String(m.id), desc: m.name }));
+    }
+
+    if (pickerKey === "manufacturerCategories") {
+      return productEnum.manufacturerAndModel.map((item) => ({
+        code: String(item.manufacturerCategories.id),
+        desc: item.manufacturerCategories.name,
+      }));
+    }
+
+    if (pickerKey === "modelDetail" && selectedModel?.modelDetail) {
+      return selectedModel.modelDetail.map((d) => ({
+        code: String(d.code),
+        desc: String(d.desc),
+      }));
+    }
+
+    return [];
+  }, [
+    pickerKey,
+    productEnum,
+    productFormData?.manufacturerCategories?.id,
+    selectedModel,
+  ]);
+
+  const openPicker = useCallback(
+    (key: PickerKey) => {
+      if (!productEnum?.manufacturerAndModel) return;
+      Keyboard.dismiss();
+
+      if (key === "manufacturerCategories" && !isEtc) return;
+
+      let nextOptions: OptionItem[] = [];
+      if (key === "model") {
+        nextOptions = productEnum.manufacturerAndModel
+          .filter(
+            (item) =>
+              item.manufacturerCategories.id ===
+              Number(productFormData?.manufacturerCategories?.id),
+          )
+          .flatMap((item) => item.model)
+          .map((m) => ({ code: String(m.id), desc: m.name }));
+      } else if (key === "manufacturerCategories") {
+        nextOptions = productEnum.manufacturerAndModel.map((item) => ({
           code: String(item.manufacturerCategories.id),
           desc: item.manufacturerCategories.name,
-        })),
-      );
-    } else if (key === "modelDetail" && selectedModel?.modelDetail) {
-      setOptions(
-        selectedModel.modelDetail.map((d) => ({
+        }));
+      } else if (key === "modelDetail" && selectedModel?.modelDetail) {
+        nextOptions = selectedModel.modelDetail.map((d) => ({
           code: String(d.code),
           desc: String(d.desc),
-        })),
-      );
-    }
-  };
+        }));
+      }
+
+      if (nextOptions.length === 0) {
+        Alert.alert("안내", "선택 가능한 항목이 없습니다.");
+        return;
+      }
+
+      setPickerKey(key);
+    },
+    [isEtc, productEnum, productFormData?.manufacturerCategories?.id, selectedModel],
+  );
 
   const onSelect = (item: OptionItem) => {
     if (!productFormData || !pickerKey) return;
@@ -124,72 +169,90 @@ export default function ModelFormScreen() {
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
-      <RegistrationHeader title={title} />
-      <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 24 }}>
-        <View className="flex-row items-start justify-between pt-6">
-          <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">
-            제조사와 모델을{"\n"}선택해주세요.
-          </Text>
-          <StepBadge text={`${getStepIndex("model")}/9`} />
-        </View>
+      <View className="flex-1">
+        <RegistrationHeader title={title} />
+        <ScrollView
+          className="flex-1 px-4 pt-6"
+          keyboardShouldPersistTaps="always"
+          nestedScrollEnabled
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
+          <View className="flex-row items-start justify-between pt-6">
+            <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">
+              제조사와 모델을{"\n"}선택해주세요.
+            </Text>
+            <StepBadge text={`${getStepIndex("model")}/9`} />
+          </View>
 
-        <View className="mt-8 gap-8">
-          {isEtc ? (
-            <View className="rounded-[10px] bg-gray100 p-4">
-              <Text className="text-[13px] font-medium text-red-500">
-                * 기타(쌍용 외) 제조사에서 타 제조사로 변경 시 추후 수정이 불가능하니 유의해주세요.
-              </Text>
-            </View>
-          ) : null}
+          <View className="mt-8 gap-8">
+            {isEtc ? (
+              <View className="rounded-[10px] bg-gray100 p-4">
+                <Text className="text-[13px] font-medium text-red-500">
+                  * 기타(쌍용 외) 제조사에서 타 제조사로 변경 시 추후 수정이 불가능하니 유의해주세요.
+                </Text>
+              </View>
+            ) : null}
 
-          <SelectField
-            label="제조사"
-            value={productFormData?.manufacturerCategories?.name}
-            onPress={() => openPicker("manufacturerCategories")}
-            disabled={!isEtc}
-          />
-          <SelectField
-            label="모델"
-            value={productFormData?.model?.name}
-            onPress={() => openPicker("model")}
-          />
-          {hasModelDetail ? (
             <SelectField
-              label="세부 모델"
-              value={productFormData?.modelDetail?.desc}
-              onPress={() => openPicker("modelDetail")}
+              label="제조사"
+              value={productFormData?.manufacturerCategories?.name}
+              onPress={() => openPicker("manufacturerCategories")}
+              disabled={!isEtc}
             />
-          ) : null}
-        </View>
-      </ScrollView>
+            <SelectField
+              label="모델"
+              value={productFormData?.model?.name}
+              onPress={() => openPicker("model")}
+            />
+            {hasModelDetail ? (
+              <SelectField
+                label="세부 모델"
+                value={productFormData?.modelDetail?.desc}
+                onPress={() => openPicker("modelDetail")}
+              />
+            ) : null}
+          </View>
+        </ScrollView>
 
-      <DualFooterButtons
-        onPressLeft={() =>
-          router.replace({
-            pathname: "/products/sales/info/[id]",
-            params: { id: String(id) },
-          })
-        }
-        rightLabel="다음(상세정보)"
-        onPressRight={onNext}
-        rightDisabled={!productFormData?.model?.name || (hasModelDetail && !productFormData?.modelDetail?.code)}
-        loading={saving}
-      />
+        <DualFooterButtons
+          onPressLeft={() =>
+            router.replace({
+              pathname: "/products/sales/info/[id]",
+              params: { id: String(id) },
+            })
+          }
+          rightLabel="다음(상세정보)"
+          onPressRight={onNext}
+          rightDisabled={
+            !productFormData?.model?.name ||
+            (hasModelDetail && !productFormData?.modelDetail?.code)
+          }
+          loading={saving}
+        />
+      </View>
 
-      <OptionPickerSheet
-        visible={pickerKey !== null}
-        title={pickerKey === "model" ? "모델" : pickerKey === "modelDetail" ? "세부 모델" : "제조사"}
-        options={options}
-        selectedCode={
-          pickerKey === "model"
-            ? String(productFormData?.model?.id ?? "")
-            : pickerKey === "modelDetail"
-              ? String(productFormData?.modelDetail?.code ?? "")
-              : String(productFormData?.manufacturerCategories?.id ?? "")
-        }
-        onClose={() => setPickerKey(null)}
-        onSelect={onSelect}
-      />
+      {pickerKey !== null ? (
+        <OptionPickerSheet
+          visible
+          title={
+            pickerKey === "model"
+              ? "모델"
+              : pickerKey === "modelDetail"
+                ? "세부 모델"
+                : "제조사"
+          }
+          options={pickerOptions}
+          selectedCode={
+            pickerKey === "model"
+              ? String(productFormData?.model?.id ?? "")
+              : pickerKey === "modelDetail"
+                ? String(productFormData?.modelDetail?.code ?? "")
+                : String(productFormData?.manufacturerCategories?.id ?? "")
+          }
+          onClose={() => setPickerKey(null)}
+          onSelect={onSelect}
+        />
+      ) : null}
     </Screen>
   );
 }

@@ -1,0 +1,22 @@
+---
+description: 코드 수정 후 Android release APK 빌드 필수
+alwaysApply: true
+---
+
+# Release APK 빌드
+
+사용자가 코드 수정을 요청하면, 수정 완료 후 **반드시** release APK까지 빌드한다.
+
+## 빌드 절차
+
+1. `android/` 디렉터리에서 `./gradlew assembleRelease` 실행
+2. `./gradlew clean assembleRelease`는 CMake/codegen 오류가 나면 사용하지 않는다
+3. clean 실패 시: `rm -rf app/.cxx app/build build .gradle` 후 `assembleRelease`만 재실행
+4. 빌드 완료 후 APK 경로를 사용자에게 알린다:
+   `android/app/build/outputs/apk/release/app-release.apk`
+
+## 완료 기준
+
+- 코드 수정만 하고 APK 빌드를 생략하지 않는다
+- 빌드 실패 시 원인을 수정하고 재시도한다
+- 커밋/푸시는 사용자가 명시적으로 요청할 때만 수행한다

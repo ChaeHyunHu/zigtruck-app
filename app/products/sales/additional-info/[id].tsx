@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Keyboard, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
 import { ADDRESS1 } from "@/src/constants/address";
@@ -165,6 +165,7 @@ export default function AdditionalInfoFormScreen() {
 
   const openPicker = useCallback(
     (key: Exclude<Picker, null>, options: OptionItem[]) => {
+      Keyboard.dismiss();
       if (options.length === 0) {
         Alert.alert(
           "안내",
@@ -177,12 +178,24 @@ export default function AdditionalInfoFormScreen() {
     [],
   );
 
-  const onPressPowerSelect = useCallback(async () => {
-    const shouldOpen = await loadHorsepowerForPicker();
-    if (shouldOpen) {
+  const onPressPowerSelect = useCallback(() => {
+    Keyboard.dismiss();
+    if (!horsepowerReady || isDirectInputMode) return;
+    if (horsepowerOptions.length > 0) {
       setPicker("power");
+      return;
     }
-  }, [loadHorsepowerForPicker]);
+    void loadHorsepowerForPicker().then((shouldOpen) => {
+      if (shouldOpen) {
+        setPicker("power");
+      }
+    });
+  }, [
+    horsepowerOptions.length,
+    horsepowerReady,
+    isDirectInputMode,
+    loadHorsepowerForPicker,
+  ]);
 
   const pickerOptions = useMemo<OptionItem[]>(() => {
     switch (picker) {

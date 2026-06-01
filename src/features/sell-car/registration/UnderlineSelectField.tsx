@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { Pressable, Text, View } from "react-native";
+import React, { useCallback } from "react";
+import { Keyboard, Pressable, Text, View } from "react-native";
 
 import { appColors } from "@/src/constants/colors";
 
@@ -8,15 +8,32 @@ type UnderlineSelectFieldProps = {
   placeholder: string;
   value?: string;
   onPress: () => void;
+  disabled?: boolean;
 };
 
 export const UnderlineSelectField = React.memo(function UnderlineSelectField({
   placeholder,
   value,
   onPress,
+  disabled = false,
 }: UnderlineSelectFieldProps) {
+  const handlePress = useCallback(() => {
+    if (disabled) return;
+    Keyboard.dismiss();
+    onPress();
+  }, [disabled, onPress]);
+
   return (
-    <Pressable className="w-full py-3" onPress={onPress}>
+    <Pressable
+      className="w-full py-3"
+      disabled={disabled}
+      onPress={handlePress}
+      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+      android_disableSound
+      style={({ pressed }) => ({
+        opacity: disabled ? 0.55 : pressed ? 0.75 : 1,
+      })}
+    >
       <View className="flex-row items-center border-b border-gray300 pb-2">
         <Text
           className={`flex-1 text-[18px] ${value ? "text-gray900" : "text-gray500"}`}

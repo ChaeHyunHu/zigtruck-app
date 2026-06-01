@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { Pressable, Text, View } from "react-native";
+import React, { useCallback } from "react";
+import { Keyboard, Pressable, Text, View } from "react-native";
 
 import { appColors } from "@/src/constants/colors";
 
@@ -19,6 +19,12 @@ export const SelectField = React.memo(function SelectField({
   onPress,
   disabled,
 }: SelectFieldProps) {
+  const handlePress = useCallback(() => {
+    if (disabled) return;
+    Keyboard.dismiss();
+    onPress();
+  }, [disabled, onPress]);
+
   return (
     <View>
       {label ? (
@@ -26,8 +32,9 @@ export const SelectField = React.memo(function SelectField({
       ) : null}
       <Pressable
         disabled={disabled}
-        onPress={onPress}
-        hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+        onPress={handlePress}
+        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+        android_disableSound
         className="h-[50px] flex-row items-center justify-between rounded-lg border border-gray300 bg-white px-4"
         style={({ pressed }) => ({
           opacity: disabled ? 0.55 : pressed ? 0.75 : 1,

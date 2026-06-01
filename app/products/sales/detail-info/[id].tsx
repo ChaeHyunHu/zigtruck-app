@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Keyboard, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
 import { SALESTYPE } from "@/src/constants/products";
@@ -173,12 +173,14 @@ export default function DetailInfoFormScreen() {
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
-      <RegistrationHeader title={title} />
-      <ScrollView
-        className="flex-1 px-4 pt-6"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
-      >
+      <View className="flex-1">
+        <RegistrationHeader title={title} />
+        <ScrollView
+          className="flex-1 px-4 pt-6"
+          keyboardShouldPersistTaps="always"
+          nestedScrollEnabled
+          contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
+        >
         <View className="flex-row items-start justify-between pt-2">
           <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">
             상세 정보를 입력해주세요.
@@ -264,7 +266,10 @@ export default function DetailInfoFormScreen() {
                   label=""
                   placeholder="상차지 선택"
                   value={productFormData.transportStartLocate?.desc}
-                  onPress={() => setRoutePicker("transportStartLocate")}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setRoutePicker("transportStartLocate");
+                  }}
                 />
               </View>
               <Text className="text-[16px] text-gray600">~</Text>
@@ -273,7 +278,10 @@ export default function DetailInfoFormScreen() {
                   label=""
                   placeholder="하차지 선택"
                   value={productFormData.transportEndLocate?.desc}
-                  onPress={() => setRoutePicker("transportEndLocate")}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setRoutePicker("transportEndLocate");
+                  }}
                 />
               </View>
             </View>
@@ -346,9 +354,8 @@ export default function DetailInfoFormScreen() {
             />
           </View>
         </View>
-      </ScrollView>
+        </ScrollView>
 
-      <View className="absolute bottom-0 left-0 right-0">
         <DualFooterButtons
           onPressLeft={() =>
             router.replace({
@@ -362,29 +369,31 @@ export default function DetailInfoFormScreen() {
         />
       </View>
 
-      <OptionPickerSheet
-        visible={routePicker !== null}
-        title={routePicker === "transportStartLocate" ? "상차지 선택" : "하차지 선택"}
-        options={routeOptions}
-        selectedCode={
-          routePicker === "transportStartLocate"
-            ? productFormData.transportStartLocate?.code
-            : productFormData.transportEndLocate?.code
-        }
-        onClose={() => setRoutePicker(null)}
-        onSelect={(item) => {
-          if (!routePicker) return;
-          setProductFormData((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  [routePicker]: { code: item.code, desc: item.desc },
-                }
-              : prev,
-          );
-          setRoutePicker(null);
-        }}
-      />
+      {routePicker !== null ? (
+        <OptionPickerSheet
+          visible
+          title={routePicker === "transportStartLocate" ? "상차지 선택" : "하차지 선택"}
+          options={routeOptions}
+          selectedCode={
+            routePicker === "transportStartLocate"
+              ? productFormData.transportStartLocate?.code
+              : productFormData.transportEndLocate?.code
+          }
+          onClose={() => setRoutePicker(null)}
+          onSelect={(item) => {
+            if (!routePicker) return;
+            setProductFormData((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    [routePicker]: { code: item.code, desc: item.desc },
+                  }
+                : prev,
+            );
+            setRoutePicker(null);
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }

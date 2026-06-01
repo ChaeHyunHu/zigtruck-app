@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { Alert, Keyboard, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
 import { SALESTYPE } from "@/src/constants/products";
@@ -87,8 +87,14 @@ export default function LoadedFormScreen() {
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
-      <RegistrationHeader title={title} />
-      <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 24 }}>
+      <View className="flex-1">
+        <RegistrationHeader title={title} />
+        <ScrollView
+          className="flex-1 px-4 pt-6"
+          keyboardShouldPersistTaps="always"
+          nestedScrollEnabled
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
         <View className="flex-row items-start justify-between pt-6">
           <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">
             적재함 종류와{"\n"}길이(내측 길이)를 입력해주세요.
@@ -100,13 +106,19 @@ export default function LoadedFormScreen() {
           <UnderlineSelectField
             placeholder="적재함 종류 선택"
             value={productFormData?.loaded?.desc}
-            onPress={() => setPicker("loaded")}
+            onPress={() => {
+              Keyboard.dismiss();
+              setPicker("loaded");
+            }}
           />
           {detailOptions.length > 0 ? (
             <UnderlineSelectField
               placeholder="세부 적재함 종류 선택"
               value={productFormData?.loadedDetail?.desc}
-              onPress={() => setPicker("loadedDetail")}
+              onPress={() => {
+                Keyboard.dismiss();
+                setPicker("loadedDetail");
+              }}
             />
           ) : null}
 
@@ -140,49 +152,51 @@ export default function LoadedFormScreen() {
             }
           />
         </View>
-      </ScrollView>
+        </ScrollView>
 
-      <DualFooterButtons
-        onPressLeft={() =>
-          router.replace({ pathname: "/products/sales/tons/[id]", params: { id: String(id) } })
-        }
-        rightLabel="다음(가변축)"
-        onPressRight={onNext}
-        loading={saving}
-      />
+        <DualFooterButtons
+          onPressLeft={() =>
+            router.replace({ pathname: "/products/sales/tons/[id]", params: { id: String(id) } })
+          }
+          rightLabel="다음(가변축)"
+          onPressRight={onNext}
+          loading={saving}
+        />
+      </View>
 
-      <OptionPickerSheet
-        visible={picker === "loaded"}
-        title="적재함 종류"
-        options={loadedOptions}
-        selectedCode={productFormData?.loaded?.code}
-        onClose={() => setPicker(null)}
-        onSelect={(item) => {
-          setProductFormData((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  loaded: { code: item.code, desc: item.desc },
-                  loadedDetail: undefined,
-                }
-              : prev,
-          );
-          setPicker(null);
-        }}
-      />
-      <OptionPickerSheet
-        visible={picker === "loadedDetail"}
-        title="세부 적재함 종류"
-        options={detailOptions}
-        selectedCode={productFormData?.loadedDetail?.code}
-        onClose={() => setPicker(null)}
-        onSelect={(item) => {
-          setProductFormData((prev) =>
-            prev ? { ...prev, loadedDetail: { code: item.code, desc: item.desc } } : prev,
-          );
-          setPicker(null);
-        }}
-      />
+      {picker !== null ? (
+        <OptionPickerSheet
+          visible
+          title={picker === "loaded" ? "적재함 종류" : "세부 적재함 종류"}
+          options={picker === "loaded" ? loadedOptions : detailOptions}
+          selectedCode={
+            picker === "loaded"
+              ? productFormData?.loaded?.code
+              : productFormData?.loadedDetail?.code
+          }
+          onClose={() => setPicker(null)}
+          onSelect={(item) => {
+            if (picker === "loaded") {
+              setProductFormData((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      loaded: { code: item.code, desc: item.desc },
+                      loadedDetail: undefined,
+                    }
+                  : prev,
+              );
+            } else {
+              setProductFormData((prev) =>
+                prev
+                  ? { ...prev, loadedDetail: { code: item.code, desc: item.desc } }
+                  : prev,
+              );
+            }
+            setPicker(null);
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }
