@@ -732,6 +732,7 @@ export function ProductEditVehicleTab({
 
         <SelectField
           label="연료"
+          required
           placeholder="연료 선택"
           value={form.fuel?.desc}
           onPress={() => showPicker("fuel")}
@@ -758,6 +759,7 @@ export function ProductEditVehicleTab({
           <View>
             <SelectField
               label="마력수"
+              required
               placeholder={
                 canSelectPower
                   ? "마력수 선택"

@@ -32,6 +32,11 @@ export function InlineProductPriceEditor({
           }
           keyboardType="number-pad"
           className="h-11 flex-1 text-[16px] font-semibold text-gray900"
+          style={{
+            paddingVertical: 0,
+            textAlignVertical: "center",
+            includeFontPadding: false,
+          }}
           placeholder={placeholder}
           placeholderTextColor="#9e9e9e"
           editable={!isSaving}

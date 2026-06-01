@@ -10,6 +10,7 @@ type SelectFieldProps = {
   placeholder?: string;
   onPress: () => void;
   disabled?: boolean;
+  required?: boolean;
 };
 
 export const SelectField = React.memo(function SelectField({
@@ -18,6 +19,7 @@ export const SelectField = React.memo(function SelectField({
   placeholder = "선택",
   onPress,
   disabled,
+  required,
 }: SelectFieldProps) {
   const handlePress = useCallback(() => {
     if (disabled) return;
@@ -28,7 +30,10 @@ export const SelectField = React.memo(function SelectField({
   return (
     <View>
       {label ? (
-        <Text className="mb-2 text-[14px] font-medium text-gray700">{label}</Text>
+        <Text className="mb-2 text-[14px] font-medium text-gray700">
+          {label}
+          {required ? <Text className="font-normal text-danger"> (필수)</Text> : null}
+        </Text>
       ) : null}
       <Pressable
         disabled={disabled}

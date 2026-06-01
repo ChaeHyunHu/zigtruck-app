@@ -7,7 +7,7 @@ import {
   useFocusEffect,
   useLocalSearchParams,
 } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,6 +24,7 @@ import {
   patchProductPrice,
 } from "@/src/api/products/getProducts";
 import { patchProductPause, patchProductsStatus } from "@/src/api/public";
+import { patchProductComplete } from "@/src/api/products/updateProducts";
 import {
   APPROVAL_STATUS_APPROVAL,
   APPROVAL_STATUS_WAITING,
@@ -38,6 +39,7 @@ import { findInterestProductIdByProductId } from "@/src/features/interest-produc
 import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEditOptionSheet";
 import { LoanCalculator } from "@/src/features/products/LoanCalculator";
 import { PauseSaleModal } from "@/src/features/products/PauseSaleModal";
+import { SaleCompleteReviewModal } from "@/src/features/products/SaleCompleteReviewModal";
 import {
   ProductStatusBadge,
   PRODUCT_STATUS_DESC,
@@ -50,7 +52,10 @@ import { ProductSalesTypeBanner } from "@/src/features/products/ProductSalesType
 import { SalePriceTipBox } from "@/src/features/products/SalePriceTipBox";
 import { ProductYoutubeIcon } from "@/src/features/products/ProductYoutubeIcon";
 import { ProductYoutubePlayer } from "@/src/features/products/ProductYoutubePlayer";
-import { ProductHistorySections } from "@/src/features/products/ProductHistorySections";
+import {
+  ProductHistorySections,
+  type HistoryScrollKey,
+} from "@/src/features/products/ProductHistorySections";
 import { ProductImageCarousel } from "@/src/features/products/ProductImageCarousel";
 import { ProductImageViewer } from "@/src/features/products/ProductImageViewer";
 import { invalidateProductCaches } from "@/src/features/products/productRefresh";
@@ -99,6 +104,9 @@ export default function ProductDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<DetailTab>("info");
+  const scrollRef = useRef<ScrollView>(null);
+  const [historyScrollKey, setHistoryScrollKey] =
+    useState<HistoryScrollKey | null>(null);
   const [showPriceEditor, setShowPriceEditor] = useState(false);
   const [priceInputDigits, setPriceInputDigits] = useState("");
   const [isSavingPrice, setIsSavingPrice] = useState(false);
@@ -106,6 +114,7 @@ export default function ProductDetailScreen() {
   const [showMoreSheet, setShowMoreSheet] = useState(false);
   const [showStatusSheet, setShowStatusSheet] = useState(false);
   const [showPauseModal, setShowPauseModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [imageVersion, setImageVersion] = useState(0);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
@@ -218,14 +227,8 @@ export default function ProductDetailScreen() {
   const onPressStatusMenu = useCallback(
     (nextStatus: string) => {
       if (nextStatus === PRODUCT_STATUS_COMPLETE) {
-        Alert.alert(
-          "상태 변경",
-          "판매 완료로 상태를 변경할까요?\n\n* 판매완료 처리 후 판매중으로 상태 변경이 불가능합니다.",
-          [
-            { text: "취소", style: "cancel" },
-            { text: "변경", onPress: () => onChangeStatus(nextStatus) },
-          ],
-        );
+        setShowStatusSheet(false);
+        setTimeout(() => setShowCompleteModal(true), 320);
         return;
       }
       if (nextStatus === PRODUCT_STATUS_PAUSE) {
@@ -235,6 +238,43 @@ export default function ProductDetailScreen() {
       onChangeStatus(nextStatus);
     },
     [onChangeStatus],
+  );
+
+  const onConfirmComplete = useCallback(
+    async (actualSalePrice: number, completeReason: string) => {
+      if (!detail) return;
+      try {
+        setIsChangingStatus(true);
+        const response = await patchProductComplete({
+          id: detail.id,
+          actualSalePrice,
+          completeReason,
+        });
+        const responseData = response.data as ProductDetail;
+        setDetail((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: responseData?.status ?? {
+                  code: PRODUCT_STATUS_COMPLETE,
+                  desc: PRODUCT_STATUS_DESC[PRODUCT_STATUS_COMPLETE],
+                },
+                actualSalePrice:
+                  responseData?.actualSalePrice ?? actualSalePrice,
+              }
+            : prev,
+        );
+        setShowCompleteModal(false);
+        setShowStatusSheet(false);
+        invalidateProductCaches(detail.id);
+        Alert.alert("완료", "판매완료로 변경되었어요.");
+      } catch {
+        Alert.alert("오류", "상태 변경에 실패했습니다.");
+      } finally {
+        setIsChangingStatus(false);
+      }
+    },
+    [detail],
   );
 
   const loadDetail = useCallback(async () => {
@@ -361,15 +401,11 @@ export default function ProductDetailScreen() {
   }, [detail]);
 
   const goToLicensePlate = useCallback(() => {
-    if (!detail) return;
     setShowMoreSheet(false);
     setTimeout(() => {
-      router.push({
-        pathname: "/product/license-plate/[id]",
-        params: { id: String(detail.id) },
-      });
+      router.push("/license/my");
     }, 320);
-  }, [detail]);
+  }, []);
 
   const productMoreMenuItems = useMemo(() => {
     const items = [{ label: "번호판 관리", onPress: goToLicensePlate }];
@@ -414,6 +450,7 @@ export default function ProductDetailScreen() {
       ) : (
         <View className="flex-1">
           <ScrollView
+            ref={scrollRef}
             className="flex-1 bg-white"
             removeClippedSubviews={false}
             contentContainerStyle={{
@@ -552,14 +589,30 @@ export default function ProductDetailScreen() {
 
             <ProductDetailRecommendedServices detail={detail} />
 
-            <HistoryBadgeRow detail={detail} />
+            <HistoryBadgeRow
+              detail={detail}
+              onPressItem={(key) => {
+                setActiveTab("history");
+                setHistoryScrollKey(key);
+              }}
+            />
 
             <TabBar activeTab={activeTab} onChange={setActiveTab} />
 
             {activeTab === "info" ? (
               <InfoTab detail={detail} />
             ) : activeTab === "history" ? (
-              <HistoryTab detail={detail} />
+              <HistoryTab
+                detail={detail}
+                scrollTargetKey={historyScrollKey}
+                onResolveScroll={(y) => {
+                  scrollRef.current?.scrollTo({
+                    y: Math.max(0, y - 8),
+                    animated: true,
+                  });
+                  setHistoryScrollKey(null);
+                }}
+              />
             ) : (
               <CalcTab detail={detail} />
             )}
@@ -620,16 +673,30 @@ export default function ProductDetailScreen() {
         onClose={() => setShowPauseModal(false)}
         onConfirm={onConfirmPause}
       />
+
+      <SaleCompleteReviewModal
+        visible={showCompleteModal}
+        loading={isChangingStatus}
+        price={detail?.price}
+        onClose={() => setShowCompleteModal(false)}
+        onConfirm={onConfirmComplete}
+      />
     </Screen>
   );
 }
 
-function HistoryBadgeRow({ detail }: { detail: ProductDetail }) {
-  const items: { label: string; value?: number }[] = [
-    { label: "압류이력", value: detail.seizureCount },
-    { label: "저당이력", value: detail.mortgageCount },
-    { label: "소유자변경", value: detail.ownerChangeCount },
-    { label: "구조변경", value: detail.structureChangeCount },
+function HistoryBadgeRow({
+  detail,
+  onPressItem,
+}: {
+  detail: ProductDetail;
+  onPressItem?: (key: HistoryScrollKey) => void;
+}) {
+  const items: { label: string; value?: number; key: HistoryScrollKey }[] = [
+    { label: "압류이력", value: detail.seizureCount, key: "SEIZURE" },
+    { label: "저당이력", value: detail.mortgageCount, key: "MORTGAGE" },
+    { label: "소유자변경", value: detail.ownerChangeCount, key: "TRADING" },
+    { label: "구조변경", value: detail.structureChangeCount, key: "TUNING" },
   ];
   return (
     <View className="mt-6 flex-row items-center justify-around bg-white py-4">
@@ -637,7 +704,11 @@ function HistoryBadgeRow({ detail }: { detail: ProductDetail }) {
         const text = formatCount(item.value);
         const isHighlight = (item.value ?? 0) > 0;
         return (
-          <View key={item.label} className="items-center">
+          <Pressable
+            key={item.label}
+            className="items-center"
+            onPress={() => onPressItem?.(item.key)}
+          >
             <View
               className={`h-[52px] w-[52px] items-center justify-center rounded-full ${
                 isHighlight ? "bg-primary-1" : "bg-gray200"
@@ -652,7 +723,7 @@ function HistoryBadgeRow({ detail }: { detail: ProductDetail }) {
               </Text>
             </View>
             <Text className="mt-2 text-[12px] text-gray700">{item.label}</Text>
-          </View>
+          </Pressable>
         );
       })}
     </View>
@@ -972,8 +1043,22 @@ function OptionGroupCard({
   );
 }
 
-function HistoryTab({ detail }: { detail: ProductDetail }) {
-  return <ProductHistorySections detail={detail} />;
+function HistoryTab({
+  detail,
+  scrollTargetKey,
+  onResolveScroll,
+}: {
+  detail: ProductDetail;
+  scrollTargetKey?: HistoryScrollKey | null;
+  onResolveScroll?: (y: number) => void;
+}) {
+  return (
+    <ProductHistorySections
+      detail={detail}
+      scrollTargetKey={scrollTargetKey}
+      onResolveScroll={onResolveScroll}
+    />
+  );
 }
 
 function CalcTab({ detail }: { detail: ProductDetail }) {

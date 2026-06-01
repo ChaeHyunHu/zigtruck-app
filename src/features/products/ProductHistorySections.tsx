@@ -1,10 +1,16 @@
-import React from "react";
-import { Text, View } from "react-native";
+import React, { useCallback, useEffect, useRef } from "react";
+import { type LayoutChangeEvent, Text, View } from "react-native";
 
 import type { HistoryItem, ProductDetail } from "@/src/features/products/types";
 
+export type HistoryScrollKey = "SEIZURE" | "MORTGAGE" | "TRADING" | "TUNING";
+
 type ProductHistorySectionsProps = {
   detail: ProductDetail;
+  /** 스크롤 이동 대상 섹션 키 */
+  scrollTargetKey?: HistoryScrollKey | null;
+  /** 대상 섹션의 스크롤 내 절대 y가 측정되면 호출 */
+  onResolveScroll?: (y: number) => void;
 };
 
 function HistoryBox({
@@ -48,7 +54,11 @@ function SectionDivider() {
   return <View className="my-2 h-2 bg-gray100" />;
 }
 
-export function ProductHistorySections({ detail }: ProductHistorySectionsProps) {
+export function ProductHistorySections({
+  detail,
+  scrollTargetKey,
+  onResolveScroll,
+}: ProductHistorySectionsProps) {
   const lastOwner = detail.lastOwnerInfo;
   const seizureHistory = detail.seizureHistory;
   const mortgageHistory = detail.mortgageHistory;
@@ -56,8 +66,43 @@ export function ProductHistorySections({ detail }: ProductHistorySectionsProps) 
   const inspectionHistory = detail.inspectionHistory;
   const tuningHistory = detail.tuningHistory;
 
+  const rootYRef = useRef<number | null>(null);
+  const sectionYsRef = useRef<Partial<Record<HistoryScrollKey, number>>>({});
+  const firedKeyRef = useRef<HistoryScrollKey | null>(null);
+
+  const tryFire = useCallback(() => {
+    const key = scrollTargetKey;
+    if (!key || firedKeyRef.current === key) return;
+    const rootY = rootYRef.current;
+    const sectionY = sectionYsRef.current[key];
+    if (rootY == null || sectionY == null) return;
+    firedKeyRef.current = key;
+    onResolveScroll?.(rootY + sectionY);
+  }, [onResolveScroll, scrollTargetKey]);
+
+  useEffect(() => {
+    firedKeyRef.current = null;
+    tryFire();
+  }, [scrollTargetKey, tryFire]);
+
+  const handleRootLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      rootYRef.current = e.nativeEvent.layout.y;
+      tryFire();
+    },
+    [tryFire],
+  );
+
+  const makeSectionLayout = useCallback(
+    (key: HistoryScrollKey) => (e: LayoutChangeEvent) => {
+      sectionYsRef.current[key] = e.nativeEvent.layout.y;
+      tryFire();
+    },
+    [tryFire],
+  );
+
   return (
-    <View className="bg-white pb-6">
+    <View className="bg-white pb-6" onLayout={handleRootLayout}>
       <View className="px-4 pt-2 pb-6">
         <Text className="text-[18px] font-bold text-gray900">
           소유자 정보 (현물출자 이력)
@@ -82,7 +127,7 @@ export function ProductHistorySections({ detail }: ProductHistorySectionsProps) 
       {seizureHistory ? (
         <>
           <SectionDivider />
-          <View className="px-4 py-6">
+          <View className="px-4 py-6" onLayout={makeSectionLayout("SEIZURE")}>
             <Text className="text-[18px] font-bold text-gray900">압류 이력</Text>
             <View className="mt-3">
               <HistoryBox
@@ -101,7 +146,7 @@ export function ProductHistorySections({ detail }: ProductHistorySectionsProps) 
       {mortgageHistory ? (
         <>
           <SectionDivider />
-          <View className="px-4 py-6">
+          <View className="px-4 py-6" onLayout={makeSectionLayout("MORTGAGE")}>
             <Text className="text-[18px] font-bold text-gray900">저당 이력</Text>
             <View className="mt-3">
               <HistoryBox
@@ -127,6 +172,7 @@ export function ProductHistorySections({ detail }: ProductHistorySectionsProps) 
         title="소유자 변경 이력"
         items={tradingHistory}
         emptyText="소유자 변경 이력 없음"
+        onLayout={makeSectionLayout("TRADING")}
       />
 
       <SectionDivider />
@@ -137,7 +183,7 @@ export function ProductHistorySections({ detail }: ProductHistorySectionsProps) 
       />
 
       <SectionDivider />
-      <View className="px-4 py-6">
+      <View className="px-4 py-6" onLayout={makeSectionLayout("TUNING")}>
         <Text className="text-[18px] font-bold text-gray900">구조 변경 이력</Text>
         <View className="mt-3">
           <HistoryBox
@@ -158,13 +204,15 @@ function HistoryListSection({
   title,
   items,
   emptyText,
+  onLayout,
 }: {
   title: string;
   items?: HistoryItem[];
   emptyText: string;
+  onLayout?: (e: LayoutChangeEvent) => void;
 }) {
   return (
-    <View className="px-4 py-6">
+    <View className="px-4 py-6" onLayout={onLayout}>
       <Text className="text-[18px] font-bold text-gray900">{title}</Text>
       <View className="mt-3">
         <HistoryBox isEmpty={!items?.length} emptyText={emptyText}>

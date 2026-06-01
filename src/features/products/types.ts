@@ -90,6 +90,7 @@ export type ProductDetail = {
   truckNumber?: string;
   vehicleNumber?: string;
   price?: number | null;
+  actualSalePrice?: number | null;
   status?: EnumValue;
   type?: EnumValue;
   salesType?: EnumValue;

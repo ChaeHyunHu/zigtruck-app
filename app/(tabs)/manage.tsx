@@ -3,6 +3,7 @@ import newApiManager from "@/src/api/NewAxiosInstance";
 import { fetchRegistrationProduct } from "@/src/api/products/carRegister";
 import { fetchMyProducts } from "@/src/api/products/getProducts";
 import { patchProductPause, patchProductsStatus } from "@/src/api/public";
+import { patchProductComplete } from "@/src/api/products/updateProducts";
 import {
   REGISTRATION_STEPS,
   getPageName,
@@ -26,6 +27,7 @@ import {
 import { formatPrice } from "@/src/features/home/utils";
 import { InlineProductPriceEditor } from "@/src/features/products/InlineProductPriceEditor";
 import { PauseSaleModal } from "@/src/features/products/PauseSaleModal";
+import { SaleCompleteReviewModal } from "@/src/features/products/SaleCompleteReviewModal";
 import { SalePriceTipBox } from "@/src/features/products/SalePriceTipBox";
 import {
   ProductPriceReduceNoticeModal,
@@ -81,6 +83,7 @@ type ProductDetailResponse = {
   id: number;
   truckNumber?: string;
   price?: number | null;
+  actualSalePrice?: number | null;
   status?: ProductStatus;
   type?: ProductType;
   salesType?: ProductType;
@@ -202,7 +205,7 @@ const formatYYYYMMDD = (value?: string) => {
 
 export default function ManageScreen() {
   const { fabListPaddingBottom } = useScreenInsets();
-  const { alert, confirm } = useAppDialog();
+  const { alert } = useAppDialog();
   const { isAuthenticated, isInitializing, token, memberId } = useAuth();
   const isFocused = useIsFocused();
 
@@ -227,6 +230,11 @@ export default function ManageScreen() {
   const [priceReduceModalOpen, setPriceReduceModalOpen] = useState(false);
   const pendingPriceSaveIdRef = useRef<number | null>(null);
   const pauseTargetProductIdRef = useRef<number | null>(null);
+  const completeTargetProductIdRef = useRef<number | null>(null);
+  const [completeTargetPrice, setCompleteTargetPrice] = useState<
+    number | null
+  >(null);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [isSavingPrice, setIsSavingPrice] = useState(false);
 
   const [menuProductId, setMenuProductId] = useState<number | null>(null);
@@ -295,11 +303,7 @@ export default function ManageScreen() {
       {
         label: "번호판 관리",
         onPress: () => {
-          if (menuProductId == null) return;
-          router.push({
-            pathname: "/product/license-plate/[id]",
-            params: { id: String(menuProductId) },
-          });
+          router.push("/license/my");
         },
       },
     ];
@@ -599,19 +603,59 @@ export default function ManageScreen() {
     [alert],
   );
 
+  const onConfirmComplete = useCallback(
+    async (actualSalePrice: number, completeReason: string) => {
+      const productId = completeTargetProductIdRef.current;
+      if (!productId) return;
+      try {
+        setIsChangingStatus(true);
+        const response = await patchProductComplete({
+          id: productId,
+          actualSalePrice,
+          completeReason,
+        });
+        const responseData = response.data as ProductDetailResponse;
+        setMyProducts((prev) =>
+          prev.map((item) =>
+            item.id === productId
+              ? {
+                  ...item,
+                  status: responseData?.status ?? {
+                    code: PRODUCT_STATUS_COMPLETE,
+                    desc: PRODUCT_STATUS_DESC[PRODUCT_STATUS_COMPLETE],
+                  },
+                  actualSalePrice:
+                    responseData?.actualSalePrice ?? actualSalePrice,
+                }
+              : item,
+          ),
+        );
+        setShowCompleteModal(false);
+        setStatusSheetProductId(null);
+        completeTargetProductIdRef.current = null;
+        invalidateProductCaches(productId);
+        alert({ title: "완료", message: "판매완료로 변경되었어요." });
+      } catch {
+        alert({ title: "오류", message: "상태 변경에 실패했습니다." });
+      } finally {
+        setIsChangingStatus(false);
+      }
+    },
+    [alert],
+  );
+
   const onPressStatusMenu = useCallback(
     (nextStatus: string) => {
       const productId = statusSheetProductId;
       if (!productId) return;
       if (nextStatus === PRODUCT_STATUS_COMPLETE) {
-        confirm({
-          title: "상태 변경",
-          message:
-            "판매 완료로 상태를 변경할까요?\n\n* 판매완료 처리 후 판매중으로 상태 변경이 불가능합니다.",
-          leftLabel: "취소",
-          rightLabel: "변경",
-          onRight: () => void onChangeStatus(productId, nextStatus),
-        });
+        const target = myProductsRef.current.find(
+          (item) => item.id === productId,
+        );
+        completeTargetProductIdRef.current = productId;
+        setCompleteTargetPrice(target?.price ?? null);
+        setStatusSheetProductId(null);
+        setTimeout(() => setShowCompleteModal(true), 320);
         return;
       }
       if (nextStatus === PRODUCT_STATUS_PAUSE) {
@@ -621,7 +665,7 @@ export default function ManageScreen() {
       }
       void onChangeStatus(productId, nextStatus);
     },
-    [confirm, onChangeStatus, statusSheetProductId],
+    [onChangeStatus, statusSheetProductId],
   );
 
   const cancelPriceEditor = useCallback(() => {
@@ -931,7 +975,9 @@ export default function ManageScreen() {
 
                       {editingPriceProductId !== item.id ? (
                         <Pressable
-                          className="absolute right-0 top-[54px] z-10 p-2"
+                          className="absolute right-0 top-0 z-20 p-2"
+                          style={{ elevation: 20, zIndex: 20 }}
+                          hitSlop={12}
                           onPress={() => setMenuProductId(item.id)}
                         >
                           <Ionicons
@@ -1041,6 +1087,17 @@ export default function ManageScreen() {
           pauseTargetProductIdRef.current = null;
         }}
         onConfirm={onConfirmPause}
+      />
+
+      <SaleCompleteReviewModal
+        visible={showCompleteModal}
+        loading={isChangingStatus}
+        price={completeTargetPrice}
+        onClose={() => {
+          setShowCompleteModal(false);
+          completeTargetProductIdRef.current = null;
+        }}
+        onConfirm={onConfirmComplete}
       />
 
       <Modal

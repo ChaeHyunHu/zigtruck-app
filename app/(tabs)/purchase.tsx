@@ -518,6 +518,11 @@ export default function PurchaseScreen() {
             placeholderTextColor="#bdbdbd"
             returnKeyType="search"
             className="h-11 flex-1 text-[14px] text-gray900"
+            style={{
+              paddingVertical: 0,
+              textAlignVertical: "center",
+              includeFontPadding: false,
+            }}
           />
           {showSearchLoading ? (
             <SearchLoadingIndicator size={20} />

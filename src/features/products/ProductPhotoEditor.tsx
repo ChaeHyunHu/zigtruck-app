@@ -15,6 +15,7 @@ import { appColors } from "@/src/constants/colors";
 import { IMAGE_BASE_URL } from "@/src/constants/url";
 import { resolveImageUri } from "@/src/features/products/utils";
 import { uploadProductImage } from "@/src/features/sell-car/registration/uploadProductImage";
+import { pickImageWithSource } from "@/src/utils/pickImageWithSource";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const HORIZONTAL_PADDING = 16;
@@ -192,13 +193,8 @@ export function ProductPhotoEditor({
   );
 
   const pickSingle = async (target: UploadTarget) => {
-    if (!(await requestPermission())) return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.8,
-    });
-    if (result.canceled || !result.assets[0]) return;
+    const result = await pickImageWithSource({ quality: 0.8 });
+    if (!result || result.canceled || !result.assets[0]) return;
 
     const key =
       target.type === "required"

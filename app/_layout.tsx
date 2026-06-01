@@ -92,10 +92,6 @@ export default function RootLayout() {
                   name="product/edit/[id]"
                   options={{ headerShown: false }}
                 />
-                <Stack.Screen
-                  name="product/license-plate/[id]"
-                  options={{ headerShown: false }}
-                />
                 <Stack.Screen name="license" options={{ headerShown: false }} />
                 <Stack.Screen name="job" options={{ headerShown: false }} />
                 <Stack.Screen name="drive" options={{ headerShown: false }} />
