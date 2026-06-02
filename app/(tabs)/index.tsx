@@ -82,6 +82,23 @@ const ASSURANCE_CARD_IMAGE_HEIGHT = Math.round(ASSURANCE_CARD_WIDTH * 0.56);
 const ASSURANCE_SIDE_INSET = (SCREEN_WIDTH - ASSURANCE_CARD_WIDTH) / 2;
 const ASSURANCE_SNAP_INTERVAL = ASSURANCE_CARD_WIDTH + ASSURANCE_CARD_GAP;
 
+const extractRecommendList = (payload: unknown): unknown[] => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+  const record = payload as Record<string, unknown>;
+  const candidates = [
+    record.content,
+    record.data,
+    record.items,
+    record.list,
+    record.results,
+  ];
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+  return [];
+};
+
 type Counts = {
   jobCount: number;
   licenseCount: number;
@@ -230,17 +247,15 @@ export default function HomeScreen() {
     let mounted = true;
     const load = async () => {
       try {
-        const [countsData, assuranceData, recommendData, youtubeData] =
-          await Promise.all([
-            getCounts().catch(() => ({
-              jobCount: 0,
-              licenseCount: 0,
-              productsCount: 0,
-            })),
-            getAssuranceProducts().catch(() => ({ data: [] })),
-            getRecommendProducts().catch(() => []),
-            getYoutubeVideos().catch(() => []),
-          ]);
+        const [countsData, assuranceData, youtubeData] = await Promise.all([
+          getCounts().catch(() => ({
+            jobCount: 0,
+            licenseCount: 0,
+            productsCount: 0,
+          })),
+          getAssuranceProducts().catch(() => ({ data: [] })),
+          getYoutubeVideos().catch(() => []),
+        ]);
 
         if (!mounted) return;
         setCounts(
@@ -256,14 +271,6 @@ export default function HomeScreen() {
         setAssuranceTotalElements(
           Number(assuranceData?.totalElements ?? assuranceList.length) || 0,
         );
-        setRecommendProducts(
-          (Array.isArray(recommendData) ? recommendData : []).flatMap(
-            (raw: unknown) => {
-              const normalized = toHomeProductItem(normalizeListItem(raw));
-              return normalized ? [normalized] : [];
-            },
-          ),
-        );
         setYoutubeVideos(Array.isArray(youtubeData) ? youtubeData : []);
       } catch {
         // 일부 API 실패는 화면 표시를 막지 않는다.
@@ -274,6 +281,24 @@ export default function HomeScreen() {
       mounted = false;
     };
   }, []);
+
+  const loadRecommendProducts = useCallback(async () => {
+    if (!isAuthenticated) {
+      setRecommendProducts([]);
+      return;
+    }
+    try {
+      const recommendData = await getRecommendProducts();
+      setRecommendProducts(
+        extractRecommendList(recommendData).flatMap((raw: unknown) => {
+          const normalized = toHomeProductItem(normalizeListItem(raw));
+          return normalized ? [normalized] : [];
+        }),
+      );
+    } catch {
+      setRecommendProducts([]);
+    }
+  }, [isAuthenticated]);
 
   const loadInterestProducts = useCallback(async () => {
     if (!isAuthenticated) {
@@ -290,8 +315,9 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadInterestProducts();
-    }, [loadInterestProducts]),
+      void loadInterestProducts();
+      void loadRecommendProducts();
+    }, [loadInterestProducts, loadRecommendProducts]),
   );
 
   useEffect(() => {

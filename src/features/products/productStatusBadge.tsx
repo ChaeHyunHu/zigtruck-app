@@ -114,3 +114,21 @@ export function ProductStatusBadge({
     </View>
   );
 }
+
+/** 타사딜러 매물 승인 상태 배지 (승인 대기중 / 승인 완료) */
+export function ApprovalStatusBadge({
+  label,
+  size = "manage",
+}: {
+  label: string;
+  size?: "manage" | "detail";
+}) {
+  const roundedClass =
+    size === "detail" ? "rounded-[10px] px-3 py-1.5" : "rounded-[8px] px-2 py-1";
+
+  return (
+    <View className={`self-start bg-gray100 ${roundedClass}`}>
+      <Text className="text-[14px] font-bold text-[#1f8f5f]">{label}</Text>
+    </View>
+  );
+}

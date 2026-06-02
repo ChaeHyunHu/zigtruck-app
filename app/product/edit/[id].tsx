@@ -37,6 +37,7 @@ import {
   type ProductImagesState,
 } from "@/src/features/products/ProductPhotoEditor";
 import { invalidateProductCaches } from "@/src/features/products/productRefresh";
+import { isDealerMember, isDealerProduct } from "@/src/features/products/productInquiryUtils";
 import { normalizeDetail } from "@/src/features/products/utils";
 import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEditOptionSheet";
 import { PriceInputField } from "@/src/features/sell-car/registration/PriceInputField";
@@ -59,7 +60,7 @@ const isEditTab = (value: string | undefined): value is EditTab =>
 
 export default function ProductEditScreen() {
   const { id, tab } = useLocalSearchParams<{ id: string; tab?: string }>();
-  const { isAuthenticated, memberId } = useAuth();
+  const { isAuthenticated, memberId, profile } = useAuth();
   const [detail, setDetail] = useState<ProductDetail | null>(null);
   const [editForm, setEditForm] = useState<RegistrationProduct | null>(null);
   const [activeTab, setActiveTab] = useState<EditTab>(
@@ -141,6 +142,22 @@ export default function ProductEditScreen() {
       .catch(() => undefined);
   }, []);
 
+  const isDealer = isDealerMember(profile?.memberTypeCode);
+  const hidePriceTab = Boolean(
+    isDealer && detail && isDealerProduct(detail),
+  );
+
+  const visibleTabs = useMemo(
+    () => (hidePriceTab ? TABS.filter((item) => item.tab !== "price") : TABS),
+    [hidePriceTab],
+  );
+
+  useEffect(() => {
+    if (hidePriceTab && activeTab === "price") {
+      setActiveTab("photo");
+    }
+  }, [activeTab, hidePriceTab]);
+
   const validateBeforeSave = useCallback((): boolean => {
     if (!detail || !editForm) return false;
 
@@ -174,32 +191,36 @@ export default function ProductEditScreen() {
       return false;
     }
 
-    const nextPrice = Number(priceInput ?? 0);
-    if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
-      showAppAlert({
-        title: "입력 오류",
-        message: "판매 가격을 올바르게 입력해 주세요.",
-      });
-      return false;
-    }
+    if (!hidePriceTab) {
+      const nextPrice = Number(priceInput ?? 0);
+      if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
+        showAppAlert({
+          title: "입력 오류",
+          message: "판매 가격을 올바르게 입력해 주세요.",
+        });
+        return false;
+      }
 
-    const isApproved =
-      detail.approvalStatusList?.at(-1)?.status?.code ===
-      APPROVAL_STATUS_APPROVAL;
-    if (isApproved && detail.price && nextPrice > detail.price) {
-      showAppAlert({
-        title: "가격 제한",
-        message: "승인된 가격보다 높게는 수정이 불가능합니다.",
-      });
-      return false;
+      const isApproved =
+        detail.approvalStatusList?.at(-1)?.status?.code ===
+        APPROVAL_STATUS_APPROVAL;
+      if (isApproved && detail.price && nextPrice > detail.price) {
+        showAppAlert({
+          title: "가격 제한",
+          message: "승인된 가격보다 높게는 수정이 불가능합니다.",
+        });
+        return false;
+      }
     }
 
     return true;
-  }, [detail, editForm, images, priceInput]);
+  }, [detail, editForm, hidePriceTab, images, priceInput]);
 
   const executeSaveAll = useCallback(async () => {
     if (!detail || !editForm) return;
-    const nextPrice = Number(priceInput ?? 0);
+    const nextPrice = hidePriceTab
+      ? Number(detail.price ?? 0)
+      : Number(priceInput ?? 0);
 
     try {
       setIsSaving(true);
@@ -216,10 +237,15 @@ export default function ProductEditScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [detail, editForm, images, priceInput]);
+  }, [detail, editForm, hidePriceTab, images, priceInput]);
 
   const onSave = useCallback(async () => {
     if (!validateBeforeSave()) return;
+
+    if (hidePriceTab) {
+      await executeSaveAll();
+      return;
+    }
 
     const originalPrice = Number(detail?.price ?? 0);
     const nextPrice = Number(priceInput ?? 0);
@@ -234,21 +260,21 @@ export default function ProductEditScreen() {
     }
 
     await executeSaveAll();
-  }, [detail?.price, executeSaveAll, priceInput, validateBeforeSave]);
+  }, [detail?.price, executeSaveAll, hidePriceTab, priceInput, validateBeforeSave]);
 
-  const activeIndex = TABS.findIndex((tab) => tab.tab === activeTab);
+  const activeIndex = visibleTabs.findIndex((tab) => tab.tab === activeTab);
   const isFirst = activeIndex <= 0;
-  const isLast = activeIndex === TABS.length - 1;
+  const isLast = activeIndex === visibleTabs.length - 1;
   const nextLabel = useMemo(() => {
     if (isLast) return "저장하기";
-    const nextTab = TABS[activeIndex + 1];
+    const nextTab = visibleTabs[activeIndex + 1];
     return `다음(${nextTab.label})`;
-  }, [activeIndex, isLast]);
+  }, [activeIndex, isLast, visibleTabs]);
 
   const onPrev = useCallback(() => {
     if (isFirst) return;
-    setActiveTab(TABS[activeIndex - 1].tab);
-  }, [activeIndex, isFirst]);
+    setActiveTab(visibleTabs[activeIndex - 1].tab);
+  }, [activeIndex, isFirst, visibleTabs]);
 
   const onNext = useCallback(async () => {
     if (activeTab === "photo" && !validateRequiredPhotos(images)) {
@@ -259,8 +285,8 @@ export default function ProductEditScreen() {
       onSave();
       return;
     }
-    setActiveTab(TABS[activeIndex + 1].tab);
-  }, [activeIndex, activeTab, images, isLast, onSave]);
+    setActiveTab(visibleTabs[activeIndex + 1].tab);
+  }, [activeIndex, activeTab, images, isLast, onSave, visibleTabs]);
 
   return (
     <Screen className="flex-1 bg-white">
@@ -275,7 +301,7 @@ export default function ProductEditScreen() {
       </View>
 
       <View className="flex-row border-b border-gray300 bg-white">
-        {TABS.map((item) => {
+        {visibleTabs.map((item) => {
           const isActive = item.tab === activeTab;
           return (
             <Pressable
@@ -335,7 +361,7 @@ export default function ProductEditScreen() {
               onChange={setImages}
             />
           ) : null}
-          {activeTab === "price" ? (
+          {activeTab === "price" && !hidePriceTab ? (
             <View className="px-4 pt-5">
               <Text className="mb-3 text-[15px] font-semibold text-gray900">
                 판매 금액

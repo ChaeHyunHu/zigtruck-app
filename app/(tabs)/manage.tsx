@@ -12,9 +12,12 @@ import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
 import { Screen } from "@/src/components/common/Screen";
 import {
+  APPROVAL_STATUS_APPROVAL,
+  APPROVAL_STATUS_WAITING,
   PRODUCT_STATUS_COMPLETE,
   PRODUCT_STATUS_PAUSE,
   PRODUCT_STATUS_SALE,
+  SALES_TYPE_THIRD_PARTY_DEALER,
 } from "@/src/constants/products";
 import { IMAGE_BASE_URL } from "@/src/constants/url";
 import { formatPrice } from "@/src/features/home/utils";
@@ -29,7 +32,9 @@ import {
   consumePurchaseListDirty,
   invalidateProductCaches,
 } from "@/src/features/products/productRefresh";
+import { isDealerMember } from "@/src/features/products/productInquiryUtils";
 import {
+  ApprovalStatusBadge,
   PRODUCT_STATUS_DESC,
   ProductStatusBadge,
 } from "@/src/features/products/productStatusBadge";
@@ -227,6 +232,8 @@ const getSalesTypeLabel = (item: ProductDetailResponse): string => {
       return "위탁판매";
     case SALES_TYPE_ASSURANCE:
       return "직트럭 상품용";
+    case SALES_TYPE_THIRD_PARTY_DEALER:
+      return "타사딜러";
     case SALES_TYPE_NORMAL:
       return "직거래";
     default:
@@ -262,6 +269,7 @@ type ManageSaleCardProps = {
   onPressRejectReason: (item: ProductDetailResponse) => void;
   onPressInstantSale: (id: number) => void;
   onPressMenu: (id: number) => void;
+  canEditPrice: boolean;
 };
 
 /**
@@ -283,10 +291,13 @@ const ManageSaleCard = React.memo(function ManageSaleCard({
   onPressRejectReason,
   onPressInstantSale,
   onPressMenu,
+  canEditPrice,
 }: ManageSaleCardProps) {
   const lastApproval = item.approvalStatusList?.at(-1);
   const isWaiting = lastApproval?.status?.code === WAITING;
+  const isApproved = lastApproval?.status?.code === APPROVAL_STATUS_APPROVAL;
   const isReject = lastApproval?.status?.code === "REJECT";
+  const isDealerSale = item.salesType?.code === SALES_TYPE_THIRD_PARTY_DEALER;
   const canOpenStatusSheet =
     (item.status?.code === SALE || item.status?.code === PAUSE) && !isWaiting;
 
@@ -310,15 +321,35 @@ const ManageSaleCard = React.memo(function ManageSaleCard({
 
         <View className="flex-1">
           <View className="flex-row items-center gap-3">
-            <ProductStatusBadge
-              statusCode={item.status?.code}
-              statusDesc={item.status?.desc}
-              canChangeStatus={canOpenStatusSheet}
-              onPress={() => onPressStatus(item.id)}
-            />
-            <Text className="rounded-md bg-gray100 px-2 py-1 text-[14px] font-bold text-[#1f8f5f]">
-              {getSalesTypeLabel(item)}
-            </Text>
+            {isDealerSale ? (
+              isWaiting ? (
+                <ApprovalStatusBadge label="승인 대기중" />
+              ) : (
+                <>
+                  <ProductStatusBadge
+                    statusCode={item.status?.code}
+                    statusDesc={item.status?.desc}
+                    canChangeStatus={canOpenStatusSheet}
+                    onPress={() => onPressStatus(item.id)}
+                  />
+                  {isApproved ? (
+                    <ApprovalStatusBadge label="승인 완료" />
+                  ) : null}
+                </>
+              )
+            ) : (
+              <>
+                <ProductStatusBadge
+                  statusCode={item.status?.code}
+                  statusDesc={item.status?.desc}
+                  canChangeStatus={canOpenStatusSheet}
+                  onPress={() => onPressStatus(item.id)}
+                />
+                <Text className="rounded-md bg-gray100 px-2 py-1 text-[14px] font-bold text-[#1f8f5f]">
+                  {getSalesTypeLabel(item)}
+                </Text>
+              </>
+            )}
           </View>
 
           <Pressable onPress={() => onPressDetail(item)}>
@@ -326,7 +357,7 @@ const ManageSaleCard = React.memo(function ManageSaleCard({
               {item.truckNumber ?? "-"}
             </Text>
 
-            {isEditing && !isWaiting ? (
+            {isEditing && !isWaiting && canEditPrice ? (
               <InlineProductPriceEditor
                 value={editingPriceValue}
                 onChangeValue={onChangeEditingPrice}
@@ -339,7 +370,7 @@ const ManageSaleCard = React.memo(function ManageSaleCard({
                 <Text className="text-[20px] font-extrabold text-gray900">
                   {formatPrice(item.price)}
                 </Text>
-                {item.status?.code === SALE && !isWaiting ? (
+                {canEditPrice && item.status?.code === SALE && !isWaiting ? (
                   <Pressable
                     className="h-[36px] items-center justify-center rounded-[8px] border border-primary-3 bg-primary-1 px-3"
                     onPress={() => onOpenPriceEditor(item)}
@@ -385,7 +416,8 @@ const ManageSaleCard = React.memo(function ManageSaleCard({
 export default function ManageScreen() {
   const { fabListPaddingBottom } = useScreenInsets();
   const { alert } = useAppDialog();
-  const { isAuthenticated, isInitializing, token, memberId } = useAuth();
+  const { isAuthenticated, isInitializing, token, memberId, profile } = useAuth();
+  const isDealer = isDealerMember(profile?.memberTypeCode);
   const isFocused = useIsFocused();
 
   const [myProducts, setMyProducts] = useState<ProductDetailResponse[]>([]);
@@ -1129,9 +1161,11 @@ export default function ManageScreen() {
             {isShowDivider ? <View className="mt-4 h-2 bg-gray200" /> : null}
 
             {/* 판매 팁 */}
-            <View className="mt-4 px-4">
-              <SalePriceTipBox />
-            </View>
+            {!isDealer ? (
+              <View className="mt-4 px-4">
+                <SalePriceTipBox />
+              </View>
+            ) : null}
 
             {/* 판매 중인 차량 */}
             <View className="mt-3 bg-white px-4">
@@ -1156,6 +1190,7 @@ export default function ManageScreen() {
                   onPressRejectReason={onPressRejectReason}
                   onPressInstantSale={setInstantSaleProductId}
                   onPressMenu={setMenuProductId}
+                  canEditPrice={!isDealer}
                 />
               ))}
             </View>

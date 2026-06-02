@@ -5,7 +5,7 @@ import { Text, View } from "react-native";
 import { getPriceTrend, getPublicPriceTrend } from "@/src/api/public";
 import { appColors } from "@/src/constants/colors";
 import { formatPrice } from "@/src/features/home/utils";
-import { PriceTrendSearchingLoader } from "@/src/features/price-trend/PriceTrendSearchingLoader";
+import { PriceTrendPreparingView } from "@/src/features/price-trend/PriceTrendPreparingView";
 
 import {
   computePriceRangePercentages,
@@ -167,28 +167,8 @@ export function CarPriceTrendInfoView({
     };
   }, [apiType, queryParams]);
 
-  if (loading || isNone === undefined) {
-    return <PriceTrendSearchingLoader />;
-  }
-
-  if (isNone) {
-    return (
-      <View className="items-center justify-center pb-6">
-        <Ionicons
-          name="analytics-outline"
-          size={60}
-          color={appColors.gray400}
-        />
-        <Text className="my-3 text-center text-[15px] text-gray800">
-          해당 차량의{"\n"}평균 직거래 시세 정보를 준비중입니다.
-        </Text>
-        <Text className="text-center text-[13px] leading-[18px] text-gray600">
-          직거래 시세 정보가 있는 경우 여기에 표시되며,{"\n"}
-          차량의 주행거리, 차량의 상태, 옵션 등에 따라{"\n"}
-          시세가 변동될 수 있습니다.
-        </Text>
-      </View>
-    );
+  if (loading || isNone !== false) {
+    return <PriceTrendPreparingView />;
   }
 
   const resolvedPriceInfo = priceInfo as PriceInfoResponse;

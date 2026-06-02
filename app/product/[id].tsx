@@ -62,9 +62,14 @@ import {
 import { invalidateProductCaches } from "@/src/features/products/productRefresh";
 import { ProductSalesTypeBanner } from "@/src/features/products/ProductSalesTypeBanner";
 import {
+  ApprovalStatusBadge,
   PRODUCT_STATUS_DESC,
   ProductStatusBadge,
 } from "@/src/features/products/productStatusBadge";
+import {
+  isDealerMember,
+  isDealerProduct,
+} from "@/src/features/products/productInquiryUtils";
 import { ProductYoutubeIcon } from "@/src/features/products/ProductYoutubeIcon";
 import { ProductYoutubePlayer } from "@/src/features/products/ProductYoutubePlayer";
 import { SaleCompleteReviewModal } from "@/src/features/products/SaleCompleteReviewModal";
@@ -103,7 +108,8 @@ export default function ProductDetailScreen() {
   const id = params.id;
   const explicitMine = params.mine === "true";
 
-  const { isAuthenticated, memberId } = useAuth();
+  const { isAuthenticated, memberId, profile } = useAuth();
+  const isDealer = isDealerMember(profile?.memberTypeCode);
   const { bottom: bottomInset, scrollBottomPadding } = useScreenInsets();
 
   const [detail, setDetail] = useState<ProductDetail | null>(null);
@@ -501,21 +507,25 @@ export default function ProductDetailScreen() {
 
             <View className="px-4 pt-5">
               {isMine ? (
-                latestApprovalCode === APPROVAL_STATUS_WAITING ? (
-                  <ProductStatusBadge
-                    size="detail"
-                    statusCode={statusCode}
-                    statusDesc="승인 대기중"
-                  />
-                ) : (
-                  <ProductStatusBadge
-                    size="detail"
-                    statusCode={statusCode}
-                    statusDesc={enumDesc(detail.status) ?? undefined}
-                    canChangeStatus={canChangeStatus}
-                    onPress={() => setShowStatusSheet(true)}
-                  />
-                )
+                <View className="flex-row flex-wrap items-center gap-2">
+                  {latestApprovalCode === APPROVAL_STATUS_WAITING ? (
+                    <ApprovalStatusBadge label="승인 대기중" size="detail" />
+                  ) : (
+                    <>
+                      <ProductStatusBadge
+                        size="detail"
+                        statusCode={statusCode}
+                        statusDesc={enumDesc(detail.status) ?? undefined}
+                        canChangeStatus={canChangeStatus}
+                        onPress={() => setShowStatusSheet(true)}
+                      />
+                      {latestApprovalCode === APPROVAL_STATUS_APPROVAL &&
+                      isDealerProduct(detail) ? (
+                        <ApprovalStatusBadge label="승인 완료" size="detail" />
+                      ) : null}
+                    </>
+                  )}
+                </View>
               ) : (
                 <View className="self-start rounded-md bg-[#e7f0ff] px-2.5 py-1">
                   <Text className="text-[13px] font-bold text-primary-10">
@@ -536,7 +546,7 @@ export default function ProductDetailScreen() {
                 </Text>
               ) : null}
 
-              {isMine && showPriceEditor ? (
+              {isMine && showPriceEditor && !isDealer ? (
                 <View className="mt-3">
                   <InlineProductPriceEditor
                     value={priceInputDigits}
@@ -558,7 +568,7 @@ export default function ProductDetailScreen() {
                   <Text className="text-[26px] font-extrabold text-gray900">
                     {formatPrice(detail.price)}
                   </Text>
-                  {isMine && statusCode === PRODUCT_STATUS_SALE ? (
+                  {isMine && !isDealer && statusCode === PRODUCT_STATUS_SALE ? (
                     <Pressable
                       onPress={() => {
                         setPriceInputDigits(
@@ -578,7 +588,7 @@ export default function ProductDetailScreen() {
                 </View>
               )}
 
-              {isMine && enumCode(detail.status) === PRODUCT_STATUS_SALE ? (
+              {isMine && !isDealer && enumCode(detail.status) === PRODUCT_STATUS_SALE ? (
                 <SalePriceTipBox className="mt-4" />
               ) : null}
 

@@ -4,7 +4,13 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
 import { showAppAlert } from "@/src/providers/appDialog";
-import { PRODUCT_STATUS_SALE, SALESTYPE } from "@/src/constants/products";
+import {
+  PRODUCT_STATUS_PAUSE,
+  PRODUCT_STATUS_SALE,
+  SALES_TYPE_THIRD_PARTY_DEALER,
+  SALESTYPE,
+} from "@/src/constants/products";
+import { isDealerMember } from "@/src/features/products/productInquiryUtils";
 import { CarPriceTrendInfoView } from "@/src/features/price-trend/CarPriceTrendInfoView";
 import {
   defaultProductSearchParams,
@@ -36,7 +42,8 @@ const LICENSE_CHOICE_OPTIONS: RadioOption[] = [
 export default function PriceFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { scrollBottomPadding } = useScreenInsets();
-  const { memberId } = useAuth();
+  const { memberId, profile } = useAuth();
+  const isDealer = isDealerMember(profile?.memberTypeCode);
   const { productFormData, setProductFormData } = useRegistrationProduct(id);
   const { resetRegistration } = useProductRegistration();
   const { patch, saving } = usePatchProduct();
@@ -96,7 +103,9 @@ export default function PriceFormScreen() {
         id: productFormData.id,
         price: priceValue,
         isSaleLicense: includeLicense,
-        status: PRODUCT_STATUS_SALE,
+        // 딜러 등록: 타사딜러 차량 + 승인 대기(PAUSE) 상태로 저장
+        status: isDealer ? PRODUCT_STATUS_PAUSE : PRODUCT_STATUS_SALE,
+        ...(isDealer ? { salesType: SALES_TYPE_THIRD_PARTY_DEALER } : {}),
       });
 
       await syncProductLicense({
