@@ -3,7 +3,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { LoginRequiredView } from "@/src/components/auth/LoginRequiredView";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   BackHandler,
   Modal,
   Pressable,
@@ -13,6 +12,7 @@ import {
 } from "react-native";
 
 import { fetchCarRegister } from "@/src/api/products/carRegister";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
 import { Screen } from "@/src/components/common/Screen";
 import {
@@ -168,7 +168,7 @@ export default function ProductSalesEntryScreen() {
           ownerNameError: false,
         });
         setPageNum(1);
-        Alert.alert("조회 실패", message);
+        showAppAlert({ title: "조회 실패", message });
       } else if (
         [
           "NOT_MATCH_OWNER_NAME",
@@ -184,7 +184,7 @@ export default function ProductSalesEntryScreen() {
       } else if (code === "DATA_HUB_CAR_INFO_FOUND_FAIL") {
         setPageNum(3);
       } else {
-        Alert.alert("조회 실패", message);
+        showAppAlert({ title: "조회 실패", message });
         setPageNum(1);
       }
     } finally {

@@ -3,7 +3,6 @@ import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { LoginRequiredView } from "@/src/components/auth/LoginRequiredView";
 import React, { useCallback, useMemo } from "react";
 import {
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -13,6 +12,7 @@ import {
 
 import { BasicButton } from "@/src/components/common/BasicButton";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import {
   PRODUCT_TYPE_DIRECT,
@@ -52,7 +52,7 @@ export default function SellCarGuideScreen() {
 
   const onPressCall = useCallback(() => {
     Linking.openURL("tel:15996249").catch(() =>
-      Alert.alert("전화 문의", "1599-6249"),
+      showAppAlert({ title: "전화 문의", message: "1599-6249" }),
     );
   }, []);
 

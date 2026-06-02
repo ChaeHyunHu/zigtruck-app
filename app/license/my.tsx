@@ -40,7 +40,7 @@ export default function MyLicenseScreen() {
       const res = await getMyLicenses();
       setItems(pickArray(res.data).map((raw) => raw as LicenseItem));
     } catch {
-      setItems([]);
+      // 갱신 실패 시 기존 목록을 유지 (재진입 시 빈 화면 깜빡임 방지)
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -53,7 +53,8 @@ export default function MyLicenseScreen() {
         navigateToLogin();
         return;
       }
-      setLoading(true);
+      // 첫 로딩에만 전체 스피너 노출. 재진입 시엔 기존 목록을 유지한 채
+      // 백그라운드로 갱신해 "느리다"는 체감을 줄인다.
       load();
     }, [isAuthenticated, load]),
   );

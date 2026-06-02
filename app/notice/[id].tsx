@@ -1,11 +1,12 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
 import { getNoticeDetail } from "@/src/api/public";
 import { LoginRequiredView } from "@/src/components/auth/LoginRequiredView";
 import { HtmlContent } from "@/src/components/common/HtmlContent";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { formatNoticeDate } from "@/src/features/notice/utils";
 import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
@@ -32,9 +33,7 @@ export default function NoticeDetailScreen() {
     getNoticeDetail(id)
       .then((res) => setData(res as NoticeDetail))
       .catch(() => {
-        Alert.alert("오류", "공지사항을 불러오지 못했습니다.", [
-          { text: "확인", onPress: () => router.back() },
-        ]);
+        showAppAlert({ title: "오류", message: "공지사항을 불러오지 못했습니다.", onConfirm: () => router.back() });
       })
       .finally(() => setLoading(false));
   }, [id, isAuthenticated]);

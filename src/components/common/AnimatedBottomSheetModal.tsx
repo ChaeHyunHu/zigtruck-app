@@ -193,7 +193,15 @@ export const AnimatedBottomSheetModal = forwardRef<
       isClosingRef.current = false;
       setIsOnScreen(true);
       if (rising) {
-        runOpenAnimation();
+        // noModal은 인라인 렌더라 즉시 애니메이션 시작.
+        // RN Modal은 마운트 경합(특히 모달 위 모달)으로 슬라이드업이 묻히므로
+        // Modal onShow에서 애니메이션을 시작한다. 그 전까지는 시트를 화면 밖에 둔다.
+        if (noModal) {
+          runOpenAnimation();
+        } else {
+          sheetTranslateY.setValue(effectiveSheetHeight);
+          backdropOpacity.setValue(0);
+        }
       }
       return;
     }
@@ -201,7 +209,16 @@ export const AnimatedBottomSheetModal = forwardRef<
     if (wasVisible && isOnScreen && !isClosingRef.current) {
       runCloseAnimation();
     }
-  }, [visible, isOnScreen, runCloseAnimation, runOpenAnimation]);
+  }, [
+    visible,
+    isOnScreen,
+    runCloseAnimation,
+    runOpenAnimation,
+    noModal,
+    effectiveSheetHeight,
+    sheetTranslateY,
+    backdropOpacity,
+  ]);
 
   const requestClose = useCallback(() => {
     // 오픈 직후 같은 탭 이벤트가 backdrop/top-dismiss로 전달되며 즉시 닫히는 깜빡임 방지
@@ -298,6 +315,10 @@ export const AnimatedBottomSheetModal = forwardRef<
       animationType="none"
       statusBarTranslucent
       presentationStyle="overFullScreen"
+      onShow={() => {
+        // Modal이 실제 표시된 뒤 슬라이드업 시작 (Android 마운트 경합/모달 위 모달 대응)
+        if (visible) runOpenAnimation();
+      }}
       onRequestClose={requestClose}
     >
       {inner}

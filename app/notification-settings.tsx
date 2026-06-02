@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
 
 import { AppSwitch } from "@/src/components/common/AppSwitch";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppConfirm } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { formatDriveHistoryTimeAmPm } from "@/src/features/settings/driveHistoryTimeUtils";
 import { NotificationTimeSettingSheet } from "@/src/features/settings/NotificationTimeSettingSheet";
@@ -72,14 +73,14 @@ export default function NotificationSettingsScreen() {
   const onToggle = useCallback(
     (key: NotificationSettingKey, next: boolean) => {
       if (key === "chatting" && !next) {
-        Alert.alert(
-          "채팅 알림 해제",
-          "새로운 메시지나\n중요한 소식을 놓칠 수 있어요.\n정말 채팅 알림을 해제하시겠어요?",
-          [
-            { text: "취소", style: "cancel" },
-            { text: "해제", style: "destructive", onPress: () => update(key, false) },
-          ],
-        );
+        showAppConfirm({
+          title: "채팅 알림 해제",
+          message:
+            "새로운 메시지나\n중요한 소식을 놓칠 수 있어요.\n정말 채팅 알림을 해제하시겠어요?",
+          leftLabel: "취소",
+          rightLabel: "해제",
+          onRight: () => update(key, false),
+        });
         return;
       }
       update(key, next);

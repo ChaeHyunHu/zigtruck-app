@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -15,6 +14,7 @@ import { Screen } from '@/src/components/common/Screen';
 import { appColors } from '@/src/constants/colors';
 import { RegistrationHeader } from '@/src/features/sell-car/registration/RegistrationHeader';
 import { useScreenInsets } from '@/src/hooks/useScreenInsets';
+import { showAppAlert } from '@/src/providers/appDialog';
 import {
   PASSWORD_NOT_MATCH_MESSAGE,
   PASSWORD_VALIDATION_MESSAGE,
@@ -137,9 +137,7 @@ export default function PasswordChangeScreen() {
     setIsSubmitting(true);
     try {
       await patchMember({ newPassword });
-      Alert.alert('변경 완료', '비밀번호를 변경했어요.', [
-        { text: '확인', onPress: () => router.back() },
-      ]);
+      showAppAlert({ title: '변경 완료', message: '비밀번호를 변경했어요.', onConfirm: () => router.back() });
     } catch (error: any) {
       setNewError(error?.message ?? PASSWORD_NOT_MATCH_MESSAGE);
     } finally {

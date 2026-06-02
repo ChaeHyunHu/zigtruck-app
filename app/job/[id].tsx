@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import {
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -11,6 +10,7 @@ import {
 
 import { Screen } from "@/src/components/common/Screen";
 import { ScreenStickyFooter } from "@/src/components/common/ScreenStickyFooter";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   JOB_INQUIRY_PHONE,
   JOB_STATUS_COMPLETED,
@@ -42,7 +42,7 @@ export default function JobDetailScreen() {
   const onCall = () => {
     const tel = JOB_INQUIRY_PHONE.replace(/-/g, "");
     Linking.openURL(`tel:${tel}`).catch(() =>
-      Alert.alert("전화 문의", JOB_INQUIRY_PHONE),
+      showAppAlert({ title: "전화 문의", message: JOB_INQUIRY_PHONE }),
     );
   };
 

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { formatNumberWithComma } from "@/src/features/home/utils";
 import { postLicenseItemPurchaseRequest } from "@/src/api/license";
 import type { LicenseItem } from "@/src/features/license/types";
@@ -44,9 +45,9 @@ export function LicenseListCard({ item, onRequested }: Props) {
       setRequested(true);
       setConfirmOpen(false);
       onRequested?.();
-      Alert.alert("완료", "번호판 구매를 요청했어요.");
+      showAppAlert({ title: "완료", message: "번호판 구매를 요청했어요." });
     } catch {
-      Alert.alert("오류", "구매 요청에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "구매 요청에 실패했습니다." });
     } finally {
       setSubmitting(false);
     }

@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ProductDetailServiceBottomSheet } from "@/src/features/additional-services/components/ProductDetailServiceBottomSheet";
 import { PurchaseAccompanyingServiceBottomSheet } from "@/src/features/additional-services/components/PurchaseAccompanyingServiceBottomSheet";
 import {
-  Alert,
   Linking,
   Pressable,
   Text,
@@ -14,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { deleteInterestProducts, postProductInquiryCall } from "@/src/api/public";
 import { navigateToProductChatSafely } from "@/src/features/chat/navigateToProductChat";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   createInterestProduct as registerInterestProduct,
   invalidateInterestProductsCache,
@@ -79,7 +79,7 @@ export function ProductDetailBuyerFooter({
       }
       setLikeConfirmOpen(true);
     } catch {
-      Alert.alert("오류", "찜하기에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      showAppAlert({ title: "오류", message: "찜하기에 실패했습니다. 잠시 후 다시 시도해주세요." });
     } finally {
       setIsMutating(false);
     }
@@ -96,7 +96,7 @@ export function ProductDetailBuyerFooter({
       onInterestChange?.(null);
     } catch {
       setInterestProductId(prev);
-      Alert.alert("오류", "찜 해제에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "찜 해제에 실패했습니다." });
     } finally {
       setIsMutating(false);
     }
@@ -126,7 +126,7 @@ export function ProductDetailBuyerFooter({
     }
     const phone = resolveInquiryPhoneNumber(product, memberTypeCode);
     Linking.openURL(`tel:${phone}`).catch(() =>
-      Alert.alert("오류", "전화 연결을 할 수 없습니다."),
+      showAppAlert({ title: "오류", message: "전화 연결을 할 수 없습니다." }),
     );
     setInquiryModalOpen(false);
     setOwnerSheetOpen(false);

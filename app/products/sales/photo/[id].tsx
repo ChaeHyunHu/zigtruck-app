@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import { patchProducts } from "@/src/api/public";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { SALESTYPE } from "@/src/constants/products";
 import {
   buildImagePatchPayload,
@@ -53,7 +54,7 @@ export default function PhotoUploadScreen() {
 
   const onNext = async () => {
     if (!canProceed) {
-      Alert.alert("필수 사진", "필수 사진 3장을 모두 등록해주세요.");
+      showAppAlert({ title: "필수 사진", message: "필수 사진 3장을 모두 등록해주세요." });
       return;
     }
     if (!productFormData?.id) return;
@@ -68,7 +69,7 @@ export default function PhotoUploadScreen() {
         params: { id: String(productFormData.id) },
       });
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     } finally {
       setSaving(false);
     }

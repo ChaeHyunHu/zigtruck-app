@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, Keyboard, ScrollView, Text, TextInput, View } from "react-native";
+import { Keyboard, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { SALESTYPE } from "@/src/constants/products";
 import {
   PriceTrendRadioGroup,
@@ -102,14 +103,14 @@ export default function DetailInfoFormScreen() {
       productFormData.accidentContents ??
       "";
     if (accident && !accidentContents.trim()) {
-      Alert.alert("입력 필요", "사고 상세내용을 입력해주세요.");
+      showAppAlert({ title: "입력 필요", message: "사고 상세내용을 입력해주세요." });
       return;
     }
     if (PHONE_REGEX.test(productFormData.detailContent ?? "")) {
-      Alert.alert(
-        "입력 제한",
-        "개인 정보 보호를 위해 전화번호 입력은 제한되어 있습니다.",
-      );
+      showAppAlert({
+        title: "입력 제한",
+        message: "개인 정보 보호를 위해 전화번호 입력은 제한되어 있습니다.",
+      });
       return;
     }
 
@@ -159,7 +160,7 @@ export default function DetailInfoFormScreen() {
         params: { id: String(productFormData.id) },
       });
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     }
   };
 

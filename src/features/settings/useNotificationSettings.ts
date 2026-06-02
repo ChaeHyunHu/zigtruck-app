@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
-
 import { patchNotificationSetting } from '@/src/api/members';
+import { showAppAlert } from '@/src/providers/appDialog';
 import { parseDriveHistoryHour } from '@/src/features/settings/driveHistoryTimeUtils';
 import { useAuth } from '@/src/hooks/useAuth';
 
@@ -71,7 +70,7 @@ export function useNotificationSettings() {
   const update = useCallback(
     async (key: NotificationSettingKey, value: boolean) => {
       if (!settingsId) {
-        Alert.alert('알림 설정', '알림 설정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        showAppAlert({ title: '알림 설정', message: '알림 설정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' });
         return;
       }
 
@@ -94,7 +93,7 @@ export function useNotificationSettings() {
         }
       } catch (error: any) {
         setSettings(previous);
-        Alert.alert('변경 실패', error?.message ?? '알림 설정 변경에 실패했습니다.');
+        showAppAlert({ title: '변경 실패', message: error?.message ?? '알림 설정 변경에 실패했습니다.' });
       } finally {
         setIsUpdating(false);
       }
@@ -105,7 +104,7 @@ export function useNotificationSettings() {
   const updateDriveHistoryTime = useCallback(
     async (hour: number) => {
       if (!settingsId) {
-        Alert.alert('알림 설정', '알림 설정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        showAppAlert({ title: '알림 설정', message: '알림 설정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' });
         return false;
       }
 
@@ -126,7 +125,7 @@ export function useNotificationSettings() {
         return true;
       } catch (error: any) {
         setSettings(previous);
-        Alert.alert('변경 실패', error?.message ?? '운행일지 시간 설정에 실패했습니다.');
+        showAppAlert({ title: '변경 실패', message: error?.message ?? '운행일지 시간 설정에 실패했습니다.' });
         return false;
       } finally {
         setIsUpdating(false);

@@ -2,12 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   Text,
   TextInput,
   View,
 } from 'react-native';
+
+import { showAppAlert } from '@/src/providers/appDialog';
 
 import { signUpMember } from '@/src/api/members';
 import { BasicButton } from '@/src/components/common/BasicButton';
@@ -201,7 +202,7 @@ export function SignUpProfileForm({
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : '회원가입에 실패했습니다. 다시 시도해주세요.';
-      Alert.alert('회원가입 실패', message);
+      showAppAlert({ title: '회원가입 실패', message });
     } finally {
       setIsSubmitting(false);
     }

@@ -1,5 +1,7 @@
 import * as ImagePicker from "expo-image-picker";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
+
+import { showAppAlert } from "@/src/providers/appDialog";
 
 export type ImageSource = "camera" | "library";
 
@@ -16,7 +18,7 @@ export async function launchImagePickerForSource(
   if (source === "camera") {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("권한 필요", "카메라 접근 권한이 필요합니다.");
+      showAppAlert({ title: "권한 필요", message: "카메라 접근 권한이 필요합니다." });
       return null;
     }
     return ImagePicker.launchCameraAsync({
@@ -28,7 +30,7 @@ export async function launchImagePickerForSource(
 
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
-    Alert.alert("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
+    showAppAlert({ title: "권한 필요", message: "사진 라이브러리 접근 권한이 필요합니다." });
     return null;
   }
   return ImagePicker.launchImageLibraryAsync({

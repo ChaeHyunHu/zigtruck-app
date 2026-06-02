@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
@@ -10,6 +10,7 @@ import { ScreenStickyFooter } from "@/src/components/common/ScreenStickyFooter";
 import { appColors } from "@/src/constants/colors";
 import { LabeledTextInput } from "@/src/features/additional-services/components/LabeledTextInput";
 import { OtherExpenseCategorySheet } from "@/src/features/drive/components/OtherExpenseCategorySheet";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   EXPENSE,
   EXPENSE_UNCLASSIFIED,
@@ -93,7 +94,7 @@ export function OtherExpenseFormScreen() {
   const submit = async () => {
     const priceNum = Number(price.replace(/,/g, ""));
     if (!priceNum) {
-      Alert.alert("입력 확인", "금액을 입력해주세요.");
+      showAppAlert({ title: "입력 확인", message: "금액을 입력해주세요." });
       return;
     }
     const categoryId = resolveOtherExpenseCategoryId(
@@ -112,15 +113,13 @@ export function OtherExpenseFormScreen() {
       setSubmitting(true);
       if (editId) {
         await updateOtherExpenseHistory(editId, body);
-        Alert.alert("완료", "기타내역이 수정되었습니다.", [
-          { text: "확인", onPress: () => router.back() },
-        ]);
+        showAppAlert({ title: "완료", message: "기타내역이 수정되었습니다.", onConfirm: () => router.back() });
       } else {
         await saveOtherExpenseHistory(body);
         router.back();
       }
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +132,7 @@ export function OtherExpenseFormScreen() {
       await removeOtherExpenseHistories([editId]);
       router.back();
     } catch {
-      Alert.alert("오류", "삭제에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "삭제에 실패했습니다." });
     } finally {
       setSubmitting(false);
       setDeleteOpen(false);

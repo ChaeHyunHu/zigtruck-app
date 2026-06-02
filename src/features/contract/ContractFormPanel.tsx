@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 import { WebView } from "react-native-webview";
 
 import { createContract, updateContract } from "@/src/api/contract";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   BottomSheet,
   BottomSheetHeader,
@@ -192,10 +192,10 @@ export function ContractFormPanel({
       const body = buildRequest();
       if (contractInfo.id && isTransferor) {
         await updateContract(contractInfo.id, body);
-        Alert.alert("완료", "전자계약서가 수정되었어요.");
+        showAppAlert({ title: "완료", message: "전자계약서가 수정되었어요." });
       } else {
         await createContract(body);
-        Alert.alert("완료", "전자계약서가 저장되었어요.");
+        showAppAlert({ title: "완료", message: "전자계약서가 저장되었어요." });
       }
       onSaved();
     } catch (error: unknown) {
@@ -203,7 +203,7 @@ export function ContractFormPanel({
         error && typeof error === "object" && "message" in error
           ? String((error as { message?: string }).message)
           : "저장에 실패했습니다.";
-      Alert.alert("오류", message);
+      showAppAlert({ title: "오류", message });
     } finally {
       setSubmitting(false);
       setConfirmOpen(false);

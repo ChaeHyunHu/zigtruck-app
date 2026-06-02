@@ -3,10 +3,11 @@ import { pickImageFromLibrary } from "@/src/utils/pickImageFromLibrary";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { ScreenStickyFooter } from "@/src/components/common/ScreenStickyFooter";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { LabeledTextInput } from "@/src/features/additional-services/components/LabeledTextInput";
@@ -103,7 +104,7 @@ export function FuelFormScreen() {
   const pickReceipt = async () => {
     const result = await pickImageFromLibrary({ quality: 0.8 });
     if (!result) {
-      Alert.alert("권한 필요", "영수증 업로드를 위해 사진 접근 권한이 필요합니다.");
+      showAppAlert({ title: "권한 필요", message: "영수증 업로드를 위해 사진 접근 권한이 필요합니다." });
       return;
     }
     if (result.canceled || !result.assets[0]) return;
@@ -130,7 +131,7 @@ export function FuelFormScreen() {
       }
       if (data.refuelDay) setRefuelDay(String(data.refuelDay));
     } catch {
-      Alert.alert("오류", "영수증 인식에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "영수증 인식에 실패했습니다." });
     } finally {
       setSubmitting(false);
     }
@@ -138,12 +139,12 @@ export function FuelFormScreen() {
 
   const submit = async () => {
     if (!refuelDay) {
-      Alert.alert("입력 확인", "주유일자를 입력해주세요.");
+      showAppAlert({ title: "입력 확인", message: "주유일자를 입력해주세요." });
       return;
     }
     const priceNum = Number(price.replace(/,/g, ""));
     if (!priceNum) {
-      Alert.alert("입력 확인", "주유금액을 입력해주세요.");
+      showAppAlert({ title: "입력 확인", message: "주유금액을 입력해주세요." });
       return;
     }
     if (amountError) return;
@@ -161,9 +162,7 @@ export function FuelFormScreen() {
       setSubmitting(true);
       if (editId) {
         await updateFuelingHistory(editId, body);
-        Alert.alert("완료", "주유비가 수정되었습니다.", [
-          { text: "확인", onPress: () => router.back() },
-        ]);
+        showAppAlert({ title: "완료", message: "주유비가 수정되었습니다.", onConfirm: () => router.back() });
       } else {
         await saveFuelingHistory(body);
         router.replace({
@@ -175,7 +174,7 @@ export function FuelFormScreen() {
         });
       }
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     } finally {
       setSubmitting(false);
     }
@@ -188,7 +187,7 @@ export function FuelFormScreen() {
       await removeFuelingHistory(editId);
       router.back();
     } catch {
-      Alert.alert("오류", "삭제에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "삭제에 실패했습니다." });
     } finally {
       setSubmitting(false);
       setDeleteOpen(false);

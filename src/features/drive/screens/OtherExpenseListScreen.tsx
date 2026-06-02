@@ -3,7 +3,6 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -12,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { EXPENSE, EXPENSE_UNCLASSIFIED } from "@/src/features/drive/driveConstants";
 import { DriveFloatingAddButton } from "@/src/features/drive/components/DriveFloatingAddButton";
@@ -103,7 +103,7 @@ export function OtherExpenseListScreen() {
       setTotalIncome(data.totalIncome ?? 0);
       setTotalExpense(data.totalExpense ?? 0);
     } catch {
-      Alert.alert("오류", "기타내역을 불러오지 못했습니다.");
+      showAppAlert({ title: "오류", message: "기타내역을 불러오지 못했습니다." });
       setDays([]);
     } finally {
       setLoading(false);

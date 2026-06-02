@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo } from "react";
-import { Alert, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { SALESTYPE } from "@/src/constants/products";
 import { AxisRadioBoxList } from "@/src/features/sell-car/registration/AxisRadioBoxList";
 import { DualFooterButtons } from "@/src/features/sell-car/registration/DualFooterButtons";
@@ -35,7 +36,7 @@ export default function AxisFormScreen() {
 
   const onNext = async () => {
     if (!productFormData?.id || !productFormData.axis?.code) {
-      Alert.alert("입력 필요", "가변축 정보를 선택해주세요.");
+      showAppAlert({ title: "입력 필요", message: "가변축 정보를 선택해주세요." });
       return;
     }
     try {
@@ -45,7 +46,7 @@ export default function AxisFormScreen() {
         params: { id: String(productFormData.id) },
       });
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     }
   };
 

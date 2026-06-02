@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, Keyboard, ScrollView, Text, TextInput, View } from "react-native";
+import { Keyboard, ScrollView, Text, TextInput, View } from "react-native";
 
 import { showAppAlert } from "@/src/providers/appDialog";
 
@@ -269,7 +269,7 @@ export default function AdditionalInfoFormScreen() {
       return;
     }
     if (powerError) {
-      Alert.alert("입력 필요", powerError);
+      showAppAlert({ title: "입력 필요", message: powerError });
       return;
     }
     if (
@@ -278,11 +278,11 @@ export default function AdditionalInfoFormScreen() {
       !productFormData?.power ||
       !productFormData?.id
     ) {
-      Alert.alert("입력 필요", "변속기, 주행거리, 연료, 마력을 입력해주세요.");
+      showAppAlert({ title: "입력 필요", message: "변속기, 주행거리, 연료, 마력을 입력해주세요." });
       return;
     }
     if (isOneTon && !area1) {
-      Alert.alert("입력 필요", "활동지를 선택해주세요.");
+      showAppAlert({ title: "입력 필요", message: "활동지를 선택해주세요." });
       return;
     }
     try {
@@ -303,7 +303,7 @@ export default function AdditionalInfoFormScreen() {
         params: { id: String(productFormData.id) },
       });
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     }
   };
 

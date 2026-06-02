@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import type { InterestNotificationSettingItem } from "@/src/features/interest-notification-settings/types";
 import { buildSettingCardRows } from "@/src/features/interest-notification-settings/utils";
@@ -25,7 +26,7 @@ export function InterestProductSettingCard({
     try {
       await onDelete();
     } catch {
-      Alert.alert("오류", "삭제에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "삭제에 실패했습니다." });
     }
   };
 

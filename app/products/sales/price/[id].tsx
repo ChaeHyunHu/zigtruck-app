@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { PRODUCT_STATUS_SALE, SALESTYPE } from "@/src/constants/products";
 import { CarPriceTrendInfoView } from "@/src/features/price-trend/CarPriceTrendInfoView";
 import {
@@ -80,11 +81,11 @@ export default function PriceFormScreen() {
       return;
     }
     if (includeLicense === null) {
-      Alert.alert("선택 필요", "번호판 판매 여부를 선택해주세요.");
+      showAppAlert({ title: "선택 필요", message: "번호판 판매 여부를 선택해주세요." });
       return;
     }
     if (includeLicense && !licenseSaved) {
-      Alert.alert("입력 필요", "번호판 정보를 입력해주세요.");
+      showAppAlert({ title: "입력 필요", message: "번호판 정보를 입력해주세요." });
       return;
     }
     if (!productFormData?.id) return;
@@ -106,22 +107,21 @@ export default function PriceFormScreen() {
       });
 
       resetRegistration();
-      Alert.alert("등록 완료", "차량 판매 등록이 완료되었습니다.", [
-        {
-          text: "확인",
-          onPress: () =>
-            router.replace({
-              pathname: "/product/[id]",
-              params: { id: String(productFormData.id), mine: "true" },
-            }),
-        },
-      ]);
+      showAppAlert({
+        title: "등록 완료",
+        message: "차량 판매 등록이 완료되었습니다.",
+        onConfirm: () =>
+          router.replace({
+            pathname: "/product/[id]",
+            params: { id: String(productFormData.id), mine: "true" },
+          }),
+      });
     } catch (error) {
       if (error instanceof Error && error.message === "LICENSE_INFO_REQUIRED") {
-        Alert.alert("입력 필요", "번호판 정보를 입력해주세요.");
+        showAppAlert({ title: "입력 필요", message: "번호판 정보를 입력해주세요." });
         return;
       }
-      Alert.alert("오류", "판매 등록에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "판매 등록에 실패했습니다." });
     } finally {
       setSubmitting(false);
     }

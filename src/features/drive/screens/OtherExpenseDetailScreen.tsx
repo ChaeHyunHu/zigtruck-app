@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   EXPENSE,
   EXPENSE_UNCLASSIFIED,
@@ -53,7 +54,7 @@ export function OtherExpenseDetailScreen() {
       await removeOtherExpenseHistories(selected);
       router.back();
     } catch {
-      Alert.alert("오류", "삭제에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "삭제에 실패했습니다." });
     } finally {
       setDeleteOpen(false);
     }

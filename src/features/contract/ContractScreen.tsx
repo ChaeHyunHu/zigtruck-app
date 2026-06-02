@@ -1,9 +1,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
 
 import { fetchContract } from "@/src/api/contract";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { TRANSFEREE, TRANSFEROR } from "@/src/constants/contract";
 import { ContractFormPanel } from "@/src/features/contract/ContractFormPanel";
@@ -54,9 +55,7 @@ export function ContractScreen() {
           setBlockTransfereeOpen(true);
         }
       } catch {
-        Alert.alert("오류", "계약서 정보를 불러오지 못했습니다.", [
-          { text: "확인", onPress: () => router.back() },
-        ]);
+        showAppAlert({ title: "오류", message: "계약서 정보를 불러오지 못했습니다.", onConfirm: () => router.back() });
       } finally {
         if (!options?.silent) setLoading(false);
       }

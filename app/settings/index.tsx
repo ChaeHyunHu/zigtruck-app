@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
@@ -13,6 +13,7 @@ import { navigateToLogin } from '@/src/lib/authNavigation';
 import { validateMemberName } from '@/src/lib/memberValidation';
 import { NAME_VALIDATION_LENGTH_MESSAGE, NAME_VALIDATION_MESSAGE } from '@/src/features/additional-services/validation';
 import { pickImageFromLibrary } from '@/src/utils/pickImageFromLibrary';
+import { showAppAlert, showAppConfirm } from '@/src/providers/appDialog';
 
 export default function SettingsScreen() {
   const {
@@ -31,17 +32,16 @@ export default function SettingsScreen() {
   const displayPhone = useMemo(() => profile?.phoneNumber || '-', [profile?.phoneNumber]);
 
   const onLogout = useCallback(() => {
-    Alert.alert('로그아웃', '정말 로그아웃 하시겠어요?', [
-      { text: '취소', style: 'cancel' },
-      {
-        text: '로그아웃',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          navigateToLogin();
-        },
+    showAppConfirm({
+      title: '로그아웃',
+      message: '정말 로그아웃 하시겠어요?',
+      leftLabel: '취소',
+      rightLabel: '로그아웃',
+      onRight: async () => {
+        await logout();
+        navigateToLogin();
       },
-    ]);
+    });
   }, [logout]);
 
   const onPressEditName = () => {
@@ -52,15 +52,15 @@ export default function SettingsScreen() {
   const onSaveName = async () => {
     const nextName = editingName.trim();
     if (!nextName) {
-      Alert.alert('이름 입력', '이름을 입력해주세요.');
+      showAppAlert({ title: '이름 입력', message: '이름을 입력해주세요.' });
       return;
     }
     if (!validateMemberName(nextName)) {
-      Alert.alert('이름 확인', NAME_VALIDATION_MESSAGE);
+      showAppAlert({ title: '이름 확인', message: NAME_VALIDATION_MESSAGE });
       return;
     }
     if (nextName.length > 20) {
-      Alert.alert('이름 확인', NAME_VALIDATION_LENGTH_MESSAGE);
+      showAppAlert({ title: '이름 확인', message: NAME_VALIDATION_LENGTH_MESSAGE });
       return;
     }
     setIsSavingName(true);
@@ -68,7 +68,7 @@ export default function SettingsScreen() {
       await updateProfileName(nextName);
       setIsNameModalOpen(false);
     } catch (error: any) {
-      Alert.alert('변경 실패', error?.message ?? '이름 변경에 실패했습니다.');
+      showAppAlert({ title: '변경 실패', message: error?.message ?? '이름 변경에 실패했습니다.' });
     } finally {
       setIsSavingName(false);
     }
@@ -77,7 +77,7 @@ export default function SettingsScreen() {
   const onPressEditProfile = async () => {
     const result = await pickImageFromLibrary({ allowsEditing: true, quality: 0.7 });
     if (!result) {
-      Alert.alert('권한 필요', '프로필 이미지를 변경하려면 사진 접근 권한이 필요합니다.');
+      showAppAlert({ title: '권한 필요', message: '프로필 이미지를 변경하려면 사진 접근 권한이 필요합니다.' });
       return;
     }
     if (result.canceled) return;
@@ -86,7 +86,7 @@ export default function SettingsScreen() {
     try {
       await uploadProfileImage(nextUri);
     } catch (error: any) {
-      Alert.alert('업로드 실패', error?.message ?? '프로필 이미지 업로드에 실패했습니다.');
+      showAppAlert({ title: '업로드 실패', message: error?.message ?? '프로필 이미지 업로드에 실패했습니다.' });
     }
   };
 

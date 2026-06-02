@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   Text,
   View,
@@ -12,6 +11,7 @@ import {
 import { getProductEnum } from "@/src/api/products/carRegister";
 import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { ScreenStickyFooter } from "@/src/components/common/ScreenStickyFooter";
 import { appColors } from "@/src/constants/colors";
 import { LabeledTextInput } from "@/src/features/additional-services/components/LabeledTextInput";
@@ -219,7 +219,7 @@ export function DriveVehicleFormScreen() {
       axisDisabled,
     });
     if (validationError) {
-      Alert.alert("입력 확인", validationError);
+      showAppAlert({ title: "입력 확인", message: validationError });
       return;
     }
 
@@ -243,16 +243,14 @@ export function DriveVehicleFormScreen() {
           return;
         }
         await patchDriveVehicleInfo({ id: vehicleId, requestData });
-        Alert.alert("완료", "차량 정보가 수정되었습니다.", [
-          { text: "확인", onPress: () => router.back() },
-        ]);
+        showAppAlert({ title: "완료", message: "차량 정보가 수정되었습니다.", onConfirm: () => router.back() });
       } else {
         await postDriveVehicleInfo(buildPostBody(form));
         await setDriveTutorial(true);
         router.replace("/drive");
       }
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     } finally {
       setSubmitting(false);
     }
@@ -368,10 +366,11 @@ export function DriveVehicleFormScreen() {
                       hitSlop={8}
                       className="ml-1"
                       onPress={() =>
-                        Alert.alert(
-                          "연간 보험료",
-                          "연간 보험료를 입력하면 월간으로 환산 후 반영됩니다.",
-                        )
+                        showAppAlert({
+                          title: "연간 보험료",
+                          message:
+                            "연간 보험료를 입력하면 월간으로 환산 후 반영됩니다.",
+                        })
                       }
                     >
                       <Ionicons

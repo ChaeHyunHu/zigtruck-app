@@ -17,6 +17,7 @@ import {
   BottomSheet,
   BottomSheetHeader,
 } from "@/src/components/common/BottomSheet";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { DriveDateCalendarPicker } from "@/src/features/drive/components/DriveDateCalendarPicker";
 import { DriveFormRow } from "@/src/features/drive/components/DriveFormRow";
 import {
@@ -138,7 +139,7 @@ export function FuelFormBottomSheet({
       if (data.refuelDay) setRefuelDay(String(data.refuelDay));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "영수증 인식에 실패했습니다.";
-      Alert.alert("오류", msg);
+      showAppAlert({ title: "오류", message: msg });
     } finally {
       setSubmitting(false);
     }
@@ -148,7 +149,7 @@ export function FuelFormBottomSheet({
     try {
       const result = await pickImageFromLibrary({ quality: 0.8 });
       if (!result) {
-        Alert.alert("권한 필요", "영수증 업로드를 위해 사진 접근 권한이 필요합니다.");
+        showAppAlert({ title: "권한 필요", message: "영수증 업로드를 위해 사진 접근 권한이 필요합니다." });
         return;
       }
       if (result.canceled || !result.assets[0]) return;
@@ -156,12 +157,13 @@ export function FuelFormBottomSheet({
       await applyReceiptData(asset.uri, asset.fileName, asset.mimeType);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
-      Alert.alert(
-        "오류",
-        msg.includes("getServices") || msg.includes("NoSuchMethodError")
-          ? "앱을 다시 빌드해 주세요.\n(npx expo run:android)"
-          : "사진을 불러오지 못했습니다.",
-      );
+      showAppAlert({
+        title: "오류",
+        message:
+          msg.includes("getServices") || msg.includes("NoSuchMethodError")
+            ? "앱을 다시 빌드해 주세요.\n(npx expo run:android)"
+            : "사진을 불러오지 못했습니다.",
+      });
     }
   };
 
@@ -169,7 +171,7 @@ export function FuelFormBottomSheet({
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("권한 필요", "영수증 촬영을 위해 카메라 권한이 필요합니다.");
+        showAppAlert({ title: "권한 필요", message: "영수증 촬영을 위해 카메라 권한이 필요합니다." });
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -181,12 +183,13 @@ export function FuelFormBottomSheet({
       await applyReceiptData(asset.uri, asset.fileName, asset.mimeType);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
-      Alert.alert(
-        "오류",
-        msg.includes("getServices") || msg.includes("NoSuchMethodError")
-          ? "앱을 다시 빌드해 주세요.\n(npx expo run:android)"
-          : "사진을 촬영하지 못했습니다.",
-      );
+      showAppAlert({
+        title: "오류",
+        message:
+          msg.includes("getServices") || msg.includes("NoSuchMethodError")
+            ? "앱을 다시 빌드해 주세요.\n(npx expo run:android)"
+            : "사진을 촬영하지 못했습니다.",
+      });
     }
   };
 
@@ -213,12 +216,12 @@ export function FuelFormBottomSheet({
 
   const submit = async () => {
     if (!refuelDay) {
-      Alert.alert("입력 확인", "주유일자를 입력해주세요.");
+      showAppAlert({ title: "입력 확인", message: "주유일자를 입력해주세요." });
       return;
     }
     const priceNum = Number(price.replace(/,/g, ""));
     if (!priceNum) {
-      Alert.alert("입력 확인", "주유금액을 입력해주세요.");
+      showAppAlert({ title: "입력 확인", message: "주유금액을 입력해주세요." });
       return;
     }
     if (amountError) return;
@@ -241,7 +244,7 @@ export function FuelFormBottomSheet({
       onRefetch?.();
       onClose();
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     } finally {
       setSubmitting(false);
     }

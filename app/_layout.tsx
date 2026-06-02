@@ -24,6 +24,7 @@ import { AuthProvider } from "@/src/providers/AuthProvider";
 import { ChatProvider } from "@/src/providers/ChatProvider";
 import { NotificationProvider } from "@/src/providers/NotificationProvider";
 import { AppDialogProvider } from "@/src/providers/AppDialogProvider";
+import { ToastProvider } from "@/src/providers/ToastProvider";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -47,6 +48,7 @@ export default function RootLayout() {
           <ChatProvider>
             <NotificationProvider>
             <AppDialogProvider>
+            <ToastProvider>
             <PushNotificationBootstrap />
             <ThemeProvider
               value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
@@ -129,6 +131,7 @@ export default function RootLayout() {
               </Stack>
               <StatusBar style="auto" translucent={false} />
             </ThemeProvider>
+            </ToastProvider>
             </AppDialogProvider>
             </NotificationProvider>
           </ChatProvider>

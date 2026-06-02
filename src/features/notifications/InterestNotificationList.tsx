@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   Text,
@@ -12,6 +11,7 @@ import {
 
 import { deleteNotification, getInterestProductsNotificationSettings } from "@/src/api/public";
 import { BasicButton } from "@/src/components/common/BasicButton";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { NotificationListItem } from "@/src/features/notifications/NotificationListItem";
 import type {
@@ -71,7 +71,7 @@ export function InterestNotificationList({
       await deleteNotification(id);
       removeNotification(id, "interest");
     } catch {
-      Alert.alert("오류", "알림을 삭제하지 못했습니다.");
+      showAppAlert({ title: "오류", message: "알림을 삭제하지 못했습니다." });
     }
   };
 

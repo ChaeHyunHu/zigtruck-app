@@ -4,7 +4,6 @@ import { router, Stack, useFocusEffect, useLocalSearchParams } from "expo-router
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   AppState,
   Keyboard,
   KeyboardAvoidingView,
@@ -15,7 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { showAppAlert } from "@/src/providers/appDialog";
+import { showAppAlert, showAppConfirm } from "@/src/providers/appDialog";
 import { createChatMessages } from "@/src/api/chat/createChat";
 import {
   buildChatImageFormData,
@@ -134,9 +133,7 @@ export default function ChatRoomScreen() {
       if (isDraftRoom) {
         const pending = takePendingChatRoom();
         if (!pending) {
-          Alert.alert("오류", "채팅방 정보를 불러오지 못했습니다.", [
-            { text: "확인", onPress: () => router.back() },
-          ]);
+          showAppAlert({ title: "오류", message: "채팅방 정보를 불러오지 못했습니다.", onConfirm: () => router.back() });
           return;
         }
 
@@ -195,9 +192,7 @@ export default function ChatRoomScreen() {
       );
     } catch {
       if (!isMountedRef.current || seq !== loadSeqRef.current) return;
-      Alert.alert("오류", "채팅방을 불러오지 못했습니다.", [
-        { text: "확인", onPress: () => router.back() },
-      ]);
+      showAppAlert({ title: "오류", message: "채팅방을 불러오지 못했습니다.", onConfirm: () => router.back() });
     } finally {
       if (isMountedRef.current && seq === loadSeqRef.current) {
         setIsFetching(false);
@@ -484,7 +479,7 @@ export default function ChatRoomScreen() {
         if (options?.restoreInputOnFail !== undefined) {
           setInput(options.restoreInputOnFail);
         }
-        Alert.alert("오류", "메시지 전송에 실패했습니다.");
+        showAppAlert({ title: "오류", message: "메시지 전송에 실패했습니다." });
       } finally {
         setIsSending(false);
       }
@@ -563,7 +558,7 @@ export default function ChatRoomScreen() {
         scrollToBottom(true);
       } catch {
         setMessages((prev) => prev.filter((msg) => msg.tempId !== tempId));
-        Alert.alert("오류", "사진 전송에 실패했습니다.");
+        showAppAlert({ title: "오류", message: "사진 전송에 실패했습니다." });
       } finally {
         setIsSending(false);
       }
@@ -590,23 +585,22 @@ export default function ChatRoomScreen() {
       router.back();
       return;
     }
-    Alert.alert("채팅방 나가기", "채팅방을 나가시겠습니까?", [
-      { text: "취소", style: "cancel" },
-      {
-        text: "나가기",
-        style: "destructive",
-        onPress: () => {
-          void (async () => {
-            try {
-              await deleteChatRooms(String(room.id));
-              router.replace("/(tabs)/chat");
-            } catch {
-              Alert.alert("오류", "채팅방 나가기에 실패했습니다.");
-            }
-          })();
-        },
+    showAppConfirm({
+      title: "채팅방 나가기",
+      message: "채팅방을 나가시겠습니까?",
+      leftLabel: "취소",
+      rightLabel: "나가기",
+      onRight: () => {
+        void (async () => {
+          try {
+            await deleteChatRooms(String(room.id));
+            router.replace("/(tabs)/chat");
+          } catch {
+            showAppAlert({ title: "오류", message: "채팅방 나가기에 실패했습니다." });
+          }
+        })();
       },
-    ]);
+    });
   }, [room?.id]);
 
   const onPressPlus = useCallback(() => {

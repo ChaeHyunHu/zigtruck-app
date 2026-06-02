@@ -1,4 +1,5 @@
 import type { Href } from "expo-router";
+import { Linking } from "react-native";
 
 import type { BannerItem } from "@/src/features/home/types";
 import { resolveNotificationRoute } from "@/src/features/notifications/utils";
@@ -29,5 +30,11 @@ export function navigateBannerLink(
     if (mapped) {
       push(mapped as Href);
     }
+    return;
+  }
+
+  // 통으로 들어온 전체 URL(http/https)은 외부 브라우저로 이동
+  if (/^https?:\/\//i.test(link)) {
+    Linking.openURL(link).catch(() => undefined);
   }
 }

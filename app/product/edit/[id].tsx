@@ -3,7 +3,6 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -116,9 +115,11 @@ export default function ProductEditScreen() {
         typeof normalized?.price === "number" ? normalized.price : undefined,
       );
     } catch {
-      Alert.alert("오류", "상품 정보를 불러오지 못했습니다.", [
-        { text: "확인", onPress: () => router.back() },
-      ]);
+      showAppAlert({
+        title: "오류",
+        message: "상품 정보를 불러오지 못했습니다.",
+        onConfirm: () => router.back(),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -145,7 +146,7 @@ export default function ProductEditScreen() {
 
     const vehicleError = validateVehicleForm(editForm);
     if (vehicleError) {
-      Alert.alert("입력 필요", vehicleError);
+      showAppAlert({ title: "입력 필요", message: vehicleError });
       return false;
     }
 
@@ -156,26 +157,29 @@ export default function ProductEditScreen() {
       editForm.accidentContents ??
       "";
     if (accident && !accidentContents.trim()) {
-      Alert.alert("입력 필요", "사고 상세내용을 입력해주세요.");
+      showAppAlert({ title: "입력 필요", message: "사고 상세내용을 입력해주세요." });
       return false;
     }
 
     if (PHONE_REGEX.test(editForm.detailContent ?? "")) {
-      Alert.alert(
-        "입력 제한",
-        "개인 정보 보호를 위해 전화번호 입력은 제한되어 있습니다.",
-      );
+      showAppAlert({
+        title: "입력 제한",
+        message: "개인 정보 보호를 위해 전화번호 입력은 제한되어 있습니다.",
+      });
       return false;
     }
 
     if (!validateRequiredPhotos(images)) {
-      Alert.alert("필수 사진", "필수 사진 3장을 모두 등록해주세요.");
+      showAppAlert({ title: "필수 사진", message: "필수 사진 3장을 모두 등록해주세요." });
       return false;
     }
 
     const nextPrice = Number(priceInput ?? 0);
     if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
-      Alert.alert("입력 오류", "판매 가격을 올바르게 입력해 주세요.");
+      showAppAlert({
+        title: "입력 오류",
+        message: "판매 가격을 올바르게 입력해 주세요.",
+      });
       return false;
     }
 
@@ -183,7 +187,10 @@ export default function ProductEditScreen() {
       detail.approvalStatusList?.at(-1)?.status?.code ===
       APPROVAL_STATUS_APPROVAL;
     if (isApproved && detail.price && nextPrice > detail.price) {
-      Alert.alert("가격 제한", "승인된 가격보다 높게는 수정이 불가능합니다.");
+      showAppAlert({
+        title: "가격 제한",
+        message: "승인된 가격보다 높게는 수정이 불가능합니다.",
+      });
       return false;
     }
 
@@ -199,11 +206,13 @@ export default function ProductEditScreen() {
       await patchProducts(buildFullEditPatchPayload(editForm, images, nextPrice));
       invalidateProductCaches(detail.id);
       setPriceReduceModalOpen(false);
-      Alert.alert("완료", "수정사항이 저장되었어요.", [
-        { text: "확인", onPress: () => router.back() },
-      ]);
+      showAppAlert({
+        title: "완료",
+        message: "수정사항이 저장되었어요.",
+        onConfirm: () => router.back(),
+      });
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     } finally {
       setIsSaving(false);
     }
@@ -243,7 +252,7 @@ export default function ProductEditScreen() {
 
   const onNext = useCallback(async () => {
     if (activeTab === "photo" && !validateRequiredPhotos(images)) {
-      Alert.alert("필수 사진", "필수 사진 3장을 모두 등록해주세요.");
+      showAppAlert({ title: "필수 사진", message: "필수 사진 3장을 모두 등록해주세요." });
       return;
     }
     if (isLast) {

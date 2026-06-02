@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Dimensions,
   Pressable,
   ScrollView,
@@ -10,6 +9,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { showAppAlert } from "@/src/providers/appDialog";
 
 import {
   BottomSheet,
@@ -122,7 +123,7 @@ export function OtherExpenseCategorySheet({
       }
       setNameSheetOpen(false);
     } catch {
-      Alert.alert("오류", "카테고리 저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "카테고리 저장에 실패했습니다." });
     } finally {
       setSaving(false);
     }
@@ -141,7 +142,7 @@ export function OtherExpenseCategorySheet({
         // 선택 해제는 부모에서 처리하지 않음 — 폼에서 미분류로 저장됨
       }
     } catch {
-      Alert.alert("오류", "카테고리 삭제에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "카테고리 삭제에 실패했습니다." });
     } finally {
       setSaving(false);
       setDeleteTarget(null);

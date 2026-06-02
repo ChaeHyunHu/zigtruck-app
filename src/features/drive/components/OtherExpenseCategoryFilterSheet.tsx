@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   BottomSheet,
   BottomSheetHeader,
@@ -80,7 +81,7 @@ export function OtherExpenseCategoryFilterSheet({
       (expenseEnabled && draft.expense.length > 0) ||
       (incomeEnabled && draft.income.length > 0);
     if (!hasAny) {
-      Alert.alert("선택된 카테고리가 없습니다", "1개 이상의 카테고리를 선택하면\n필터 적용이 가능합니다.");
+      showAppAlert({ title: "선택된 카테고리가 없습니다", message: "1개 이상의 카테고리를 선택하면\n필터 적용이 가능합니다." });
       return;
     }
     onApply(draft);

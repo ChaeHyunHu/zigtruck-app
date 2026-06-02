@@ -1,8 +1,9 @@
 import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, Text } from "react-native";
+import { Text } from "react-native";
 
 import { postOneStopService } from "@/src/api/public";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   createCapitalCounselServices,
   createPurchaseAccompanyingServices,
@@ -97,13 +98,13 @@ export function AdditionalServiceApplyScreen({
       });
       setConfirmOpen(false);
       setIsAlreadyApply(true);
-      Alert.alert("완료", successMessage);
+      showAppAlert({ title: "완료", message: successMessage });
     } catch (error: unknown) {
       const message =
         error && typeof error === "object" && "message" in error
           ? String((error as { message?: string }).message)
           : "요청 처리 중 오류가 발생했습니다.";
-      Alert.alert("오류", message);
+      showAppAlert({ title: "오류", message });
     } finally {
       setSubmitting(false);
     }

@@ -3,7 +3,6 @@ import { router } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Linking,
   Pressable,
   ScrollView,
@@ -41,6 +40,8 @@ import {
 import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useScreenInsets } from "@/src/hooks/useScreenInsets";
+import { showAppAlert } from "@/src/providers/appDialog";
+import { showToast } from "@/src/providers/toast";
 
 const REPRESENTATIVE_PHONE = "15996249";
 
@@ -71,7 +72,7 @@ export default function InterestProductsScreen() {
       setItems(normalizeInterestProducts(data));
       setUnlikeIds([]);
     } catch {
-      Alert.alert("오류", "찜한 차량 목록을 불러오지 못했습니다.");
+      showAppAlert({ title: "오류", message: "찜한 차량 목록을 불러오지 못했습니다." });
     } finally {
       setLoading(false);
     }
@@ -112,7 +113,7 @@ export default function InterestProductsScreen() {
           setUnlikeIds((prev) => [...prev, item.id]);
         }
       } catch {
-        Alert.alert("오류", "찜 상태 변경에 실패했습니다.");
+        showAppAlert({ title: "오류", message: "찜 상태 변경에 실패했습니다." });
       } finally {
         setIsMutating(false);
       }
@@ -134,7 +135,7 @@ export default function InterestProductsScreen() {
     }
     const phone = inquiryProduct.safetyNumber ?? REPRESENTATIVE_PHONE;
     Linking.openURL(`tel:${phone}`).catch(() =>
-      Alert.alert("오류", "전화 연결을 할 수 없습니다."),
+      showAppAlert({ title: "오류", message: "전화 연결을 할 수 없습니다." }),
     );
     setInquiryOpen(false);
   }, [inquiryProduct]);
@@ -171,14 +172,14 @@ export default function InterestProductsScreen() {
         delete request.maxTons;
       }
       await postInterestProductNotificationSettings(request as never);
-      Alert.alert("완료", "관심차량이 등록되었어요.");
+      showToast("관심차량이 등록되었어요.");
     } catch (error: unknown) {
       setDisabledNotificationIds((prev) => prev.filter((id) => id !== item.id));
       const message =
         error && typeof error === "object" && "message" in error
           ? String((error as { message?: string }).message)
           : "알림 등록에 실패했습니다.";
-      Alert.alert("오류", message);
+      showAppAlert({ title: "오류", message });
     } finally {
       notifyTargetRef.current = null;
     }

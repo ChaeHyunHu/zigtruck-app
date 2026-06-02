@@ -17,7 +17,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   ListRenderItem,
   Pressable,
@@ -28,6 +27,7 @@ import {
 } from "react-native";
 
 import { getProductList } from "@/src/api/public";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { AppSwitch } from "@/src/components/common/AppSwitch";
 import { SearchLoadingIndicator } from "@/src/components/common/SearchLoadingIndicator";
 import { appColors } from "@/src/constants/colors";
@@ -188,7 +188,7 @@ export default function PurchaseScreen() {
         hasDataRef.current = items.length > 0;
       } catch {
         if (generation !== fetchGenerationRef.current) return;
-        Alert.alert("목록 불러오기 실패", "내차구매 목록을 불러오지 못했어요.");
+        showAppAlert({ title: "목록 불러오기 실패", message: "내차구매 목록을 불러오지 못했어요." });
       } finally {
         if (generation !== fetchGenerationRef.current) return;
         setIsLoading(false);

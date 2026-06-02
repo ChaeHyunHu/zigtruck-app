@@ -5,7 +5,6 @@ import { Image } from "expo-image";
 import { type Href, useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Alert,
   Animated,
   BackHandler,
   Dimensions,
@@ -27,6 +26,7 @@ import {
   getYoutubeVideos,
 } from "@/src/api/public";
 import { GradientOutlineButton } from "@/src/components/common/GradientOutlineButton";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { SALES_TYPE_ASSURANCE } from "@/src/constants/products";
 import { IMAGE_BASE_URL, ZIGTRUCK_YOUTUBE_HOME_URL } from "@/src/constants/url";
@@ -353,7 +353,7 @@ export default function HomeScreen() {
 
   const onPressCall = useCallback(() => {
     Linking.openURL("tel:15996249").catch(() =>
-      Alert.alert("전화 문의", "1599-6249"),
+      showAppAlert({ title: "전화 문의", message: "1599-6249" }),
     );
   }, []);
 

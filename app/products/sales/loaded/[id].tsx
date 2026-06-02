@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, Keyboard, ScrollView, Text, View } from "react-native";
+import { Keyboard, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { SALESTYPE } from "@/src/constants/products";
 import { DimensionInputRow } from "@/src/features/sell-car/registration/DimensionInputRow";
 import { DualFooterButtons } from "@/src/features/sell-car/registration/DualFooterButtons";
@@ -64,7 +65,7 @@ export default function LoadedFormScreen() {
       return;
     }
     if (!productFormData?.loaded?.code || !productFormData?.id) {
-      Alert.alert("입력 필요", "적재함 종류와 길이를 입력해주세요.");
+      showAppAlert({ title: "입력 필요", message: "적재함 종류와 길이를 입력해주세요." });
       return;
     }
     try {
@@ -81,7 +82,7 @@ export default function LoadedFormScreen() {
         params: { id: String(productFormData.id) },
       });
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     }
   };
 

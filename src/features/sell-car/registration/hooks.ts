@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert } from "react-native";
 
 import { fetchRegistrationProduct } from "@/src/api/products/carRegister";
 import { patchProducts } from "@/src/api/public";
 import { normalizeCarRegisterResponse } from "@/src/features/sell-car/registration/productUtils";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { useProductRegistration } from "@/src/providers/ProductRegistrationProvider";
 
 export const useRegistrationProduct = (id: string | undefined) => {
@@ -20,7 +20,7 @@ export const useRegistrationProduct = (id: string | undefined) => {
         if (!mounted) return;
         setProductFormData(normalizeCarRegisterResponse(data));
       })
-      .catch(() => Alert.alert("오류", "차량 정보를 불러오지 못했습니다."))
+      .catch(() => showAppAlert({ title: "오류", message: "차량 정보를 불러오지 못했습니다." }))
       .finally(() => {
         if (mounted) setLoading(false);
       });

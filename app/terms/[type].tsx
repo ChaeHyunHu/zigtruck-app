@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
 
 import { getTerm } from "@/src/api/public";
 import { HtmlContent } from "@/src/components/common/HtmlContent";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { TERM_TYPE_TITLES } from "@/src/features/terms/types";
 import {
@@ -35,9 +36,7 @@ export default function TermsDetailScreen() {
 
   useEffect(() => {
     if (!type || !(type in TERM_TYPE_TITLES)) {
-      Alert.alert("오류", "약관을 찾을 수 없습니다.", [
-        { text: "확인", onPress: () => router.back() },
-      ]);
+      showAppAlert({ title: "오류", message: "약관을 찾을 수 없습니다.", onConfirm: () => router.back() });
       return;
     }
 
@@ -53,7 +52,7 @@ export default function TermsDetailScreen() {
       })
       .catch(() => {
         setContents(null);
-        Alert.alert("오류", "약관을 불러오지 못했습니다.");
+        showAppAlert({ title: "오류", message: "약관을 불러오지 못했습니다." });
       })
       .finally(() => setLoading(false));
   }, [type, audienceMemberType]);

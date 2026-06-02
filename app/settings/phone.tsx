@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { patchMember } from '@/src/api/members';
+import { showAppAlert } from '@/src/providers/appDialog';
 import { PhoneAuthForm } from '@/src/components/settings/PhoneAuthForm';
 import { Screen } from '@/src/components/common/Screen';
 import { RegistrationHeader } from '@/src/features/sell-car/registration/RegistrationHeader';
@@ -19,7 +20,7 @@ export default function PhoneNumberChangeScreen() {
 
   const onSubmit = async () => {
     if (!isVerified) {
-      Alert.alert('인증 필요', '휴대폰 번호 인증을 완료해주세요.');
+      showAppAlert({ title: '인증 필요', message: '휴대폰 번호 인증을 완료해주세요.' });
       return;
     }
     setIsSubmitting(true);
@@ -31,11 +32,9 @@ export default function PhoneNumberChangeScreen() {
         marketing: true,
       });
       await refreshProfile();
-      Alert.alert('변경 완료', '휴대폰 번호를 변경했어요.', [
-        { text: '확인', onPress: () => router.back() },
-      ]);
+      showAppAlert({ title: '변경 완료', message: '휴대폰 번호를 변경했어요.', onConfirm: () => router.back() });
     } catch (error: any) {
-      Alert.alert('변경 실패', error?.message ?? '휴대폰 번호 변경에 실패했습니다.');
+      showAppAlert({ title: '변경 실패', message: error?.message ?? '휴대폰 번호 변경에 실패했습니다.' });
     } finally {
       setIsSubmitting(false);
     }

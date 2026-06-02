@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import {
   BottomSheet,
   BottomSheetHeader,
 } from "@/src/components/common/BottomSheet";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { DriveDateCalendarPicker } from "@/src/features/drive/components/DriveDateCalendarPicker";
 import { DriveFormRow } from "@/src/features/drive/components/DriveFormRow";
@@ -129,7 +130,7 @@ export function OtherExpenseFormBottomSheet({
   const submit = async () => {
     const priceNum = Number(price.replace(/,/g, ""));
     if (!priceNum) {
-      Alert.alert("입력 확인", "금액을 입력해주세요.");
+      showAppAlert({ title: "입력 확인", message: "금액을 입력해주세요." });
       return;
     }
     try {
@@ -153,7 +154,7 @@ export function OtherExpenseFormBottomSheet({
       onSaved();
       onClose();
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     } finally {
       setSubmitting(false);
     }
@@ -300,7 +301,7 @@ export function OtherExpenseFormBottomSheet({
             onSaved();
             onClose();
           } catch {
-            Alert.alert("오류", "삭제에 실패했습니다.");
+            showAppAlert({ title: "오류", message: "삭제에 실패했습니다." });
           } finally {
             setSubmitting(false);
             setDeleteOpen(false);

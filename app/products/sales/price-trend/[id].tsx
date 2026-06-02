@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
-import { Alert, Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { Linking, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { SALESTYPE } from "@/src/constants/products";
 import { REPRESENTATIVE_NUMBER } from "@/src/features/additional-services/constants";
@@ -45,7 +46,7 @@ export default function PriceTrendScreen() {
 
   const callConsultation = () => {
     Linking.openURL("tel:15996249").catch(() =>
-      Alert.alert("전화 문의", REPRESENTATIVE_NUMBER),
+      showAppAlert({ title: "전화 문의", message: REPRESENTATIVE_NUMBER }),
     );
   };
 

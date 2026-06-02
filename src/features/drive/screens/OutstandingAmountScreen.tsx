@@ -3,7 +3,6 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -14,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { DriveLogBottomSheet } from "@/src/features/drive/components/DriveLogBottomSheet";
 import { DriveMonthSummaryBar } from "@/src/features/drive/components/DriveMonthSummaryBar";
@@ -60,7 +60,7 @@ export function OutstandingAmountScreen() {
       });
       setData(res);
     } catch {
-      Alert.alert("오류", "미수금 내역을 불러오지 못했습니다.");
+      showAppAlert({ title: "오류", message: "미수금 내역을 불러오지 못했습니다." });
       setData(null);
     } finally {
       setLoading(false);
@@ -82,7 +82,7 @@ export function OutstandingAmountScreen() {
       ]);
       void load();
     } catch {
-      Alert.alert("오류", "수금 상태 변경에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "수금 상태 변경에 실패했습니다." });
     }
   };
 
@@ -101,7 +101,7 @@ export function OutstandingAmountScreen() {
       await patchOutstandingReceived(items);
       void load();
     } catch {
-      Alert.alert("오류", "전체 수금 처리에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "전체 수금 처리에 실패했습니다." });
     } finally {
       setBulkOpen(false);
     }

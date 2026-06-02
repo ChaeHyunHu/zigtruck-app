@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { showAppAlert } from "@/src/providers/appDialog";
 
@@ -97,20 +97,20 @@ export function DriveLogFormScreen() {
 
   const validate = () => {
     if (!transferStart.trim()) {
-      Alert.alert("입력 확인", "상차지를 입력해주세요.");
+      showAppAlert({ title: "입력 확인", message: "상차지를 입력해주세요." });
       return false;
     }
     if (!transferEnd.trim()) {
-      Alert.alert("입력 확인", "하차지를 입력해주세요.");
+      showAppAlert({ title: "입력 확인", message: "하차지를 입력해주세요." });
       return false;
     }
     for (const t of transports) {
       if (!t.transportCompany?.trim()) {
-        Alert.alert("입력 확인", "운송사를 입력해주세요.");
+        showAppAlert({ title: "입력 확인", message: "운송사를 입력해주세요." });
         return false;
       }
       if (!t.isCancel && !t.transportCost) {
-        Alert.alert("입력 확인", "운송료를 입력해주세요.");
+        showAppAlert({ title: "입력 확인", message: "운송료를 입력해주세요." });
         return false;
       }
     }
@@ -154,9 +154,7 @@ export function DriveLogFormScreen() {
           return;
         }
         await updateDriveHistory(editId, body);
-        Alert.alert("완료", "운행일지가 수정되었습니다.", [
-          { text: "확인", onPress: () => router.back() },
-        ]);
+        showAppAlert({ title: "완료", message: "운행일지가 수정되었습니다.", onConfirm: () => router.back() });
       } else {
         await saveDriveHistory({
           transferStartDate: formDate,
@@ -174,7 +172,7 @@ export function DriveLogFormScreen() {
         router.back();
       }
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     } finally {
       setSubmitting(false);
     }
@@ -187,7 +185,7 @@ export function DriveLogFormScreen() {
       await removeDriveHistory(editId);
       router.back();
     } catch {
-      Alert.alert("오류", "삭제에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "삭제에 실패했습니다." });
     } finally {
       setSubmitting(false);
       setDeleteOpen(false);

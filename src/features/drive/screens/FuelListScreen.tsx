@@ -3,13 +3,14 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { showAppAlert } from "@/src/providers/appDialog";
 
 import { Screen } from "@/src/components/common/Screen";
 import { DriveDetailArrowRow } from "@/src/features/drive/components/DriveDetailArrowRow";
@@ -60,7 +61,7 @@ export function FuelListScreen() {
       setTotalMonth(data.totalFuelingCostOfMonth ?? 0);
       setDayGroups(data.fuelingHistoryByBaseDayList ?? []);
     } catch {
-      Alert.alert("오류", "주유비 내역을 불러오지 못했습니다.");
+      showAppAlert({ title: "오류", message: "주유비 내역을 불러오지 못했습니다." });
       setDayGroups([]);
     } finally {
       setLoading(false);

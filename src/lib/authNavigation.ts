@@ -1,5 +1,7 @@
 import { router } from "expo-router";
-import { Alert, InteractionManager } from "react-native";
+import { InteractionManager } from "react-native";
+
+import { showAppConfirm } from "@/src/providers/appDialog";
 
 export const LOGIN_ROUTE = "/(auth)/login";
 
@@ -13,8 +15,11 @@ export function navigateToLogin() {
 export function promptLogin(
   message = "이 메뉴는 로그인 후 이용 가능합니다.",
 ) {
-  Alert.alert("로그인 필요", message, [
-    { text: "취소", style: "cancel" },
-    { text: "로그인", onPress: navigateToLogin },
-  ]);
+  showAppConfirm({
+    title: "로그인 필요",
+    message,
+    leftLabel: "취소",
+    rightLabel: "로그인",
+    onRight: navigateToLogin,
+  });
 }

@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef } from "react";
-import { ActivityIndicator, Alert, FlatList, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Text, View } from "react-native";
 
 import { deleteNotification } from "@/src/api/public";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { NotificationListItem } from "@/src/features/notifications/NotificationListItem";
 import type { MemberNotification } from "@/src/features/notifications/types";
@@ -45,7 +46,7 @@ export function ActivityNotificationList({
       await deleteNotification(id);
       removeNotification(id, "activity");
     } catch {
-      Alert.alert("오류", "알림을 삭제하지 못했습니다.");
+      showAppAlert({ title: "오류", message: "알림을 삭제하지 못했습니다." });
     }
   };
 

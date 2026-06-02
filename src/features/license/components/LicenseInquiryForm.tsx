@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import {
   createLicenseListing,
@@ -8,6 +8,7 @@ import {
   type LicenseFilterInfo,
 } from "@/src/api/license";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { LabeledTextInput } from "@/src/features/additional-services/components/LabeledTextInput";
 import {
   LicenseCircleRadioGroup,
@@ -82,7 +83,7 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
   const openLicenseTypePicker = useCallback(() => {
     const n = Number(tons);
     if (!enumData || !Number.isFinite(n)) {
-      Alert.alert("입력 필요", "톤수를 먼저 입력해주세요.");
+      showAppAlert({ title: "입력 필요", message: "톤수를 먼저 입력해주세요." });
       return;
     }
     setPickerOptions(
@@ -115,7 +116,7 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
       return;
     }
     if (!isValid) {
-      Alert.alert("입력 필요", "필수 항목을 모두 입력해주세요.");
+      showAppAlert({ title: "입력 필요", message: "필수 항목을 모두 입력해주세요." });
       return;
     }
     try {
@@ -144,7 +145,7 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
       }
       setSuccessOpen(true);
     } catch {
-      Alert.alert("오류", "등록에 실패했습니다. 잠시 후 다시 시도해주세요.");
+      showAppAlert({ title: "오류", message: "등록에 실패했습니다. 잠시 후 다시 시도해주세요." });
     } finally {
       setSubmitting(false);
     }

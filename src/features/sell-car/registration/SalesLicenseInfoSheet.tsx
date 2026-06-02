@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   Pressable,
   Text,
   TextInput,
@@ -9,6 +8,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getLicenseFilterInfo } from "@/src/api/license";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   BottomSheet,
   BottomSheetHeader,
@@ -110,7 +110,7 @@ export function SalesLicenseInfoSheet({
   const handleSave = () => {
     const normalizedPrice = price.replace(/[^\d]/g, "");
     if (!licenseType.code || !normalizedPrice) {
-      Alert.alert("입력 필요", "번호판 종류와 금액을 입력해주세요.");
+      showAppAlert({ title: "입력 필요", message: "번호판 종류와 금액을 입력해주세요." });
       return;
     }
     onSave({

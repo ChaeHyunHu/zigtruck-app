@@ -3,7 +3,6 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -14,6 +13,7 @@ import {
   deleteInterestProductNotificationSettings,
   getInterestProductsNotificationSettings,
 } from "@/src/api/public";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { LoginRequiredView } from "@/src/components/auth/LoginRequiredView";
 import { Screen } from "@/src/components/common/Screen";
 import { BasicButton } from "@/src/components/common/BasicButton";
@@ -112,7 +112,7 @@ export default function InterestNotificationProductsScreen() {
               }
               onDelete={async () => {
                 await deleteInterestProductNotificationSettings(item.id);
-                Alert.alert("완료", "관심차량을 삭제했어요.");
+                showAppAlert({ title: "완료", message: "관심차량을 삭제했어요." });
                 await load();
               }}
             />

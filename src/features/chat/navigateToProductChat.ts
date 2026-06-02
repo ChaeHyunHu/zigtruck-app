@@ -1,7 +1,6 @@
 import { router } from "expo-router";
-import { Alert } from "react-native";
-
 import apiManager from "@/src/api/AxiosInstance";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   extractChatRoomId,
   normalizeChatRoomDetail,
@@ -30,6 +29,6 @@ export async function navigateToProductChatSafely(productId: number) {
   try {
     await navigateToProductChat(productId);
   } catch {
-    Alert.alert("오류", "채팅방을 만들 수 없습니다. 잠시 후 다시 시도해주세요.");
+    showAppAlert({ title: "오류", message: "채팅방을 만들 수 없습니다. 잠시 후 다시 시도해주세요." });
   }
 }

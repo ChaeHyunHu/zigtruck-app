@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
-import { Alert, Text, TextInput, View } from "react-native";
+import { Text, TextInput, View } from "react-native";
 
 import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { SALESTYPE } from "@/src/constants/products";
 import { DualFooterButtons } from "@/src/features/sell-car/registration/DualFooterButtons";
 import { usePatchProduct, useRegistrationProduct } from "@/src/features/sell-car/registration/hooks";
@@ -35,7 +36,7 @@ export default function TonsFormScreen() {
         params: { id: String(productFormData.id) },
       });
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     }
   };
 

@@ -7,10 +7,15 @@ import {
   useFocusEffect,
   useLocalSearchParams,
 } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Pressable,
   ScrollView,
@@ -23,8 +28,8 @@ import {
   fetchProductDetail,
   patchProductPrice,
 } from "@/src/api/products/getProducts";
-import { patchProductPause, patchProductsStatus } from "@/src/api/public";
 import { patchProductComplete } from "@/src/api/products/updateProducts";
+import { patchProductPause, patchProductsStatus } from "@/src/api/public";
 import {
   APPROVAL_STATUS_APPROVAL,
   APPROVAL_STATUS_WAITING,
@@ -37,28 +42,33 @@ import { IMAGE_BASE_URL } from "@/src/constants/url";
 import { formatPrice } from "@/src/features/home/utils";
 import { findInterestProductIdByProductId } from "@/src/features/interest-products/interestProductService";
 import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEditOptionSheet";
+import { InlineProductPriceEditor } from "@/src/features/products/InlineProductPriceEditor";
 import { LoanCalculator } from "@/src/features/products/LoanCalculator";
 import { PauseSaleModal } from "@/src/features/products/PauseSaleModal";
-import { SaleCompleteReviewModal } from "@/src/features/products/SaleCompleteReviewModal";
-import {
-  ProductStatusBadge,
-  PRODUCT_STATUS_DESC,
-} from "@/src/features/products/productStatusBadge";
 import { ProductDetailBuyerFooter } from "@/src/features/products/ProductDetailBuyerFooter";
 import { ProductDetailLicenseNotice } from "@/src/features/products/ProductDetailLicenseNotice";
 import { ProductDetailPriceTrendSection } from "@/src/features/products/ProductDetailPriceTrendSection";
 import { ProductDetailRecommendedServices } from "@/src/features/products/ProductDetailRecommendedServices";
-import { ProductSalesTypeBanner } from "@/src/features/products/ProductSalesTypeBanner";
-import { SalePriceTipBox } from "@/src/features/products/SalePriceTipBox";
-import { ProductYoutubeIcon } from "@/src/features/products/ProductYoutubeIcon";
-import { ProductYoutubePlayer } from "@/src/features/products/ProductYoutubePlayer";
 import {
   ProductHistorySections,
   type HistoryScrollKey,
 } from "@/src/features/products/ProductHistorySections";
 import { ProductImageCarousel } from "@/src/features/products/ProductImageCarousel";
 import { ProductImageViewer } from "@/src/features/products/ProductImageViewer";
+import {
+  ProductPriceReduceNoticeModal,
+  shouldShowPriceReduceNotice,
+} from "@/src/features/products/ProductPriceReduceNoticeModal";
 import { invalidateProductCaches } from "@/src/features/products/productRefresh";
+import { ProductSalesTypeBanner } from "@/src/features/products/ProductSalesTypeBanner";
+import {
+  PRODUCT_STATUS_DESC,
+  ProductStatusBadge,
+} from "@/src/features/products/productStatusBadge";
+import { ProductYoutubeIcon } from "@/src/features/products/ProductYoutubeIcon";
+import { ProductYoutubePlayer } from "@/src/features/products/ProductYoutubePlayer";
+import { SaleCompleteReviewModal } from "@/src/features/products/SaleCompleteReviewModal";
+import { SalePriceTipBox } from "@/src/features/products/SalePriceTipBox";
 import type { ProductDetail } from "@/src/features/products/types";
 import {
   collectListItemImageUrls,
@@ -78,13 +88,9 @@ import {
   normalizeDetail,
   toText,
 } from "@/src/features/products/utils";
-import { InlineProductPriceEditor } from "@/src/features/products/InlineProductPriceEditor";
-import {
-  ProductPriceReduceNoticeModal,
-  shouldShowPriceReduceNotice,
-} from "@/src/features/products/ProductPriceReduceNoticeModal";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useScreenInsets } from "@/src/hooks/useScreenInsets";
+import { showAppAlert } from "@/src/providers/appDialog";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const FALLBACK_IMAGE = `${IMAGE_BASE_URL}/car_none.png`;
@@ -181,9 +187,9 @@ export default function ProductDetailScreen() {
               : nextStatus === PRODUCT_STATUS_COMPLETE
                 ? "판매완료로 변경되었어요."
                 : "상태가 변경되었어요.";
-        Alert.alert("완료", message);
+        showAppAlert({ title: "완료", message });
       } catch {
-        Alert.alert("오류", "상태 변경에 실패했습니다.");
+        showAppAlert({ title: "오류", message: "상태 변경에 실패했습니다." });
       } finally {
         setIsChangingStatus(false);
       }
@@ -214,9 +220,9 @@ export default function ProductDetailScreen() {
         );
         setShowPauseModal(false);
         setShowStatusSheet(false);
-        Alert.alert("완료", "판매중지로 변경되었어요.");
+        showAppAlert({ title: "완료", message: "판매중지로 변경되었어요." });
       } catch {
-        Alert.alert("오류", "상태 변경에 실패했습니다.");
+        showAppAlert({ title: "오류", message: "상태 변경에 실패했습니다." });
       } finally {
         setIsChangingStatus(false);
       }
@@ -267,9 +273,9 @@ export default function ProductDetailScreen() {
         setShowCompleteModal(false);
         setShowStatusSheet(false);
         invalidateProductCaches(detail.id);
-        Alert.alert("완료", "판매완료로 변경되었어요.");
+        showAppAlert({ title: "완료", message: "판매완료로 변경되었어요." });
       } catch {
-        Alert.alert("오류", "상태 변경에 실패했습니다.");
+        showAppAlert({ title: "오류", message: "상태 변경에 실패했습니다." });
       } finally {
         setIsChangingStatus(false);
       }
@@ -299,9 +305,11 @@ export default function ProductDetailScreen() {
       );
       setImageVersion((prev) => prev + 1);
     } catch {
-      Alert.alert("상품 정보 오류", "상품 정보를 불러오지 못했습니다.", [
-        { text: "확인", onPress: () => router.back() },
-      ]);
+      showAppAlert({
+        title: "상품 정보 오류",
+        message: "상품 정보를 불러오지 못했습니다.",
+        onConfirm: () => router.back(),
+      });
     } finally {
       setIsLoading(false);
     }
@@ -340,14 +348,20 @@ export default function ProductDetailScreen() {
       if (!detail) return;
       const nextPrice = Number(priceInputDigits.replace(/[^\d]/g, ""));
       if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
-        Alert.alert("입력 오류", "판매 가격을 올바르게 입력해 주세요.");
+        showAppAlert({
+          title: "입력 오류",
+          message: "판매 가격을 올바르게 입력해 주세요.",
+        });
         return;
       }
       const isApproved =
         detail.approvalStatusList?.at(-1)?.status?.code ===
         APPROVAL_STATUS_APPROVAL;
       if (isApproved && detail.price && nextPrice > detail.price) {
-        Alert.alert("가격 제한", "승인된 가격보다 높게는 수정이 불가능합니다.");
+        showAppAlert({
+          title: "가격 제한",
+          message: "승인된 가격보다 높게는 수정이 불가능합니다.",
+        });
         return;
       }
       try {
@@ -358,10 +372,10 @@ export default function ProductDetailScreen() {
         setPriceInputDigits(String(nextPrice));
         setShowPriceEditor(false);
         if (!options?.silent) {
-          Alert.alert("완료", "판매 가격이 변경되었어요.");
+          showAppAlert({ title: "완료", message: "판매 가격이 변경되었어요." });
         }
       } catch {
-        Alert.alert("오류", "판매 가격 변경에 실패했습니다.");
+        showAppAlert({ title: "오류", message: "판매 가격 변경에 실패했습니다." });
       } finally {
         setIsSavingPrice(false);
       }
@@ -373,7 +387,10 @@ export default function ProductDetailScreen() {
     if (!detail) return;
     const nextPrice = Number(priceInputDigits.replace(/[^\d]/g, ""));
     if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
-      Alert.alert("입력 오류", "판매 가격을 올바르게 입력해 주세요.");
+      showAppAlert({
+        title: "입력 오류",
+        message: "판매 가격을 올바르게 입력해 주세요.",
+      });
       return;
     }
     const originalPrice = Number(detail.price ?? 0);
@@ -389,22 +406,18 @@ export default function ProductDetailScreen() {
     void executeSavePrice({ silent: true });
   }, [executeSavePrice]);
 
+  // MenuBottomSheet가 항목 선택 시 시트를 닫고 닫힘 애니메이션 후 onPress를 실행하므로
+  // 여기서 추가로 setShowMoreSheet/지연을 두면 이동이 이중으로 늦어진다. 바로 이동한다.
   const goToEdit = useCallback(() => {
     if (!detail) return;
-    setShowMoreSheet(false);
-    setTimeout(() => {
-      router.push({
-        pathname: "/product/edit/[id]",
-        params: { id: String(detail.id) },
-      });
-    }, 320);
+    router.push({
+      pathname: "/product/edit/[id]",
+      params: { id: String(detail.id) },
+    });
   }, [detail]);
 
   const goToLicensePlate = useCallback(() => {
-    setShowMoreSheet(false);
-    setTimeout(() => {
-      router.push("/license/my");
-    }, 320);
+    router.push("/license/my");
   }, []);
 
   const productMoreMenuItems = useMemo(() => {
@@ -585,7 +598,9 @@ export default function ProductDetailScreen() {
               <ProductDetailPriceTrendSection detail={detail} />
             ) : null}
 
-            {youtubeUrl ? <ProductYoutubePlayer youtubeUrl={youtubeUrl} /> : null}
+            {youtubeUrl ? (
+              <ProductYoutubePlayer youtubeUrl={youtubeUrl} />
+            ) : null}
 
             <ProductDetailRecommendedServices detail={detail} />
 

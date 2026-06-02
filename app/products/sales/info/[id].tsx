@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   PRODUCT_STATUS_BEFORE_SALE,
   PRODUCT_TYPE_DIRECT,
@@ -80,7 +81,7 @@ export default function ProductOriginInfoScreen() {
         params: { id: String(data.id) },
       });
     } catch {
-      Alert.alert("오류", "다음 단계로 이동하지 못했습니다.");
+      showAppAlert({ title: "오류", message: "다음 단계로 이동하지 못했습니다." });
     }
   }, [data?.id, patch, salesType]);
 

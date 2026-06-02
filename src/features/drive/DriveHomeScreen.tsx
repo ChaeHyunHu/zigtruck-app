@@ -3,7 +3,6 @@ import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -13,6 +12,7 @@ import { useAppSafeAreaInsets } from "@/src/hooks/useAppSafeAreaInsets";
 
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { DriveAddButtons } from "@/src/features/drive/components/DriveAddButtons";
 import { DriveCalendar } from "@/src/features/drive/components/DriveCalendar";
 import { DriveDaySheet } from "@/src/features/drive/components/DriveDaySheet";
@@ -177,7 +177,7 @@ export function DriveHomeScreen() {
         ]);
         await refreshDaySheet();
       } catch {
-        Alert.alert("오류", "수금 상태 변경에 실패했습니다.");
+        showAppAlert({ title: "오류", message: "수금 상태 변경에 실패했습니다." });
       }
     },
     [refreshDaySheet],
@@ -388,7 +388,7 @@ export function DriveHomeScreen() {
           if (result) applyDaySheetResult(result.baseDay, result.lists);
         })
         .catch(() => {
-          Alert.alert("오류", "일지 정보를 불러오지 못했습니다.");
+          showAppAlert({ title: "오류", message: "일지 정보를 불러오지 못했습니다." });
         });
     },
     [

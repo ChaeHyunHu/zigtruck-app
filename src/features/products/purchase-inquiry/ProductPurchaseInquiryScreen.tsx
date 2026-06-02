@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { useAppDialog } from "@/src/providers/AppDialogProvider";
+import { showToast } from "@/src/providers/toast";
 
 import { getProductFilterInfo, postInterestProductNotificationSettings, postProductInquiry } from "@/src/api/public";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
@@ -185,11 +186,8 @@ export function ProductPurchaseInquiryScreen() {
       const body = buildInterestNotificationFromPurchaseInquiry(form);
       await postInterestProductNotificationSettings(body as never);
       setCompleteModalOpen(false);
-      alert({
-        title: "완료",
-        message: "차량 입고 알림이 등록되었어요.",
-        onConfirm: () => router.replace("/(tabs)"),
-      });
+      showToast("차량 입고 알림이 등록되었어요.");
+      router.replace("/(tabs)");
     } catch (error: unknown) {
       const message =
         error && typeof error === "object" && "message" in error

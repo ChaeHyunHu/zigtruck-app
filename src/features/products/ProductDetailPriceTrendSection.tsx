@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { CarPriceTrendInfoView } from "@/src/features/price-trend/CarPriceTrendInfoView";
 import { buildPriceSearchParamsFromProductDetail } from "@/src/features/price-trend/utils";
+import { showAppAlert } from "@/src/providers/appDialog";
 
 import type { ProductDetail } from "./types";
 
@@ -33,7 +34,7 @@ export function ProductDetailPriceTrendSection({
           직거래 시세 정보
         </Text>
         <Pressable
-          onPress={() => Alert.alert("직거래 시세 정보", PRICE_TREND_TOOLTIP)}
+          onPress={() => showAppAlert({ title: "직거래 시세 정보", message: PRICE_TREND_TOOLTIP })}
           hitSlop={8}
           className="ml-1"
         >
