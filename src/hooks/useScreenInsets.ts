@@ -11,7 +11,7 @@ export function useScreenInsets() {
     left: insets.left,
     right: insets.right,
     tabBarHeight: TAB_BAR_BASE_HEIGHT + insets.bottom,
-    listPaddingBottom: 24,
+    listPaddingBottom: 0,
     fabListPaddingBottom: 88,
     stackFooterPadding: Math.max(insets.bottom, 12),
     scrollBottomPadding: 96 + Math.max(insets.bottom, 12),

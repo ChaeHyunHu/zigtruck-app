@@ -406,6 +406,7 @@ export default function HomeScreen() {
     <Screen variant="tab" className="flex-1 bg-white">
       <HomePopupBannerModal banners={banners} />
       <ScrollView
+        style={{ flex: 1 }}
         className="flex-1 bg-gray100"
         contentContainerStyle={{ paddingBottom: listPaddingBottom }}
       >

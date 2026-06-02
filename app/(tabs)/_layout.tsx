@@ -71,6 +71,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: appColors.primary,
         tabBarInactiveTintColor: appColors.gray600,
         headerShown: false,
+        sceneStyle: { flex: 1, backgroundColor: appColors.white },
         tabBarStyle: {
           backgroundColor: appColors.white,
           borderTopColor: appColors.gray300,

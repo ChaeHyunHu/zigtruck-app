@@ -98,9 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const deviceToken = registration.token;
     if (!deviceToken) {
-      if (__DEV__ && registration.error) {
-        console.warn("[push] token registration skipped:", registration.error);
-      }
       return;
     }
 

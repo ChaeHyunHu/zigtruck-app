@@ -40,7 +40,9 @@ export function Screen({
 
   return (
     <SafeAreaView className={className} edges={resolvedEdges}>
-      {extraBottom > 0 ? (
+      {variant === "tab" ? (
+        <View style={{ flex: 1 }}>{children}</View>
+      ) : extraBottom > 0 ? (
         <View style={{ flex: 1, paddingBottom: extraBottom }}>{children}</View>
       ) : (
         children

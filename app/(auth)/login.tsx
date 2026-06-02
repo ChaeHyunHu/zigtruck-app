@@ -42,6 +42,7 @@ export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp<ParamListBase>>();
   const { isAuthenticated, login, loginWithToken } = useAuth();
   const dealerScrollRef = useRef<ScrollView>(null);
+  const normalScrollRef = useRef<ScrollView>(null);
   const passwordInputRef = useRef<TextInputType>(null);
 
   const [tab, setTab] = useState<LoginTab>("NORMAL");
@@ -131,17 +132,17 @@ export default function LoginScreen() {
   );
 
   const scrollToForm = useCallback(() => {
-    if (!isDealer) return;
+    const scrollRef = isDealer ? dealerScrollRef : normalScrollRef;
     setTimeout(() => {
-      dealerScrollRef.current?.scrollToEnd({ animated: true });
+      scrollRef.current?.scrollToEnd({ animated: true });
     }, 100);
   }, [isDealer]);
 
   useEffect(() => {
-    if (isKeyboardVisible && isDealer) {
+    if (isKeyboardVisible) {
       scrollToForm();
     }
-  }, [isDealer, isKeyboardVisible, scrollToForm]);
+  }, [isKeyboardVisible, scrollToForm]);
 
   const handleLogin = useCallback(async () => {
     if (isDisabled) return;
@@ -249,7 +250,7 @@ export default function LoginScreen() {
   );
 
   const normalHero = (
-    <View className="px-5 pt-[30px]">
+    <View className={`px-5 ${isKeyboardVisible ? "pt-4 pb-2" : "pt-[30px]"}`}>
       <Image
         source={{ uri: `${IMAGE_BASE_URL}/logo_gra.png` }}
         className="mb-3.5 h-[30px] w-[76px]"
@@ -331,8 +332,7 @@ export default function LoginScreen() {
     <LinearGradient colors={[...DEALER_GRADIENT]} style={{ flex: 1 }}>
       <ScrollView
         ref={dealerScrollRef}
-        className="flex-1"
-        style={{ backgroundColor: "transparent" }}
+        style={{ flex: 1, backgroundColor: "transparent" }}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         showsVerticalScrollIndicator={false}
@@ -340,7 +340,6 @@ export default function LoginScreen() {
         automaticallyAdjustKeyboardInsets
         contentContainerStyle={{
           flexGrow: isKeyboardVisible ? 0 : 1,
-          paddingBottom: 0,
         }}
       >
         {dealerHero}
@@ -352,17 +351,31 @@ export default function LoginScreen() {
   );
 
   const normalContent = (
-    <View className="flex-1 bg-gray100">
+    <ScrollView
+      ref={normalScrollRef}
+      style={{ flex: 1 }}
+      className="bg-gray100"
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+      automaticallyAdjustKeyboardInsets
+      contentContainerStyle={{
+        flexGrow: isKeyboardVisible ? 0 : 1,
+      }}
+    >
       {normalHero}
-      <View style={isKeyboardVisible ? undefined : { flex: 1 }} />
-      <View className="pt-16">{formSection}</View>
-    </View>
+      {!isKeyboardVisible ? <View style={{ flex: 1 }} /> : null}
+      <View className={isKeyboardVisible ? "pt-20" : "pt-16"}>
+        {formSection}
+      </View>
+    </ScrollView>
   );
 
   const mainContent = isDealer ? dealerContent : normalContent;
 
   return (
-    <Screen className="flex-1 bg-white">
+    <Screen className="flex-1 bg-white" edges={["top"]}>
       <View className="h-14 flex-row items-center bg-white px-4">
         <Pressable className="py-1 pr-2" onPress={navigateBackFromLogin}>
           <Text className="text-[30px] leading-[30px] text-gray900">‹</Text>
