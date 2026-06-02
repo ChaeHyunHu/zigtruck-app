@@ -1,17 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useCallback } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import React, { useCallback, useEffect } from "react";
+import { Pressable, Text, View } from "react-native";
 
 import { LoginRequiredView } from "@/src/components/auth/LoginRequiredView";
 import { Screen } from "@/src/components/common/Screen";
 import { appColors } from "@/src/constants/colors";
 import { PRODUCT_TYPE_DIRECT, PRODUCT_TYPE_SPEED } from "@/src/constants/products";
+import { isDealerMember } from "@/src/features/products/productInquiryUtils";
 import { SalesTypeSelectButton } from "@/src/features/sell-car/SalesTypeSelectButton";
 import { useAuth } from "@/src/hooks/useAuth";
 
 export default function SellCarMainScreen() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
+
+  // 딜러 회원은 판매방식 선택/안내를 거치지 않고 바로 차량 조회 화면으로 이동
+  const redirectDealer = isAuthenticated && isDealerMember(profile?.memberTypeCode);
+
+  useEffect(() => {
+    if (redirectDealer) {
+      router.replace({
+        pathname: "/products/sales",
+        params: { type: PRODUCT_TYPE_DIRECT },
+      });
+    }
+  }, [redirectDealer]);
 
   const onPressSalesType = useCallback((type: string) => {
     router.push({
@@ -23,6 +36,10 @@ export default function SellCarMainScreen() {
   const onPressSaleHelp = useCallback(() => {
     router.push("/one-stop-service");
   }, []);
+
+  if (redirectDealer) {
+    return <Screen variant="stack" className="flex-1 bg-white" />;
+  }
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">

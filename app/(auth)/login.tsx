@@ -27,6 +27,7 @@ import {
 import { Screen } from "@/src/components/common/Screen";
 import { appColors } from "@/src/constants/colors";
 import { IMAGE_BASE_URL } from "@/src/constants/url";
+import { DealerReviewModal } from "@/src/features/auth/DealerReviewModal";
 import { SocialLoginWebView } from "@/src/features/auth/SocialLoginWebView";
 import type { SocialLoginResult } from "@/src/features/auth/socialLogin";
 import { useAuth } from "@/src/hooks/useAuth";
@@ -56,6 +57,7 @@ export default function LoginScreen() {
     null,
   );
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [showDealerReview, setShowDealerReview] = useState(false);
 
   const isDealer = tab === "DEALER";
 
@@ -148,11 +150,16 @@ export default function LoginScreen() {
     setErrorText("");
     try {
       const normalizedPhoneNumber = phoneNumber.replace(/\D/g, "");
-      await login({
+      const result = await login({
         phoneNumber: normalizedPhoneNumber,
         password,
         type: tab,
       });
+      // 승인 전/반려 딜러(삭제 상태)는 로그인하지 않고 심사 안내 모달 표시
+      if (result?.blockedDeleted) {
+        setShowDealerReview(true);
+        return;
+      }
       router.replace("/(tabs)");
     } catch (error: unknown) {
       const message =
@@ -391,6 +398,11 @@ export default function LoginScreen() {
         provider={socialProvider}
         onClose={() => setSocialProvider(null)}
         onResult={handleSocialLoginResult}
+      />
+
+      <DealerReviewModal
+        visible={showDealerReview}
+        onConfirm={() => setShowDealerReview(false)}
       />
     </Screen>
   );

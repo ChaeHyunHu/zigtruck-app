@@ -1,24 +1,16 @@
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
 
 import { BasicButton } from '@/src/components/common/BasicButton';
 import { Screen } from '@/src/components/common/Screen';
 import { appColors } from '@/src/constants/colors';
 import { IMAGE_BASE_URL } from '@/src/constants/url';
-import { REPRESENTATIVE_NUMBER } from '@/src/features/additional-services/constants';
+import { DealerReviewModal } from '@/src/features/auth/DealerReviewModal';
 import { parseSignUpMemberType } from '@/src/features/auth/signup/types';
 import { RegistrationHeader } from '@/src/features/sell-car/registration/RegistrationHeader';
 import { useScreenInsets } from '@/src/hooks/useScreenInsets';
-
-function formatTodayLabel() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
 
 export default function SignUpSuccessScreen() {
   const { type } = useLocalSearchParams<{ type?: string }>();
@@ -26,7 +18,6 @@ export default function SignUpSuccessScreen() {
   const isDealer = memberType === 'DEALER';
   const { listPaddingBottom } = useScreenInsets();
   const [showDealerReviewModal, setShowDealerReviewModal] = useState(isDealer);
-  const appliedDate = useMemo(() => formatTodayLabel(), []);
 
   useEffect(() => {
     if (isDealer) {
@@ -79,26 +70,10 @@ export default function SignUpSuccessScreen() {
         />
       </View>
 
-      <Modal
+      <DealerReviewModal
         visible={showDealerReviewModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowDealerReviewModal(false)}>
-        <View className="flex-1 items-center justify-center bg-black/45 px-8">
-          <View className="w-full max-w-[320px] overflow-hidden rounded-2xl bg-white px-6 py-8">
-            <Text className="text-center text-[18px] font-bold text-gray900">딜러 심사 중입니다</Text>
-            <Text className="mt-6 text-center text-[28px] font-bold text-gray900">
-              {REPRESENTATIVE_NUMBER}
-            </Text>
-            <Text className="mt-2 text-center text-[15px] text-gray600">{appliedDate}</Text>
-            <Pressable
-              onPress={() => setShowDealerReviewModal(false)}
-              className="mt-8 items-center py-2">
-              <Text className="text-[16px] font-semibold text-primary">확인</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+        onConfirm={() => setShowDealerReviewModal(false)}
+      />
     </Screen>
   );
 }

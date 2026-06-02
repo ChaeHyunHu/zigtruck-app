@@ -13,13 +13,11 @@ import { showAppAlert } from '@/src/providers/appDialog';
 import { signUpMember } from '@/src/api/members';
 import { BasicButton } from '@/src/components/common/BasicButton';
 import { appColors } from '@/src/constants/colors';
-import {
-  NAME_VALIDATION_LENGTH_MESSAGE,
-  NAME_VALIDATION_MESSAGE,
-} from '@/src/features/additional-services/validation';
+import { NAME_VALIDATION_LENGTH_MESSAGE } from '@/src/features/additional-services/validation';
 import type { SignUpMemberType } from '@/src/features/auth/signup/types';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
+  MEMBER_NAME_VALIDATION_MESSAGE,
   PASSWORD_NOT_MATCH_MESSAGE,
   PASSWORD_VALIDATION_MESSAGE,
   validateMemberName,
@@ -117,7 +115,7 @@ export function SignUpProfileForm({
 
   const validateNameField = (value: string) => {
     if (!validateMemberName(value)) {
-      setNameError(NAME_VALIDATION_MESSAGE);
+      setNameError(MEMBER_NAME_VALIDATION_MESSAGE);
       return false;
     }
     if (value.length > 20) {
@@ -191,6 +189,13 @@ export function SignUpProfileForm({
             }
           : {}),
       });
+
+      // 딜러는 관리자 승인 전까지 로그인 불가 → 가입 후 자동 로그인하지 않고
+      // 비로그인(게스트) 상태로 완료 화면으로 이동한다.
+      if (isDealer) {
+        onSuccess();
+        return;
+      }
 
       const accessToken = response.authTokenInfo?.accessToken;
       if (!accessToken) {

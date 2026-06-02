@@ -46,7 +46,11 @@ type AuthContextValue = {
   token: string | null;
   memberId?: number;
   profile: UserProfile | null;
-  login: (payload: LoginPayload) => Promise<{ loginByTempPassword?: boolean }>;
+  login: (payload: LoginPayload) => Promise<{
+    loginByTempPassword?: boolean;
+    blockedDeleted?: boolean;
+    deleteReason?: string | null;
+  }>;
   loginWithToken: (accessToken: string) => Promise<{ isNewMember: boolean }>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<UserProfile | null>;
@@ -269,14 +273,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!nextToken) {
       throw new Error(response?.data?.message ?? '로그인 토큰을 받지 못했습니다.');
     }
+
+    const memberId = getMemberIdFromToken(nextToken);
+
+    // 승인 전/반려 딜러 등 삭제(deleted) 상태 계정 차단:
+    // 토큰을 세션에 저장하기 전(자동 로그인되기 전)에 회원 상세를 조회해 확인한다.
+    const profileResponse = memberId
+      ? await getMemberDetail(memberId, nextToken).catch(() => null)
+      : null;
+
+    if (profileResponse?.deleted) {
+      return {
+        blockedDeleted: true,
+        deleteReason: profileResponse.deleteReason ?? null,
+      };
+    }
+
     await AsyncStorage.removeItem(PROFILE_STORAGE_KEY);
     await setAccessToken(nextToken);
     setToken(nextToken);
 
-    const memberId = getMemberIdFromToken(nextToken);
-    const profileResponse = memberId
-      ? await getMemberDetail(memberId).catch(() => null)
-      : null;
     const nextProfile: UserProfile = profileResponse
       ? mapMemberToProfile(memberId, profileResponse)
       : {

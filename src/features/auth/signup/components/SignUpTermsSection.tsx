@@ -50,11 +50,13 @@ export function SignUpTermsSection({
   };
 
   const handleCheckAll = (checked: boolean) => {
+    // '전체 동의하기'는 일반 약관(이용/개인정보/마케팅)만 토글하고
+    // 딜러 약정서 동의는 포함하지 않는다.
     onChange({
       terms: checked,
       personalInfo: checked,
       marketing: checked,
-      dealerTerms: isDealer ? checked : agreements.dealerTerms,
+      dealerTerms: agreements.dealerTerms,
     });
   };
 
@@ -71,8 +73,8 @@ export function SignUpTermsSection({
         onPress={() => handleCheckAll(!allGeneralChecked)}
         className="flex-row items-center pb-2">
         <SignUpCircleCheckbox
-          checked={allGeneralChecked && (!isDealer || agreements.dealerTerms)}
-          onPress={() => handleCheckAll(!(allGeneralChecked && (!isDealer || agreements.dealerTerms)))}
+          checked={allGeneralChecked}
+          onPress={() => handleCheckAll(!allGeneralChecked)}
         />
         <Text className="flex-1 text-[14px] font-medium text-gray800">
           서비스 이용 약관 전체 동의하기

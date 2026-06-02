@@ -18,10 +18,18 @@ export type MemberDetailDto = {
   profileImageUrl?: string;
   type?: { code?: string };
   notificationSettings?: NotificationSettingsDto;
+  deleted?: boolean;
+  deleteReason?: string;
+  createdDate?: string;
 };
 
-export async function getMemberDetail(memberId: number) {
-  const response = await apiManager.get<MemberDetailDto>(`/api/v1/members/${memberId}`);
+export async function getMemberDetail(memberId: number, accessToken?: string) {
+  const response = await apiManager.get<MemberDetailDto>(
+    `/api/v1/members/${memberId}`,
+    accessToken
+      ? { headers: { Authorization: `Bearer ${accessToken}` } }
+      : undefined,
+  );
   return response.data;
 }
 

@@ -53,6 +53,15 @@ export function SignUpPhoneAuthFields({
     phoneNumber.length >= 10 && !phoneError && !isVerified && !isSending;
   const canConfirmCode = isCodeSent && authNumber.length > 0 && !isVerified && !isConfirming;
 
+  // 단계별 버튼 색상 활성화 상태
+  // - 인증요청/재전송: 휴대폰 번호를 입력해 요청 가능 상태이고 아직 인증 완료 전이면 primary
+  // - 인증하기: 인증번호를 입력하기 시작하고 아직 인증 완료 전이면 primary
+  // - 인증 완료 시 두 버튼 모두 회색(인증요청/인증완료 텍스트)
+  const isRequestBtnActive =
+    !isVerified && phoneNumber.length >= 10 && !phoneError;
+  const isConfirmBtnActive =
+    isCodeSent && !isVerified && authNumber.length > 0;
+
   const onRequestCode = async () => {
     if (!validatePhone(phoneNumber)) return;
     setIsSending(true);
@@ -122,13 +131,15 @@ export function SignUpPhoneAuthFields({
             onPress={onRequestCode}
             disabled={!canRequestCode}
             className={`h-[48px] min-w-[88px] items-center justify-center rounded-[10px] ${
-              canRequestCode ? 'bg-gray300' : 'bg-gray300'
-            }`}
-            style={{ opacity: canRequestCode ? 1 : 0.55 }}>
+              isRequestBtnActive ? 'bg-primary' : 'bg-gray300'
+            }`}>
             {isSending ? (
-              <ActivityIndicator color={appColors.gray700} />
+              <ActivityIndicator color={isRequestBtnActive ? appColors.white : appColors.gray700} />
             ) : (
-              <Text className="text-[14px] font-semibold text-gray800">
+              <Text
+                className={`text-[14px] font-semibold ${
+                  isRequestBtnActive ? 'text-white' : 'text-gray800'
+                }`}>
                 {isCodeSent ? '재전송' : '인증요청'}
               </Text>
             )}
@@ -161,12 +172,16 @@ export function SignUpPhoneAuthFields({
           <Pressable
             onPress={onConfirmCode}
             disabled={!canConfirmCode}
-            className="h-[48px] min-w-[88px] items-center justify-center rounded-[10px] bg-gray300"
-            style={{ opacity: canConfirmCode ? 1 : 0.55 }}>
+            className={`h-[48px] min-w-[88px] items-center justify-center rounded-[10px] ${
+              isConfirmBtnActive ? 'bg-primary' : 'bg-gray300'
+            }`}>
             {isConfirming ? (
-              <ActivityIndicator color={appColors.gray700} />
+              <ActivityIndicator color={isConfirmBtnActive ? appColors.white : appColors.gray700} />
             ) : (
-              <Text className="text-[14px] font-semibold text-gray800">
+              <Text
+                className={`text-[14px] font-semibold ${
+                  isConfirmBtnActive ? 'text-white' : 'text-gray800'
+                }`}>
                 {isVerified ? '인증완료' : '인증하기'}
               </Text>
             )}

@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { deleteInterestProducts, postProductInquiryCall } from "@/src/api/public";
+import { ACTUAL_REPRESENTATIVE_PHONE_NUMBER } from "@/src/features/additional-services/constants";
 import { navigateToProductChatSafely } from "@/src/features/chat/navigateToProductChat";
 import { showAppAlert } from "@/src/providers/appDialog";
 import {
@@ -31,7 +32,7 @@ import { promptLogin } from "@/src/lib/authNavigation";
 
 import { OwnerVerificationBottomSheet } from "./OwnerVerificationBottomSheet";
 import { ProductInquiryModal } from "./ProductInquiryModal";
-import { resolveInquiryPhoneNumber } from "./productInquiryUtils";
+import { isDealerMember, resolveInquiryPhoneNumber } from "./productInquiryUtils";
 
 type ProductDetailBuyerFooterProps = {
   product: ProductDetail;
@@ -63,6 +64,8 @@ export function ProductDetailBuyerFooter({
   const isNotDirectProduct =
     salesTypeCode === SALES_TYPE_ASSURANCE || salesTypeCode === SALES_TYPE_CONSIGNMENT;
   const memberTypeCode = profile?.memberTypeCode;
+  // 직거래 매물 + 로그인 회원이 딜러일 때: '차주에게 연락하기' 대신 본사 전화 문의
+  const isDealerDirectInquiry = !isNotDirectProduct && isDealerMember(memberTypeCode);
 
   const createInterestProduct = useCallback(async () => {
     if (!isAuthenticated) {
@@ -166,6 +169,22 @@ export function ProductDetailBuyerFooter({
     setOwnerSheetOpen(true);
   }, [isAuthenticated]);
 
+  // 딜러 회원: 직거래 매물 전화 문의 → 직트럭 본사 번호로 바로 연결
+  const onPressDealerHeadOfficeCall = useCallback(async () => {
+    if (!isAuthenticated) {
+      promptLogin();
+      return;
+    }
+    try {
+      await postProductInquiryCall(product.id);
+    } catch {
+      // 통화 API 실패해도 전화 연결은 시도
+    }
+    Linking.openURL(`tel:${ACTUAL_REPRESENTATIVE_PHONE_NUMBER}`).catch(() =>
+      showAppAlert({ title: "오류", message: "전화 연결을 할 수 없습니다." }),
+    );
+  }, [isAuthenticated, product.id]);
+
   const onPressDirectPhone = useCallback(() => {
     if (!isAuthenticated) {
       promptLogin();
@@ -215,12 +234,21 @@ export function ProductDetailBuyerFooter({
               >
                 <Text className="text-[14px] font-bold text-gray800">구매동행 서비스</Text>
               </Pressable>
-              <Pressable
-                onPress={onPressContact}
-                className="flex-1 items-center justify-center rounded-md bg-primary py-3"
-              >
-                <Text className="text-[14px] font-bold text-white">차주에게 연락하기</Text>
-              </Pressable>
+              {isDealerDirectInquiry ? (
+                <Pressable
+                  onPress={onPressDealerHeadOfficeCall}
+                  className="flex-1 items-center justify-center rounded-md bg-primary py-3"
+                >
+                  <Text className="text-[14px] font-bold text-white">전화 문의하기</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={onPressContact}
+                  className="flex-1 items-center justify-center rounded-md bg-primary py-3"
+                >
+                  <Text className="text-[14px] font-bold text-white">차주에게 연락하기</Text>
+                </Pressable>
+              )}
             </>
           )}
         </View>

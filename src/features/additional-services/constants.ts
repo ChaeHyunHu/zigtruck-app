@@ -1,6 +1,7 @@
 import { IMAGE_BASE_URL } from "@/src/constants/url";
 
 export const REPRESENTATIVE_NUMBER = "1599-6249";
+export const ACTUAL_REPRESENTATIVE_PHONE_NUMBER = "0215996249";
 
 export const PUBLIC_IMAGES = {
   purchaseAccompanyingGuide: `${IMAGE_BASE_URL}/purchase-compaion-guide.png`,

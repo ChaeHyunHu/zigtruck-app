@@ -21,6 +21,7 @@ import {
   PRODUCT_TYPE_DIRECT,
   SALESTYPE,
 } from "@/src/constants/products";
+import { isDealerMember } from "@/src/features/products/productInquiryUtils";
 import { LicensePlateInput } from "@/src/features/sell-car/registration/LicensePlateInput";
 import { CarRegisterLoadingOverlay } from "@/src/features/sell-car/registration/CarRegisterLoadingOverlay";
 import { OneStopServiceBanner } from "@/src/features/sell-car/registration/OneStopServiceBanner";
@@ -29,7 +30,6 @@ import {
   normalizeCarRegisterResponse,
 } from "@/src/features/sell-car/registration/productUtils";
 import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
-import { useRegistrationExitGuard } from "@/src/features/sell-car/registration/RegistrationExitGuard";
 import type { OwnerErrorInfo, OwnerInfo } from "@/src/features/sell-car/registration/types";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useProductRegistration } from "@/src/providers/ProductRegistrationProvider";
@@ -38,10 +38,13 @@ type SalesTypeKey = keyof typeof SALESTYPE;
 
 export default function ProductSalesEntryScreen() {
   const { type } = useLocalSearchParams<{ type?: string }>();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
   const { setProductFormData, setSalesType, resetRegistration } = useProductRegistration();
 
   const salesType = (type === "DIRECT" || type === "SPEED" ? type : PRODUCT_TYPE_DIRECT) as SalesTypeKey;
+  const headerTitle = isDealerMember(profile?.memberTypeCode)
+    ? "내차판매"
+    : SALESTYPE[salesType];
 
   const [pageNum, setPageNum] = useState(1);
   const [ownerInfo, setOwnerInfo] = useState<OwnerInfo>({ licenseNumber: "", name: "" });
@@ -55,20 +58,24 @@ export default function ProductSalesEntryScreen() {
     onConfirm: () => void;
   } | null>(null);
 
-  const { requestExit } = useRegistrationExitGuard();
-
   useEffect(() => {
     resetRegistration();
     setSalesType(salesType);
   }, [resetRegistration, salesType, setSalesType]);
 
   const goPrev = useCallback(() => {
+    // 차량번호 조회 단계는 아직 등록을 시작하지 않은 화면이므로
+    // 뒤로가기 시 임시저장/이탈 확인 모달 없이 그냥 이전 화면으로 이동한다.
     if (pageNum === 1) {
-      requestExit();
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)");
+      }
       return;
     }
     setPageNum((p) => p - 1);
-  }, [pageNum, requestExit]);
+  }, [pageNum]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -195,7 +202,7 @@ export default function ProductSalesEntryScreen() {
   if (!isAuthenticated) {
     return (
       <Screen variant="stack" className="flex-1 bg-white">
-        <RegistrationHeader title={SALESTYPE[salesType]} onBack={goPrev} />
+        <RegistrationHeader title={headerTitle} onBack={goPrev} />
         <LoginRequiredView message="차량 등록은 로그인 후 이용할 수 있습니다." />
       </Screen>
     );
@@ -203,7 +210,7 @@ export default function ProductSalesEntryScreen() {
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
-      <RegistrationHeader title={SALESTYPE[salesType]} onBack={goPrev} />
+      <RegistrationHeader title={headerTitle} onBack={goPrev} />
 
       {pageNum === 1 ? (
         <KeyboardAwareScrollView className="flex-1 px-4 pt-6">
