@@ -2,6 +2,7 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -9,6 +10,7 @@ import { Text } from "react-native";
 
 import { AlertDialog } from "@/src/components/common/AlertDialog";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
+import { registerAppDialog } from "@/src/providers/appDialog";
 
 type AlertOptions = {
   title: string;
@@ -76,6 +78,11 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
   }, [confirmState]);
 
   const value = useMemo(() => ({ alert, confirm }), [alert, confirm]);
+
+  useEffect(() => {
+    registerAppDialog({ alert, confirm });
+    return () => registerAppDialog(null);
+  }, [alert, confirm]);
 
   return (
     <AppDialogContext.Provider value={value}>

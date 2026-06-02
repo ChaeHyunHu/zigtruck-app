@@ -6,6 +6,7 @@ import { appColors } from "@/src/constants/colors";
 
 type Props = {
   label: string;
+  required?: boolean;
   min: number;
   max: number;
   valueMin: string;
@@ -27,6 +28,7 @@ const formatSliderValue = (value: number, step: number) => {
 
 export function FilterRangeSection({
   label,
+  required,
   min,
   max,
   valueMin,
@@ -65,7 +67,10 @@ export function FilterRangeSection({
 
   return (
     <View className="border-b border-gray200 px-4 py-5">
-      <Text className="mb-4 text-[15px] font-bold text-gray900">{label}</Text>
+      <Text className="mb-4 text-[15px] font-bold text-gray900">
+        {label}
+        {required ? <Text className="font-normal text-red-500">(필수)</Text> : null}
+      </Text>
       <View className="mb-4">
         <RangeSlider
           min={min}

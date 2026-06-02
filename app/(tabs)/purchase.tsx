@@ -2,7 +2,12 @@ import { Screen } from "@/src/components/common/Screen";
 import { useScreenInsets } from "@/src/hooks/useScreenInsets";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import {
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+  useNavigation,
+} from "expo-router";
 import React, {
   useCallback,
   useEffect,
@@ -144,6 +149,11 @@ export default function PurchaseScreen() {
   const filtersKeyRef = useRef(paramsKey);
   const appliedParamsKeyRef = useRef(paramsKey);
   const prevFiltersRef = useRef<Filters>(filtersFromParams(params));
+  const navigation = useNavigation();
+  const filtersRef = useRef<Filters>(filters);
+  filtersRef.current = filters;
+  const keywordDraftRef = useRef(keywordDraft);
+  keywordDraftRef.current = keywordDraft;
 
   const fetchPage = useCallback(
     async (page: number, filtersOverride?: Filters) => {
@@ -265,6 +275,60 @@ export default function PurchaseScreen() {
       }
     }, [paramsKey]),
   );
+
+  const resetPurchaseFilters = useCallback(() => {
+    const def = createDefaultFilters();
+    const defKey = JSON.stringify(filtersToParams(def));
+    appliedParamsKeyRef.current = defKey;
+    filtersKeyRef.current = defKey;
+    prevFiltersRef.current = def;
+    purchaseListCache = null;
+    hasDataRef.current = false;
+    scrollOffsetRef.current = 0;
+    setFilters(def);
+    setKeywordDraft("");
+    setProducts([]);
+    setCurrentPage(1);
+    setTotalPages(1);
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    router.setParams({
+      keyword: undefined,
+      loaded: undefined,
+      salesType: undefined,
+      sort: undefined,
+      tonsMin: undefined,
+      tonsMax: undefined,
+      yearMin: undefined,
+      yearMax: undefined,
+      distanceMin: undefined,
+      distanceMax: undefined,
+      loadedLengthMin: undefined,
+      loadedLengthMax: undefined,
+      axis: undefined,
+      transmission: undefined,
+      manufacturerCategoriesId: undefined,
+      onlyOneTon: undefined,
+    } as never);
+    loadFirstPageRef.current(false, def);
+  }, []);
+
+  // 다른 탭으로 전환되면 검색 필터 초기화 (상세 등 스택 화면 이동 시에는 유지)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("blur", () => {
+      const state = navigation.getState();
+      // 탭 네비게이터에서 다른 탭으로 전환된 경우에만 처리 (스택 푸시 제외)
+      if (state?.type !== "tab") return;
+      const activeTab = state?.routes?.[state.index]?.name;
+      if (!activeTab || activeTab === "purchase") return;
+      if (
+        hasActiveFilters(filtersRef.current) ||
+        keywordDraftRef.current.trim().length > 0
+      ) {
+        resetPurchaseFilters();
+      }
+    });
+    return unsubscribe;
+  }, [navigation, resetPurchaseFilters]);
 
   const loadMore = useCallback(
     async (options?: { silent?: boolean }) => {

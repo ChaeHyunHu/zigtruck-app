@@ -545,7 +545,7 @@ export default function ProductDetailScreen() {
                   <Text className="text-[26px] font-extrabold text-gray900">
                     {formatPrice(detail.price)}
                   </Text>
-                  {isMine ? (
+                  {isMine && statusCode === PRODUCT_STATUS_SALE ? (
                     <Pressable
                       onPress={() => {
                         setPriceInputDigits(

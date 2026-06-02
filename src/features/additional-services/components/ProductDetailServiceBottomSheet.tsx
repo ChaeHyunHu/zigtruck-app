@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Alert,
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -11,6 +10,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { showAppAlert } from "@/src/providers/appDialog";
 
 import {
   createCapitalCounselServices,
@@ -133,7 +134,10 @@ export function ProductDetailServiceBottomSheet({
       return;
     }
     if (!profile?.name?.trim() || !profile?.phoneNumber?.trim()) {
-      Alert.alert("안내", "로그인 정보에서 이름·휴대폰 번호를 확인할 수 없습니다.");
+      showAppAlert({
+        title: "안내",
+        message: "로그인 정보에서 이름·휴대폰 번호를 확인할 수 없습니다.",
+      });
       return;
     }
     setConfirmOpen(true);
@@ -155,15 +159,17 @@ export function ProductDetailServiceBottomSheet({
         await createTransferAgencyServices(payload);
       }
       setIsAlreadyApply(true);
-      Alert.alert("완료", config.successMessage, [
-        { text: "확인", onPress: dismissSheet },
-      ]);
+      showAppAlert({
+        title: "완료",
+        message: config.successMessage,
+        onConfirm: dismissSheet,
+      });
     } catch (error: unknown) {
       const message =
         error && typeof error === "object" && "message" in error
           ? String((error as { message?: string }).message)
           : "신청에 실패했습니다.";
-      Alert.alert("오류", message);
+      showAppAlert({ title: "오류", message });
     } finally {
       setSubmitting(false);
     }

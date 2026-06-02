@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, Keyboard, ScrollView, Text, View } from "react-native";
+import { Keyboard, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { SALESTYPE } from "@/src/constants/products";
 import { DualFooterButtons } from "@/src/features/sell-car/registration/DualFooterButtons";
 import { usePatchProduct, useRegistrationProduct } from "@/src/features/sell-car/registration/hooks";
@@ -109,7 +110,7 @@ export default function ModelFormScreen() {
       }
 
       if (nextOptions.length === 0) {
-        Alert.alert("안내", "선택 가능한 항목이 없습니다.");
+        showAppAlert({ title: "안내", message: "선택 가능한 항목이 없습니다." });
         return;
       }
 
@@ -155,7 +156,7 @@ export default function ModelFormScreen() {
         params: { id: String(productFormData.id) },
       });
     } catch {
-      Alert.alert("오류", "저장에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     }
   };
 

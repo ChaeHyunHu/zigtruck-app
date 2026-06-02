@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, View } from "react-native";
+
+import { showAppAlert } from "@/src/providers/appDialog";
 
 import { TRANSFEREE, TRANSFEROR } from "@/src/constants/contract";
 import {
@@ -47,7 +49,10 @@ export function ContractViewerPanel({
 
   const handleDownload = useCallback(async () => {
     if (!bothCompleted || !contract.id) {
-      Alert.alert("안내", "양도인·양수인 작성 완료 후 문서 다운로드가 가능합니다.");
+      showAppAlert({
+        title: "안내",
+        message: "양도인·양수인 작성 완료 후 문서 다운로드가 가능합니다.",
+      });
       return;
     }
 
@@ -60,7 +65,7 @@ export function ContractViewerPanel({
           remoteUrl: contract.fileUrl,
           fileName,
         });
-        Alert.alert("안내", message);
+        showAppAlert({ title: "안내", message });
         return;
       }
 
@@ -82,11 +87,11 @@ export function ContractViewerPanel({
         /* 서버 동기화 실패해도 로컬 저장은 완료 */
       }
 
-      Alert.alert("안내", message);
+      showAppAlert({ title: "안내", message });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "문서 다운로드에 실패했습니다.";
-      Alert.alert("오류", message);
+      showAppAlert({ title: "오류", message });
     } finally {
       setDownloading(false);
     }

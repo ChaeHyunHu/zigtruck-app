@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 
+import { showAppAlert } from "@/src/providers/appDialog";
+
 import { DriveTutorialAnchor } from "@/src/features/drive/components/DriveTutorialAnchor";
 
 import {
@@ -155,7 +157,10 @@ export function DriveLogBottomSheet({
 
   const addTransport = () => {
     if (transports.length >= 20) {
-      Alert.alert("안내", "운송사 및 운송료는 최대 20개까지 입력 가능합니다.");
+      showAppAlert({
+        title: "안내",
+        message: "운송사 및 운송료는 최대 20개까지 입력 가능합니다.",
+      });
       return;
     }
     setTransports((prev) => [...prev, emptyTransport()]);

@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { Screen } from "@/src/components/common/Screen";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   fetchAuthedProductDetail,
   fetchProductDetail,
@@ -77,12 +78,12 @@ export default function ProductEditScreen() {
 
   const handleOpenPicker = useCallback((params: ProductEditOpenPickerParams) => {
     if (params.options.length === 0) {
-      Alert.alert(
-        "안내",
-        productEnum
+      showAppAlert({
+        title: "안내",
+        message: productEnum
           ? "선택할 항목이 없습니다."
           : "선택 목록을 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
-      );
+      });
       return;
     }
     setActivePicker(params);

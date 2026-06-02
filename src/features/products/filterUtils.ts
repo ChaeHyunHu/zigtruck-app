@@ -23,7 +23,9 @@ export const createDefaultFilters = (): ProductSearchFilters => ({
 
 const toBool = (value?: string) => value === "true";
 
-export const mapSortToProductsSortType = (sort?: string): string | undefined => {
+export const mapSortToProductsSortType = (
+  sort?: string,
+): string | undefined => {
   switch (sort) {
     case "createdAt,DESC":
       return "CREATED_DATE";
@@ -108,9 +110,10 @@ export const setPendingPurchaseFilterParams = (
   pendingPurchaseFilterParams = params;
 };
 
-export const takePendingPurchaseFilterParams = ():
-  | Record<string, string>
-  | null => {
+export const takePendingPurchaseFilterParams = (): Record<
+  string,
+  string
+> | null => {
   const params = pendingPurchaseFilterParams;
   pendingPurchaseFilterParams = null;
   return params;

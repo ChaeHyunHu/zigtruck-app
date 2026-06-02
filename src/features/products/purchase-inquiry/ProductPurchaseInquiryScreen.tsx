@@ -3,13 +3,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
 } from "react-native";
+
+import { useAppDialog } from "@/src/providers/AppDialogProvider";
 
 import { getProductFilterInfo, postInterestProductNotificationSettings, postProductInquiry } from "@/src/api/public";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
@@ -84,6 +85,7 @@ export function ProductPurchaseInquiryScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<Record<string, string | string[] | undefined>>();
   const { profile, memberId, isAuthenticated } = useAuth();
+  const { alert } = useAppDialog();
   const submittingRef = useRef(false);
 
   const initialFilters = useMemo(() => filtersFromParams(params), [params]);
@@ -152,7 +154,7 @@ export function ProductPurchaseInquiryScreen() {
     if (validation.hasError) return;
 
     if (!canSubmitPurchaseInquiry(form)) {
-      Alert.alert("안내", "필수 항목을 입력해 주세요.");
+      alert({ title: "안내", message: "필수 항목을 입력해 주세요." });
       return;
     }
 
@@ -169,7 +171,7 @@ export function ProductPurchaseInquiryScreen() {
         error && typeof error === "object" && "message" in error
           ? String((error as { message?: string }).message)
           : "문의 등록에 실패했습니다.";
-      Alert.alert("오류", message);
+      alert({ title: "오류", message });
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -183,17 +185,21 @@ export function ProductPurchaseInquiryScreen() {
       const body = buildInterestNotificationFromPurchaseInquiry(form);
       await postInterestProductNotificationSettings(body as never);
       setCompleteModalOpen(false);
-      router.replace("/(tabs)");
+      alert({
+        title: "완료",
+        message: "차량 입고 알림이 등록되었어요.",
+        onConfirm: () => router.replace("/(tabs)"),
+      });
     } catch (error: unknown) {
       const message =
         error && typeof error === "object" && "message" in error
           ? String((error as { message?: string }).message)
           : "관심차량 알림 등록에 실패했습니다.";
-      Alert.alert("오류", message);
+      alert({ title: "오류", message });
     } finally {
       setRegisteringNotification(false);
     }
-  }, [form, registeringNotification, router]);
+  }, [alert, form, registeringNotification, router]);
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
@@ -317,6 +323,7 @@ export function ProductPurchaseInquiryScreen() {
         <View className="mt-5">
           <FilterRangeSection
             label="톤수"
+            required
             min={FILTER_TONS_MIN}
             max={FILTER_TONS_MAX}
             valueMin={form.minTons}

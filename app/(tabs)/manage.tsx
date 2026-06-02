@@ -2,16 +2,14 @@ import apiManager from "@/src/api/AxiosInstance";
 import newApiManager from "@/src/api/NewAxiosInstance";
 import { fetchRegistrationProduct } from "@/src/api/products/carRegister";
 import { fetchMyProducts } from "@/src/api/products/getProducts";
-import { patchProductPause, patchProductsStatus } from "@/src/api/public";
-import { patchProductComplete } from "@/src/api/products/updateProducts";
 import {
-  REGISTRATION_STEPS,
-  getPageName,
-} from "@/src/features/sell-car/registration/productUtils";
-import type { RegistrationProduct } from "@/src/features/sell-car/registration/types";
+  patchProductComplete,
+  patchProductsInfo,
+} from "@/src/api/products/updateProducts";
+import { patchProductPause, patchProductsStatus } from "@/src/api/public";
 import { LoginRequiredView } from "@/src/components/auth/LoginRequiredView";
-import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
+import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
 import { Screen } from "@/src/components/common/Screen";
 import {
   PRODUCT_STATUS_COMPLETE,
@@ -19,16 +17,10 @@ import {
   PRODUCT_STATUS_SALE,
 } from "@/src/constants/products";
 import { IMAGE_BASE_URL } from "@/src/constants/url";
-import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEditOptionSheet";
-import {
-  ProductStatusBadge,
-  PRODUCT_STATUS_DESC,
-} from "@/src/features/products/productStatusBadge";
 import { formatPrice } from "@/src/features/home/utils";
+import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEditOptionSheet";
 import { InlineProductPriceEditor } from "@/src/features/products/InlineProductPriceEditor";
 import { PauseSaleModal } from "@/src/features/products/PauseSaleModal";
-import { SaleCompleteReviewModal } from "@/src/features/products/SaleCompleteReviewModal";
-import { SalePriceTipBox } from "@/src/features/products/SalePriceTipBox";
 import {
   ProductPriceReduceNoticeModal,
   shouldShowPriceReduceNotice,
@@ -37,6 +29,17 @@ import {
   consumePurchaseListDirty,
   invalidateProductCaches,
 } from "@/src/features/products/productRefresh";
+import {
+  PRODUCT_STATUS_DESC,
+  ProductStatusBadge,
+} from "@/src/features/products/productStatusBadge";
+import { SaleCompleteReviewModal } from "@/src/features/products/SaleCompleteReviewModal";
+import { SalePriceTipBox } from "@/src/features/products/SalePriceTipBox";
+import {
+  REGISTRATION_STEPS,
+  getPageName,
+} from "@/src/features/sell-car/registration/productUtils";
+import type { RegistrationProduct } from "@/src/features/sell-car/registration/types";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useScreenInsets } from "@/src/hooks/useScreenInsets";
 import { useAppDialog } from "@/src/providers/AppDialogProvider";
@@ -55,9 +58,7 @@ import React, {
 import {
   ActivityIndicator,
   AppState,
-  BackHandler,
   Modal,
-  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -70,6 +71,12 @@ const SALE = "SALE";
 const PAUSE = "PAUSE";
 const WAITING = "WAITING";
 const ORIGIN_DATA_REGISTER = "ORIGIN_DATA_REGISTER";
+/** 직트럭 즉시매각(매입견적) 상담 요청 진행중 상태 */
+const BEFORE_CONSULTING = "BEFORE_CONSULTING";
+const PRODUCT_TYPE_SPEED = "SPEED";
+const SALES_TYPE_NORMAL = "NORMAL";
+const SALES_TYPE_CONSIGNMENT = "CONSIGNMENT";
+const SALES_TYPE_ASSURANCE = "ASSURANCE";
 
 type ProductStatus = { code?: string; desc?: string };
 type ProductType = { code?: string; desc?: string };
@@ -87,6 +94,7 @@ type ProductDetailResponse = {
   status?: ProductStatus;
   type?: ProductType;
   salesType?: ProductType;
+  statusOfSpeedProduct?: ProductType;
   approvalStatusList?: ApprovalStatusItem[];
   productsImage?: ProductImage;
   currentStep?: number;
@@ -175,6 +183,8 @@ const normalizeProduct = (item: any): ProductDetailResponse | null => {
     status: { code: statusCode, desc: statusDesc },
     type: item?.type,
     salesType: item?.salesType,
+    statusOfSpeedProduct: item?.statusOfSpeedProduct,
+    actualSalePrice: item?.actualSalePrice ?? null,
     approvalStatusList: Array.isArray(item?.approvalStatusList)
       ? item.approvalStatusList
       : [],
@@ -202,6 +212,175 @@ const formatYYYYMMDD = (value?: string) => {
   if (Number.isNaN(date.getTime())) return value;
   return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")}`;
 };
+
+/**
+ * 판매유형 배지 텍스트 (zigtruck-front getProductType 로직과 동일)
+ * - type이 SPEED(매입견적)면 statusOfSpeedProduct.desc(상담 요청/상담 완료 등)
+ * - 그 외에는 salesType에 따라 직거래/위탁판매/직트럭 상품용
+ */
+const getSalesTypeLabel = (item: ProductDetailResponse): string => {
+  if (item.type?.code === PRODUCT_TYPE_SPEED) {
+    return item.statusOfSpeedProduct?.desc ?? "상담 요청";
+  }
+  switch (item.salesType?.code) {
+    case SALES_TYPE_CONSIGNMENT:
+      return "위탁판매";
+    case SALES_TYPE_ASSURANCE:
+      return "직트럭 상품용";
+    case SALES_TYPE_NORMAL:
+      return "직거래";
+    default:
+      return item.salesType?.desc ?? "직거래";
+  }
+};
+
+/** 실제 위탁판매(SPEED 상담요청 제외) 여부 — 더보기 메뉴 숨김 대상 */
+const isConsignmentSale = (item: ProductDetailResponse): boolean =>
+  item.type?.code !== PRODUCT_TYPE_SPEED &&
+  item.salesType?.code === SALES_TYPE_CONSIGNMENT;
+
+/** "직트럭에 즉시 매각" 링크 노출 여부: 활성 직거래 차량만 */
+const canShowInstantSaleLink = (item: ProductDetailResponse): boolean =>
+  item.status?.code !== PRODUCT_STATUS_COMPLETE &&
+  item.type?.code !== PRODUCT_TYPE_SPEED &&
+  !item.statusOfSpeedProduct &&
+  item.salesType?.code !== SALES_TYPE_CONSIGNMENT &&
+  item.salesType?.code !== SALES_TYPE_ASSURANCE;
+
+type ManageSaleCardProps = {
+  item: ProductDetailResponse;
+  isFirst: boolean;
+  isEditing: boolean;
+  editingPriceValue: string;
+  isSavingPrice: boolean;
+  onPressDetail: (item: ProductDetailResponse) => void;
+  onPressStatus: (id: number) => void;
+  onChangeEditingPrice: (value: string) => void;
+  onSavePrice: (id: number) => void;
+  onCancelPrice: () => void;
+  onOpenPriceEditor: (item: ProductDetailResponse) => void;
+  onPressRejectReason: (item: ProductDetailResponse) => void;
+  onPressInstantSale: (id: number) => void;
+  onPressMenu: (id: number) => void;
+};
+
+/**
+ * 판매 차량 카드. React.memo로 분리해 메뉴/상태 시트 등 화면 상태 변경 시
+ * 모든 카드가 리렌더되어 바텀시트가 늦게 뜨거나 끊기는 문제를 방지한다.
+ */
+const ManageSaleCard = React.memo(function ManageSaleCard({
+  item,
+  isFirst,
+  isEditing,
+  editingPriceValue,
+  isSavingPrice,
+  onPressDetail,
+  onPressStatus,
+  onChangeEditingPrice,
+  onSavePrice,
+  onCancelPrice,
+  onOpenPriceEditor,
+  onPressRejectReason,
+  onPressInstantSale,
+  onPressMenu,
+}: ManageSaleCardProps) {
+  const lastApproval = item.approvalStatusList?.at(-1);
+  const isWaiting = lastApproval?.status?.code === WAITING;
+  const isReject = lastApproval?.status?.code === "REJECT";
+  const canOpenStatusSheet =
+    (item.status?.code === SALE || item.status?.code === PAUSE) && !isWaiting;
+
+  return (
+    <View className={`${isFirst ? "" : "border-t border-gray300"} py-4`}>
+      <View className="flex-row">
+        <Pressable
+          className="mr-3 h-[100px] w-[100px] overflow-hidden rounded-[8px] bg-gray200"
+          onPress={() => onPressDetail(item)}
+        >
+          <Image
+            source={{
+              uri:
+                item.productsImage?.frontSideImageUrl ||
+                `${IMAGE_BASE_URL}/car_none.png`,
+            }}
+            className="h-full w-full"
+            contentFit="cover"
+          />
+        </Pressable>
+
+        <View className="flex-1">
+          <View className="flex-row items-center gap-3">
+            <ProductStatusBadge
+              statusCode={item.status?.code}
+              statusDesc={item.status?.desc}
+              canChangeStatus={canOpenStatusSheet}
+              onPress={() => onPressStatus(item.id)}
+            />
+            <Text className="rounded-md bg-gray100 px-2 py-1 text-[14px] font-bold text-[#1f8f5f]">
+              {getSalesTypeLabel(item)}
+            </Text>
+          </View>
+
+          <Pressable onPress={() => onPressDetail(item)}>
+            <Text className="mt-2 text-[16px] font-bold text-gray900">
+              {item.truckNumber ?? "-"}
+            </Text>
+
+            {isEditing && !isWaiting ? (
+              <InlineProductPriceEditor
+                value={editingPriceValue}
+                onChangeValue={onChangeEditingPrice}
+                onSave={() => onSavePrice(item.id)}
+                onCancel={onCancelPrice}
+                isSaving={isSavingPrice}
+              />
+            ) : (
+              <View className="mt-1 flex-row flex-wrap items-center gap-2">
+                <Text className="text-[20px] font-extrabold text-gray900">
+                  {formatPrice(item.price)}
+                </Text>
+                {item.status?.code === SALE && !isWaiting ? (
+                  <Pressable
+                    className="h-[36px] items-center justify-center rounded-[8px] border border-primary-3 bg-primary-1 px-3"
+                    onPress={() => onOpenPriceEditor(item)}
+                  >
+                    <Text className="text-[15px] font-bold text-primary-10">
+                      가격 수정
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            )}
+
+            {isReject && lastApproval?.reason ? (
+              <Pressable onPress={() => onPressRejectReason(item)}>
+                <Text className="mt-2 text-[14px] font-medium text-gray700 underline">
+                  반려 사유 확인
+                </Text>
+              </Pressable>
+            ) : canShowInstantSaleLink(item) ? (
+              <Pressable onPress={() => onPressInstantSale(item.id)}>
+                <Text className="mt-2 text-[14px] font-semibold text-gray700 underline">
+                  직트럭에 즉시 매각
+                </Text>
+              </Pressable>
+            ) : null}
+          </Pressable>
+        </View>
+
+        {!isEditing && !isConsignmentSale(item) ? (
+          <Pressable
+            className="-mr-1 self-start p-2"
+            hitSlop={12}
+            onPress={() => onPressMenu(item.id)}
+          >
+            <Ionicons name="ellipsis-vertical" size={18} color="#333" />
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+});
 
 export default function ManageScreen() {
   const { fabListPaddingBottom } = useScreenInsets();
@@ -231,16 +410,16 @@ export default function ManageScreen() {
   const pendingPriceSaveIdRef = useRef<number | null>(null);
   const pauseTargetProductIdRef = useRef<number | null>(null);
   const completeTargetProductIdRef = useRef<number | null>(null);
-  const [completeTargetPrice, setCompleteTargetPrice] = useState<
-    number | null
-  >(null);
+  const [completeTargetPrice, setCompleteTargetPrice] = useState<number | null>(
+    null,
+  );
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [isSavingPrice, setIsSavingPrice] = useState(false);
 
   const [menuProductId, setMenuProductId] = useState<number | null>(null);
-  const [statusSheetProductId, setStatusSheetProductId] = useState<number | null>(
-    null,
-  );
+  const [statusSheetProductId, setStatusSheetProductId] = useState<
+    number | null
+  >(null);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [isChangingStatus, setIsChangingStatus] = useState(false);
   const [instantSaleProductId, setInstantSaleProductId] = useState<
@@ -298,7 +477,11 @@ export default function ManageScreen() {
     [myProducts, menuProductId],
   );
 
+  const lastMenuItemsRef = useRef<{ label: string; onPress: () => void }[]>([]);
+
   const productMenuItems = useMemo(() => {
+    // 닫히는 중(menuProduct=null)에는 직전 항목을 유지해 "수정하기" 깜빡임 방지
+    if (!menuProduct) return lastMenuItemsRef.current;
     const items = [
       {
         label: "번호판 관리",
@@ -322,37 +505,64 @@ export default function ManageScreen() {
     }
 
     return items;
-  }, [menuProduct?.status?.code, menuProductId]);
+  }, [menuProduct, menuProductId]);
 
-  const loadMyProducts = useCallback(async (refresh = false) => {
-    if (refresh) {
-      setIsRefreshing(true);
-    } else {
-      setIsLoading(true);
-      setListFetchFailed(false);
-    }
+  useEffect(() => {
+    if (menuProduct) lastMenuItemsRef.current = productMenuItems;
+  }, [menuProduct, productMenuItems]);
 
-    try {
-      const response = await fetchMyProducts();
-      const next = pickArray(response)
-        .map(normalizeProduct)
-        .filter((item): item is ProductDetailResponse => Boolean(item));
-      setMyProducts(next);
-      setIsNone(next.length === 0);
-      setListFetchFailed(false);
-    } catch {
-      setIsNone(false);
-      if (myProductsRef.current.length === 0) {
-        setListFetchFailed(true);
+  const loadMyProducts = useCallback(
+    async (refresh = false) => {
+      if (refresh) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+        setListFetchFailed(false);
       }
-      if (!refresh || myProductsRef.current.length === 0) {
-        alert({ title: "오류", message: "내차관리 목록을 불러오지 못했습니다." });
+
+      try {
+        const response = await fetchMyProducts();
+        const next = pickArray(response)
+          .map(normalizeProduct)
+          .filter((item): item is ProductDetailResponse => Boolean(item));
+        // 목록 응답엔 등록 진행 단계(currentStep/totalStep)가 없을 수 있어,
+        // 직전에 클라이언트에서 보강한 값을 유지한다. (새로고침 시 "0/0 → 4/9" 깜빡임 방지)
+        const prevById = new Map(
+          myProductsRef.current.map((item) => [item.id, item]),
+        );
+        const merged = next.map((item) => {
+          if (item.currentStep != null && item.totalStep != null) return item;
+          const prev = prevById.get(item.id);
+          if (prev?.currentStep != null && prev?.totalStep != null) {
+            return {
+              ...item,
+              currentStep: prev.currentStep,
+              totalStep: prev.totalStep,
+            };
+          }
+          return item;
+        });
+        setMyProducts(merged);
+        setIsNone(next.length === 0);
+        setListFetchFailed(false);
+      } catch {
+        setIsNone(false);
+        if (myProductsRef.current.length === 0) {
+          setListFetchFailed(true);
+        }
+        if (!refresh || myProductsRef.current.length === 0) {
+          alert({
+            title: "오류",
+            message: "내차관리 목록을 불러오지 못했습니다.",
+          });
+        }
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
       }
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [alert]);
+    },
+    [alert],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -361,7 +571,9 @@ export default function ManageScreen() {
       focusVisitRef.current += 1;
       const isFirstFocus = focusVisitRef.current === 1;
       void loadMyProducts(!isFirstFocus);
-    }, [isAuthenticated, isInitializing, loadMyProducts, token, memberId]),
+      // token/memberId는 의존성에서 제외: API 호출 중 토큰 자동 갱신으로
+      // 콜백이 재생성되어 포커스 effect가 다시 실행되며 중복 리패치+깜빡임 발생
+    }, [isAuthenticated, isInitializing, loadMyProducts]),
   );
 
   useEffect(() => {
@@ -433,12 +645,7 @@ export default function ManageScreen() {
     return () => {
       cancelled = true;
     };
-  }, [
-    isAuthenticated,
-    isInitializing,
-    pendingProducts,
-    calcStepFromDetail,
-  ]);
+  }, [isAuthenticated, isInitializing, pendingProducts, calcStepFromDetail]);
 
   useEffect(() => {
     return () => {
@@ -452,26 +659,29 @@ export default function ManageScreen() {
     scrollTimerRef.current = setTimeout(() => setIsScrolling(false), 500);
   }, []);
 
-  const resumeRegistration = useCallback(async (productId: number) => {
-    try {
-      const data = await fetchRegistrationProduct(productId);
-      const step = getPageName(data);
-      if (data.status?.code === ORIGIN_DATA_REGISTER) {
+  const resumeRegistration = useCallback(
+    async (productId: number) => {
+      try {
+        const data = await fetchRegistrationProduct(productId);
+        const step = getPageName(data);
+        if (data.status?.code === ORIGIN_DATA_REGISTER) {
+          router.push({
+            pathname: "/products/sales/info/[id]",
+            params: { id: String(productId), from: "manage" },
+          });
+          return;
+        }
         router.push({
-          pathname: "/products/sales/info/[id]",
+          pathname:
+            `/products/sales/${step}/[id]` as "/products/sales/model/[id]",
           params: { id: String(productId), from: "manage" },
         });
-        return;
+      } catch {
+        alert({ title: "오류", message: "등록 정보를 불러오지 못했습니다." });
       }
-      router.push({
-        pathname:
-          `/products/sales/${step}/[id]` as "/products/sales/model/[id]",
-        params: { id: String(productId), from: "manage" },
-      });
-    } catch {
-      alert({ title: "오류", message: "등록 정보를 불러오지 못했습니다." });
-    }
-  }, [alert]);
+    },
+    [alert],
+  );
 
   const fetchDetail = useCallback(
     (product: ProductDetailResponse) => {
@@ -490,31 +700,34 @@ export default function ManageScreen() {
     [resumeRegistration],
   );
 
-  const onClickDelete = useCallback((item: ProductDetailResponse) => {
-    setConfirmModal({
-      open: true,
-      title: "차량을 정말 삭제하시겠어요?",
-      content: item.truckNumber ?? "",
-      rightLabel: "삭제하기",
-      onConfirm: async () => {
-        try {
-          await apiManager.delete(`/api/v1/products/${item.id}`);
-          setMyProducts((prev) =>
-            prev.filter((product) => product.id !== item.id),
-          );
-          setConfirmModal({
-            open: false,
-            title: "",
-            content: "",
-            rightLabel: "확인",
-          });
-          alert({ title: "완료", message: "차량이 삭제되었어요." });
-        } catch {
-          alert({ title: "오류", message: "차량 삭제에 실패했습니다." });
-        }
-      },
-    });
-  }, [alert]);
+  const onClickDelete = useCallback(
+    (item: ProductDetailResponse) => {
+      setConfirmModal({
+        open: true,
+        title: "차량을 정말 삭제하시겠어요?",
+        content: item.truckNumber ?? "",
+        rightLabel: "삭제하기",
+        onConfirm: async () => {
+          try {
+            await apiManager.delete(`/api/v1/products/${item.id}`);
+            setMyProducts((prev) =>
+              prev.filter((product) => product.id !== item.id),
+            );
+            setConfirmModal({
+              open: false,
+              title: "",
+              content: "",
+              rightLabel: "확인",
+            });
+            alert({ title: "완료", message: "차량이 삭제되었어요." });
+          } catch {
+            alert({ title: "오류", message: "차량 삭제에 실패했습니다." });
+          }
+        },
+      });
+    },
+    [alert],
+  );
 
   const openPriceEditor = useCallback((item: ProductDetailResponse) => {
     if (item.status?.code !== SALE) return;
@@ -603,6 +816,41 @@ export default function ManageScreen() {
     [alert],
   );
 
+  const onConfirmInstantSale = useCallback(async () => {
+    const productId = instantSaleProductId;
+    setInstantSaleProductId(null);
+    if (!productId) return;
+    try {
+      const response = await patchProductsInfo({ productId, type: "SPEED" });
+      const responseData = response.data as ProductDetailResponse;
+      setMyProducts((prev) =>
+        prev.map((item) =>
+          item.id === productId
+            ? {
+                ...item,
+                type: responseData?.type ?? { code: "SPEED", desc: "매입견적" },
+                statusOfSpeedProduct: responseData?.statusOfSpeedProduct ?? {
+                  code: BEFORE_CONSULTING,
+                  desc: "상담 요청",
+                },
+              }
+            : item,
+        ),
+      );
+      invalidateProductCaches(productId);
+      alert({
+        title: "요청 완료",
+        message:
+          "직트럭 매입견적 상담 요청이 접수되었어요. 담당자가 곧 연락드릴 예정입니다.",
+      });
+    } catch {
+      alert({
+        title: "오류",
+        message: "요청에 실패했습니다. 잠시 후 다시 시도해주세요.",
+      });
+    }
+  }, [alert, instantSaleProductId]);
+
   const onConfirmComplete = useCallback(
     async (actualSalePrice: number, completeReason: string) => {
       const productId = completeTargetProductIdRef.current;
@@ -674,13 +922,24 @@ export default function ManageScreen() {
     setIsSavingPrice(false);
   }, []);
 
+  const onPressRejectReason = useCallback((item: ProductDetailResponse) => {
+    setAlertModal({
+      open: true,
+      reason: item.approvalStatusList?.at(-1)?.reason ?? "",
+      modifiedDate: formatYYYYMMDD(item.approvalStatusList?.at(-1)?.modifiedDate),
+    });
+  }, []);
+
   const executeSavePrice = useCallback(
     async (productId: number, options?: { silent?: boolean }) => {
       if (isSavingPrice) return;
 
       const nextPrice = Number((editingPriceValue || "").replace(/[^\d]/g, ""));
       if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
-        alert({ title: "입력 오류", message: "판매 가격을 올바르게 입력해 주세요." });
+        alert({
+          title: "입력 오류",
+          message: "판매 가격을 올바르게 입력해 주세요.",
+        });
         return;
       }
 
@@ -689,7 +948,10 @@ export default function ManageScreen() {
       const isApproved =
         product?.approvalStatusList?.at(-1)?.status?.code === "APPROVAL";
       if (isApproved && nextPrice > approvedPrice) {
-        alert({ title: "가격 제한", message: "가격은 그 이상으로 수정이 불가능합니다." });
+        alert({
+          title: "가격 제한",
+          message: "가격은 그 이상으로 수정이 불가능합니다.",
+        });
         return;
       }
 
@@ -720,7 +982,10 @@ export default function ManageScreen() {
     (productId: number) => {
       const nextPrice = Number((editingPriceValue || "").replace(/[^\d]/g, ""));
       if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
-        alert({ title: "입력 오류", message: "판매 가격을 올바르게 입력해 주세요." });
+        alert({
+          title: "입력 오류",
+          message: "판매 가격을 올바르게 입력해 주세요.",
+        });
         return;
       }
 
@@ -870,127 +1135,29 @@ export default function ManageScreen() {
 
             {/* 판매 중인 차량 */}
             <View className="mt-3 bg-white px-4">
-              {saleProducts.map((item, index) => {
-                const isWaiting =
-                  item.approvalStatusList?.at(-1)?.status?.code === WAITING;
-                const isReject =
-                  item.approvalStatusList?.at(-1)?.status?.code === "REJECT";
-                const canOpenStatusSheet =
-                  (item.status?.code === SALE || item.status?.code === PAUSE) &&
-                  !isWaiting;
-                return (
-                  <View
-                    key={item.id}
-                    className={`${index !== 0 ? "border-t border-gray300" : ""} py-4`}
-                  >
-                    <View className="flex-row">
-                      <Pressable
-                        className="mr-3 h-[100px] w-[100px] overflow-hidden rounded-[8px] bg-gray200"
-                        onPress={() => fetchDetail(item)}
-                      >
-                        <Image
-                          source={{
-                            uri:
-                              item.productsImage?.frontSideImageUrl ||
-                              `${IMAGE_BASE_URL}/car_none.png`,
-                          }}
-                          className="h-full w-full"
-                          contentFit="cover"
-                        />
-                      </Pressable>
-
-                      <View className="flex-1 pr-2">
-                        <View className="flex-row items-center gap-3">
-                          <ProductStatusBadge
-                            statusCode={item.status?.code}
-                            statusDesc={item.status?.desc}
-                            canChangeStatus={canOpenStatusSheet}
-                            onPress={() => setStatusSheetProductId(item.id)}
-                          />
-                          <Text className="rounded-md bg-gray100 px-2 py-1 text-[14px] font-bold text-[#1f8f5f]">
-                            {item.salesType?.desc ?? "직거래"}
-                          </Text>
-                        </View>
-
-                        <Pressable onPress={() => fetchDetail(item)}>
-                          <Text className="mt-2 text-[16px] font-bold text-gray900">
-                            {item.truckNumber ?? "-"}
-                          </Text>
-
-                          {editingPriceProductId === item.id && !isWaiting ? (
-                            <InlineProductPriceEditor
-                              value={editingPriceValue}
-                              onChangeValue={setEditingPriceValue}
-                              onSave={() => requestSavePrice(item.id)}
-                              onCancel={cancelPriceEditor}
-                              isSaving={isSavingPrice}
-                            />
-                          ) : (
-                            <View className="mt-1 flex-row flex-wrap items-center gap-2">
-                              <Text className="text-[20px] font-extrabold text-gray900">
-                                {formatPrice(item.price)}
-                              </Text>
-                              {item.status?.code === SALE && !isWaiting ? (
-                                <Pressable
-                                  className="h-[36px] items-center justify-center rounded-[8px] border border-primary-3 bg-primary-1 px-3"
-                                  onPress={() => openPriceEditor(item)}
-                                >
-                                  <Text className="text-[15px] font-bold text-primary-10">
-                                    가격 수정
-                                  </Text>
-                                </Pressable>
-                              ) : null}
-                            </View>
-                          )}
-
-                          {isReject && item.approvalStatusList?.at(-1)?.reason ? (
-                            <Pressable
-                              onPress={() =>
-                                setAlertModal({
-                                  open: true,
-                                  reason:
-                                    item.approvalStatusList?.at(-1)?.reason ??
-                                    "",
-                                  modifiedDate: formatYYYYMMDD(
-                                    item.approvalStatusList?.at(-1)?.modifiedDate,
-                                  ),
-                                })
-                              }
-                            >
-                              <Text className="mt-2 text-[14px] font-medium text-gray700 underline">
-                                반려 사유 확인
-                              </Text>
-                            </Pressable>
-                          ) : item.status?.code !== PRODUCT_STATUS_COMPLETE ? (
-                            <Pressable
-                              onPress={() => setInstantSaleProductId(item.id)}
-                            >
-                              <Text className="mt-2 text-[14px] font-semibold text-gray700 underline">
-                                직트럭에 즉시 매각
-                              </Text>
-                            </Pressable>
-                          ) : null}
-                        </Pressable>
-                      </View>
-
-                      {editingPriceProductId !== item.id ? (
-                        <Pressable
-                          className="absolute right-0 top-0 z-20 p-2"
-                          style={{ elevation: 20, zIndex: 20 }}
-                          hitSlop={12}
-                          onPress={() => setMenuProductId(item.id)}
-                        >
-                          <Ionicons
-                            name="ellipsis-vertical"
-                            size={18}
-                            color="#333"
-                          />
-                        </Pressable>
-                      ) : null}
-                    </View>
-                  </View>
-                );
-              })}
+              {saleProducts.map((item, index) => (
+                <ManageSaleCard
+                  key={item.id}
+                  item={item}
+                  isFirst={index === 0}
+                  isEditing={editingPriceProductId === item.id}
+                  editingPriceValue={
+                    editingPriceProductId === item.id ? editingPriceValue : ""
+                  }
+                  isSavingPrice={
+                    editingPriceProductId === item.id ? isSavingPrice : false
+                  }
+                  onPressDetail={fetchDetail}
+                  onPressStatus={setStatusSheetProductId}
+                  onChangeEditingPrice={setEditingPriceValue}
+                  onSavePrice={requestSavePrice}
+                  onCancelPrice={cancelPriceEditor}
+                  onOpenPriceEditor={openPriceEditor}
+                  onPressRejectReason={onPressRejectReason}
+                  onPressInstantSale={setInstantSaleProductId}
+                  onPressMenu={setMenuProductId}
+                />
+              ))}
             </View>
           </ScrollView>
 
@@ -1041,12 +1208,7 @@ export default function ManageScreen() {
         rightLabel="요청하기"
         onLeft={() => setInstantSaleProductId(null)}
         onRight={() => {
-          setInstantSaleProductId(null);
-          alert({
-            title: "요청 완료",
-            message:
-              "즉시 매각 요청이 접수되었어요. 담당자가 곧 연락드릴 예정입니다.",
-          });
+          void onConfirmInstantSale();
         }}
       >
         <View className="gap-1.5">

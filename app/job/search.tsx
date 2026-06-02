@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, View } from "react-native";
 
 import { getJobFilterInfo } from "@/src/api/public";
@@ -36,11 +36,29 @@ export default function JobSearchScreen() {
   const [pickerKey, setPickerKey] = useState<FilterKey | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
-  useEffect(() => {
-    getJobFilterInfo()
-      .then((res) => setFilterInfo((res.data ?? res) as JobFilterInfo))
+  const loadFilterInfo = useCallback(() => {
+    return getJobFilterInfo()
+      .then((res) => {
+        const payload = (res?.data ?? res) as { data?: JobFilterInfo } & JobFilterInfo;
+        setFilterInfo((payload?.data ?? payload) as JobFilterInfo);
+      })
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    void loadFilterInfo();
+  }, [loadFilterInfo]);
+
+  const openPicker = useCallback(
+    (key: FilterKey) => {
+      // 필터 정보 로딩이 실패했거나 비어 있으면 다시 불러온 뒤 표시
+      if (!filterInfo || (filterInfo[key]?.length ?? 0) === 0) {
+        void loadFilterInfo();
+      }
+      setPickerKey(key);
+    },
+    [filterInfo, loadFilterInfo],
+  );
 
   const pickerOptions: PickerOption[] = useMemo(() => {
     if (!pickerKey || !filterInfo) return [];
@@ -102,19 +120,19 @@ export default function JobSearchScreen() {
         <JobSearchFilterRow
           label="근무 지역"
           selected={params.workingArea}
-          onPress={() => setPickerKey("workingArea")}
+          onPress={() => openPicker("workingArea")}
           onRemove={() => clearEnum("workingArea")}
         />
         <JobSearchFilterRow
           label="근무 요일"
           selected={params.workingDays}
-          onPress={() => setPickerKey("workingDays")}
+          onPress={() => openPicker("workingDays")}
           onRemove={() => clearEnum("workingDays")}
         />
         <JobSearchFilterRow
           label="근무 시간"
           selected={params.workingHours}
-          onPress={() => setPickerKey("workingHours")}
+          onPress={() => openPicker("workingHours")}
           onRemove={() => clearEnum("workingHours")}
         />
       </ScrollView>
@@ -133,8 +151,6 @@ export default function JobSearchScreen() {
         visible={pickerKey !== null}
         title={pickerKey ? FILTER_TITLES[pickerKey] : ""}
         options={pickerOptions}
-        noModal
-        overlayZIndex={1002}
         onClose={() => setPickerKey(null)}
         onSelect={(option) => {
           if (!pickerKey) return;

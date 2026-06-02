@@ -4,18 +4,19 @@ import { Image } from "expo-image";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   Pressable,
   Text,
   View,
 } from "react-native";
 
+import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { IMAGE_BASE_URL } from "@/src/constants/url";
 import { resolveImageUri } from "@/src/features/products/utils";
 import { uploadProductImage } from "@/src/features/sell-car/registration/uploadProductImage";
-import { pickImageWithSource } from "@/src/utils/pickImageWithSource";
+import { launchImagePickerForSource } from "@/src/utils/pickImageWithSource";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const HORIZONTAL_PADDING = 16;
@@ -116,6 +117,7 @@ export function ProductPhotoEditor({
 }: ProductPhotoEditorProps) {
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [isBulkUploading, setIsBulkUploading] = useState(false);
+  const [sourceTarget, setSourceTarget] = useState<UploadTarget | null>(null);
 
   const optionalCount = useMemo(() => {
     const fixedCount = OPTIONAL_PHOTO_KEYS.filter((key) =>
@@ -149,7 +151,10 @@ export function ProductPhotoEditor({
   const requestPermission = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert("권한 필요", "사진 라이브러리 접근 권한이 필요합니다.");
+      showAppAlert({
+        title: "권한 필요",
+        message: "사진 라이브러리 접근 권한이 필요합니다.",
+      });
       return false;
     }
     return true;
@@ -192,8 +197,16 @@ export function ProductPhotoEditor({
     [images, onChange],
   );
 
-  const pickSingle = async (target: UploadTarget) => {
-    const result = await pickImageWithSource({ quality: 0.8 });
+  const pickSingle = (target: UploadTarget) => {
+    setSourceTarget(target);
+  };
+
+  const handlePickSource = async (source: "camera" | "library") => {
+    const target = sourceTarget;
+    setSourceTarget(null);
+    if (!target) return;
+
+    const result = await launchImagePickerForSource(source, { quality: 0.8 });
     if (!result || result.canceled || !result.assets[0]) return;
 
     const key =
@@ -212,12 +225,13 @@ export function ProductPhotoEditor({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "이미지 업로드에 실패했습니다.";
-      Alert.alert(
-        "오류",
-        message === "IMAGE_UPLOAD_FAILED"
-          ? "이미지 업로드에 실패했습니다. 다시 시도해주세요."
-          : message,
-      );
+      showAppAlert({
+        title: "오류",
+        message:
+          message === "IMAGE_UPLOAD_FAILED"
+            ? "이미지 업로드에 실패했습니다. 다시 시도해주세요."
+            : message,
+      });
     } finally {
       setUploadingKey(null);
     }
@@ -271,12 +285,13 @@ export function ProductPhotoEditor({
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "이미지 업로드에 실패했습니다.";
-      Alert.alert(
-        "오류",
-        message === "IMAGE_UPLOAD_FAILED"
-          ? "이미지 업로드에 실패했습니다. 다시 시도해주세요."
-          : message,
-      );
+      showAppAlert({
+        title: "오류",
+        message:
+          message === "IMAGE_UPLOAD_FAILED"
+            ? "이미지 업로드에 실패했습니다. 다시 시도해주세요."
+            : message,
+      });
     } finally {
       setIsBulkUploading(false);
     }
@@ -302,20 +317,23 @@ export function ProductPhotoEditor({
     onChange(next);
   };
 
-  const addOptionalPhoto = async () => {
+  const addOptionalPhoto = () => {
     if (optionalCount >= MAX_OPTIONAL_COUNT) {
-      Alert.alert("안내", `추가 사진은 최대 ${MAX_OPTIONAL_COUNT}장까지 등록할 수 있어요.`);
+      showAppAlert({
+        title: "안내",
+        message: `추가 사진은 최대 ${MAX_OPTIONAL_COUNT}장까지 등록할 수 있어요.`,
+      });
       return;
     }
 
     const emptyFixed = OPTIONAL_PHOTO_KEYS.find((key) => !images[key]);
     if (emptyFixed) {
-      await pickSingle({ type: "optional", key: emptyFixed });
+      pickSingle({ type: "optional", key: emptyFixed });
       return;
     }
 
     const nextIndex = images.optionImageUrl?.length ?? 0;
-    await pickSingle({ type: "option", index: nextIndex });
+    pickSingle({ type: "option", index: nextIndex });
   };
 
   const isUploading = isBulkUploading || uploadingKey !== null;
@@ -431,6 +449,16 @@ export function ProductPhotoEditor({
           </>
         )}
       </Pressable>
+
+      <MenuBottomSheet
+        visible={sourceTarget !== null}
+        onClose={() => setSourceTarget(null)}
+        title="사진 첨부"
+        items={[
+          { label: "카메라로 촬영", onPress: () => handlePickSource("camera") },
+          { label: "갤러리에서 선택", onPress: () => handlePickSource("library") },
+        ]}
+      />
     </View>
   );
 }

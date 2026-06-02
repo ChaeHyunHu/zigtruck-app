@@ -61,15 +61,20 @@ async function saveContractJpegToAndroidDownloads(localPath: string, displayName
   const { StorageAccessFramework } = FileSystem;
   const nameWithoutExt = `${displayName.replace(/\.jpe?g$/i, "")}_${Date.now()}`;
 
+  // 일부 기기/버전에서 StorageAccessFramework.copyAsync(ExponentFileSystem.copyAsync)가
+  // 실패하므로, 캐시 파일을 base64로 읽어 SAF 파일에 직접 기록한다.
+  const base64 = await FileSystem.readAsStringAsync(localPath, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
   const trySave = async (directoryUri: string) => {
     const destUri = await StorageAccessFramework.createFileAsync(
       directoryUri,
       nameWithoutExt,
       "image/jpeg",
     );
-    await StorageAccessFramework.copyAsync({
-      from: localPath,
-      to: destUri,
+    await StorageAccessFramework.writeAsStringAsync(destUri, base64, {
+      encoding: FileSystem.EncodingType.Base64,
     });
   };
 

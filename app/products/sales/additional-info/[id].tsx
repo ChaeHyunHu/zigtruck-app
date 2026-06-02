@@ -2,6 +2,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { Alert, Keyboard, ScrollView, Text, TextInput, View } from "react-native";
 
+import { showAppAlert } from "@/src/providers/appDialog";
+
 import { Screen } from "@/src/components/common/Screen";
 import { ADDRESS1 } from "@/src/constants/address";
 import { appColors } from "@/src/constants/colors";
@@ -168,10 +170,10 @@ export default function AdditionalInfoFormScreen() {
     (key: Exclude<Picker, null>, options: OptionItem[]) => {
       Keyboard.dismiss();
       if (options.length === 0) {
-        Alert.alert(
-          "안내",
-          "선택 목록을 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
-        );
+        showAppAlert({
+          title: "안내",
+          message: "선택 목록을 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
+        });
         return;
       }
       setPicker(key);
@@ -438,6 +440,7 @@ export default function AdditionalInfoFormScreen() {
           ) : (
             <SelectField
               label="마력 (ps)"
+              required
               value={
                 productFormData.power ? String(productFormData.power) : undefined
               }
@@ -451,6 +454,7 @@ export default function AdditionalInfoFormScreen() {
 
           <SelectField
             label="연료"
+            required
             value={productFormData.fuel?.desc}
             placeholder="연료 선택"
             onPress={() => openPicker("fuel", fuelOptions)}

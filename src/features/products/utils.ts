@@ -254,15 +254,21 @@ const matchOwnerId = (payload: any): number | undefined => {
 export const normalizeListItem = (item: any): ProductListItem | null => {
   const id = item?.id ?? item?.productId ?? item?.productsId;
   if (id === undefined || id === null) return null;
-  const region = pickString(
-    item?.region ??
-      item?.area1 ??
-      item?.area ??
-      item?.location ??
-      [item?.area1, item?.area2, item?.area3]
-        .filter((part) => typeof part === "string" && part.length > 0)
-        .join(" "),
-  );
+  // 1톤~1.2톤 차량 활동지: area1(시/도) + area2(시/군/구)를 "경기도(수원시,용인시)" 형식으로 표기
+  const area1 = pickString(item?.area1);
+  const area2 = pickString(item?.area2);
+  const region =
+    area1 && area2
+      ? `${area1}(${area2})`
+      : pickString(
+          item?.region ??
+            area1 ??
+            item?.area ??
+            item?.location ??
+            [item?.area1, item?.area2, item?.area3]
+              .filter((part) => typeof part === "string" && part.length > 0)
+              .join(" "),
+        );
   const imageUrls = collectListItemImageUrls(item);
   const representImageUrl =
     resolveImageUri(

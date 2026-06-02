@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useMemo, useState } from "react";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { deleteLicense } from "@/src/api/license/deleteLicense";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { updateLicense } from "@/src/api/license/updateLicense";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
@@ -38,7 +39,7 @@ export function LicenseMyListCard({ item, onChanged }: Props) {
   const onMenuAction = useCallback((code: string) => {
     switch (code) {
       case "MODIFY":
-        Alert.alert("안내", "번호판 수정은 준비 중입니다.");
+        showAppAlert({ title: "안내", message: "번호판 수정은 준비 중입니다." });
         return;
       case "DELETE":
         setPendingAction("DELETE");
@@ -79,9 +80,9 @@ export function LicenseMyListCard({ item, onChanged }: Props) {
             : status === LICENSE_STATUS_COMPLETED
               ? "판매완료로 변경되었어요."
               : "상태가 변경되었어요.";
-      Alert.alert("완료", msg);
+      showAppAlert({ title: "완료", message: msg });
     } catch {
-      Alert.alert("오류", "상태 변경에 실패했습니다.");
+      showAppAlert({ title: "오류", message: "상태 변경에 실패했습니다." });
     } finally {
       setBusy(false);
     }
@@ -94,9 +95,9 @@ export function LicenseMyListCard({ item, onChanged }: Props) {
         setBusy(true);
         await deleteLicense({ id: item.id, isSoftDelete: true });
         onChanged?.();
-        Alert.alert("완료", "번호판이 삭제되었어요.");
+        showAppAlert({ title: "완료", message: "번호판이 삭제되었어요." });
       } catch {
-        Alert.alert("오류", "삭제에 실패했습니다.");
+        showAppAlert({ title: "오류", message: "삭제에 실패했습니다." });
       } finally {
         setBusy(false);
         setConfirmOpen(false);

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
-import { Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Text, View, type LayoutChangeEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheet } from "@/src/components/common/BottomSheet";
@@ -26,11 +26,12 @@ export function OwnerVerificationBottomSheet({
   const hasLastOwner = Boolean(product.lastOwnerInfo?.content);
   const bottomPadding = Math.max(insets.bottom, 12);
 
-  const sheetHeight = useMemo(() => {
+  // 첫 프레임용 추정치. onLayout 측정 후엔 실제 콘텐츠 높이로 정확히 맞춰 하단 공백/잘림을 방지한다.
+  const estimatedHeight = useMemo(() => {
     const topPadding = 20;
-    const headerBlock = 54;
-    const descriptionBlock = product.realOwnerName ? 82 : 58;
-    const lastOwnerBlock = hasLastOwner ? 108 : 0;
+    const headerBlock = 60;
+    const descriptionBlock = product.realOwnerName ? 110 : 80;
+    const lastOwnerBlock = hasLastOwner ? 110 : 0;
     const actionBlock = 24 + 48;
     return (
       topPadding +
@@ -41,6 +42,16 @@ export function OwnerVerificationBottomSheet({
       bottomPadding
     );
   }, [bottomPadding, hasLastOwner, product.realOwnerName]);
+
+  const [measuredHeight, setMeasuredHeight] = useState(0);
+  const sheetHeight = measuredHeight > 0 ? measuredHeight : estimatedHeight;
+
+  const handleContentLayout = (event: LayoutChangeEvent) => {
+    const next = event.nativeEvent.layout.height;
+    if (next > 0 && Math.abs(next - measuredHeight) > 1) {
+      setMeasuredHeight(next);
+    }
+  };
 
   const ownerLine = product.realOwnerName
     ? `해당 차량의 소유자는 [${product.realOwnerName}]님입니다. `
@@ -58,7 +69,11 @@ export function OwnerVerificationBottomSheet({
         borderTopRightRadius: 16,
       }}
     >
-      <View className="bg-white px-4 pt-5" style={{ paddingBottom: bottomPadding }}>
+      <View
+        className="bg-white px-4 pt-5"
+        style={{ paddingBottom: bottomPadding }}
+        onLayout={handleContentLayout}
+      >
         <View className="flex-row items-start">
           <View className="h-11 w-11 items-center justify-center rounded-full bg-gray200">
             <Ionicons

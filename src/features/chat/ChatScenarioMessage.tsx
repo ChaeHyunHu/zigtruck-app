@@ -1,8 +1,9 @@
 import { router } from "expo-router";
 import React from "react";
-import { Alert, Linking, Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 
 import apiManager from "@/src/api/AxiosInstance";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   SCENARIO_FREQUENTLY_ASKED,
   SCENARIO_TEXT_API_BUTTON,
@@ -80,7 +81,7 @@ async function handleScenarioButtonPress(
   if (type === SCENARIO_TEXT_URL_BUTTON) {
     if (button.url) {
       await Linking.openURL(button.url).catch(() =>
-        Alert.alert("오류", "링크를 열 수 없습니다."),
+        showAppAlert({ title: "오류", message: "링크를 열 수 없습니다." }),
       );
     }
     return;
@@ -90,7 +91,7 @@ async function handleScenarioButtonPress(
     if (button.method === "POST" && button.url) {
       try {
         await apiManager.post(button.url, { chatRoomId: room.id });
-        Alert.alert("안내", "신청이 완료되었어요.");
+        showAppAlert({ title: "안내", message: "신청이 완료되었어요." });
       } catch (error: unknown) {
         const message =
           error &&
@@ -99,11 +100,11 @@ async function handleScenarioButtonPress(
           typeof (error as { message: unknown }).message === "string"
             ? (error as { message: string }).message
             : "요청에 실패했습니다.";
-        Alert.alert("안내", message);
+        showAppAlert({ title: "안내", message });
       }
       return;
     }
-    Alert.alert("안내", "해당 기능은 준비 중입니다.");
+    showAppAlert({ title: "안내", message: "해당 기능은 준비 중입니다." });
     return;
   }
 
@@ -125,11 +126,11 @@ async function handleScenarioButtonPress(
   }
 
   if (button.text?.includes("가이드")) {
-    Alert.alert("안내", "차량 확인 가이드는 곧 제공됩니다.");
+    showAppAlert({ title: "안내", message: "차량 확인 가이드는 곧 제공됩니다." });
     return;
   }
 
-  Alert.alert("안내", "해당 기능은 준비 중입니다.");
+  showAppAlert({ title: "안내", message: "해당 기능은 준비 중입니다." });
 }
 
 export function ChatScenarioMessage({

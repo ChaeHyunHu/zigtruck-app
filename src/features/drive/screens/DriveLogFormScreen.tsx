@@ -2,6 +2,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Alert, Pressable, Text, View } from "react-native";
 
+import { showAppAlert } from "@/src/providers/appDialog";
+
 import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { Screen } from "@/src/components/common/Screen";
@@ -79,7 +81,10 @@ export function DriveLogFormScreen() {
 
   const addTransport = () => {
     if (transports.length >= 20) {
-      Alert.alert("안내", "운송사 및 운송료는 최대 20개까지 입력 가능합니다.");
+      showAppAlert({
+        title: "안내",
+        message: "운송사 및 운송료는 최대 20개까지 입력 가능합니다.",
+      });
       return;
     }
     setTransports((prev) => [...prev, emptyTransport()]);

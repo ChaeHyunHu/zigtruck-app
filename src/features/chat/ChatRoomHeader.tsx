@@ -2,7 +2,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React from "react";
-import { Alert, Linking, Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
+
+import { showAppAlert } from "@/src/providers/appDialog";
 
 import { postProductInquiryCall } from "@/src/api/public";
 import {
@@ -38,10 +40,10 @@ export function ChatRoomHeader({ room, memberId, onPressDelete }: ChatRoomHeader
 
   const onPressContract = () => {
     if (!room.id) {
-      Alert.alert(
-        "안내",
-        `${truncateName(recipient?.name, 3) || "상대방"}님에게 메시지를 보낸 후, 계약서를 작성할 수 있어요.`,
-      );
+      showAppAlert({
+        title: "안내",
+        message: `${truncateName(recipient?.name, 3) || "상대방"}님에게 메시지를 보낸 후, 계약서를 작성할 수 있어요.`,
+      });
       return;
     }
     navigateToContract(room, memberId);
@@ -55,14 +57,14 @@ export function ChatRoomHeader({ room, memberId, onPressDelete }: ChatRoomHeader
     const phone = room.safetyNumbers?.safetyNumber;
     if (phone) {
       Linking.openURL(`tel:${phone}`).catch(() =>
-        Alert.alert("오류", "전화 연결을 할 수 없습니다."),
+        showAppAlert({ title: "오류", message: "전화 연결을 할 수 없습니다." }),
       );
       return;
     }
-    Alert.alert(
-      "안내",
-      `${truncateName(recipient?.name, 3) || "상대방"}님에게 메시지를 보낸 후, 전화를 하실 수 있어요.`,
-    );
+    showAppAlert({
+      title: "안내",
+      message: `${truncateName(recipient?.name, 3) || "상대방"}님에게 메시지를 보낸 후, 전화를 하실 수 있어요.`,
+    });
   };
 
   const contractButtonLabel = getContractButtonLabel(room, memberId);

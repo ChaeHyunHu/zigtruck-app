@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { showAppAlert } from "@/src/providers/appDialog";
 import { createChatMessages } from "@/src/api/chat/createChat";
 import {
   buildChatImageFormData,
@@ -615,17 +616,20 @@ export default function ChatRoomScreen() {
       const result = await pickChatImageAssets();
       if (!result || result.canceled || !result.assets?.length) {
         if (result === null) {
-          Alert.alert("안내", "사진 접근 권한이 필요합니다. 설정에서 허용해 주세요.");
+          showAppAlert({
+            title: "안내",
+            message: "사진 접근 권한이 필요합니다. 설정에서 허용해 주세요.",
+          });
         }
         return;
       }
 
       let assets = result.assets;
       if (assets.length > MAX_CHAT_IMAGES) {
-        Alert.alert(
-          "안내",
-          `사진은 최대 ${MAX_CHAT_IMAGES}장까지 전송할 수 있어요. 처음 ${MAX_CHAT_IMAGES}장만 전송합니다.`,
-        );
+        showAppAlert({
+          title: "안내",
+          message: `사진은 최대 ${MAX_CHAT_IMAGES}장까지 전송할 수 있어요. 처음 ${MAX_CHAT_IMAGES}장만 전송합니다.`,
+        });
         assets = assets.slice(0, MAX_CHAT_IMAGES);
       }
 

@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Alert,
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -12,6 +11,7 @@ import {
 } from "react-native";
 
 import { createPurchaseAccompanyingServices } from "@/src/api/AdditionalServices/createAdditionalServices";
+import { showAppAlert } from "@/src/providers/appDialog";
 import {
   BottomSheet,
   type BottomSheetRef,
@@ -95,14 +95,14 @@ export function PurchaseAccompanyingServiceBottomSheet({
       return;
     }
     if (!profile?.name?.trim() || !profile?.phoneNumber?.trim()) {
-      Alert.alert(
-        "안내",
-        "로그인 정보에서 이름·휴대폰 번호를 확인할 수 없습니다.",
-      );
+      showAppAlert({
+        title: "안내",
+        message: "로그인 정보에서 이름·휴대폰 번호를 확인할 수 없습니다.",
+      });
       return;
     }
     if (!productId) {
-      Alert.alert("안내", "차량 정보가 없습니다.");
+      showAppAlert({ title: "안내", message: "차량 정보가 없습니다." });
       return;
     }
     setConfirmOpen(true);
@@ -119,15 +119,17 @@ export function PurchaseAccompanyingServiceBottomSheet({
         productId,
       });
       setIsAlreadyApply(true);
-      Alert.alert("완료", "차량 구매 동행 서비스를 신청했어요.", [
-        { text: "확인", onPress: dismissSheet },
-      ]);
+      showAppAlert({
+        title: "완료",
+        message: "차량 구매 동행 서비스를 신청했어요.",
+        onConfirm: dismissSheet,
+      });
     } catch (error: unknown) {
       const message =
         error && typeof error === "object" && "message" in error
           ? String((error as { message?: string }).message)
           : "신청에 실패했습니다.";
-      Alert.alert("오류", message);
+      showAppAlert({ title: "오류", message });
     } finally {
       setSubmitting(false);
     }

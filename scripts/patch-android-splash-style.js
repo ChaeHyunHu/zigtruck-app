@@ -21,7 +21,10 @@ if (!fs.existsSync(stylesPath)) {
 
 let contents = fs.readFileSync(stylesPath, "utf8");
 
-if (contents.includes("@drawable/ic_launcher_background") && contents.includes('parent="AppTheme"')) {
+if (
+  contents.includes("@drawable/ic_launcher_background") &&
+  contents.includes('parent="AppTheme"')
+) {
   console.log("[patch-android-splash-style] already patched.");
   process.exit(0);
 }

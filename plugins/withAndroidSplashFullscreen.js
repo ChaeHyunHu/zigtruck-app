@@ -1,7 +1,4 @@
-const {
-  withAndroidStyles,
-  withMainActivity,
-} = require("@expo/config-plugins");
+const { withAndroidStyles, withMainActivity } = require("@expo/config-plugins");
 
 const FULLSCREEN_SPLASH_STYLE = {
   $: {
@@ -23,7 +20,9 @@ function withAndroidSplashFullscreen(config) {
     const styleList = styles.resources?.style ?? [];
 
     styles.resources.style = [
-      ...styleList.filter((style) => style.$?.name !== "Theme.App.SplashScreen"),
+      ...styleList.filter(
+        (style) => style.$?.name !== "Theme.App.SplashScreen",
+      ),
       FULLSCREEN_SPLASH_STYLE,
     ];
 

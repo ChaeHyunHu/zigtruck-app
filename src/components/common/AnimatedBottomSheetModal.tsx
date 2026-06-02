@@ -14,6 +14,7 @@ import {
   Modal,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
   View,
   type StyleProp,
   type ViewStyle,
@@ -75,8 +76,13 @@ export const AnimatedBottomSheetModal = forwardRef<
   },
   ref,
 ) {
+  const { height: windowHeight } = useWindowDimensions();
   const topDismissMinHeight = Math.max(56, minTopInset);
-  const effectiveSheetHeight = Math.min(sheetHeight, SCREEN_HEIGHT - minTopInset);
+  // 폴더블/회전 대응: 모듈 로드시 한 번 캡처한 값 대신 실시간 창 높이를 사용
+  const effectiveSheetHeight = Math.min(
+    sheetHeight,
+    (windowHeight || SCREEN_HEIGHT) - minTopInset,
+  );
   const [isOnScreen, setIsOnScreen] = useState(false);
   const isClosingRef = useRef(false);
   const isOpeningRef = useRef(false);
@@ -332,8 +338,10 @@ export function getDefaultBottomSheetHeight(
   topGap = 48,
   bottomGap = 0,
 ) {
+  // 폴더블/회전 대응: 호출 시점의 실시간 창 높이 사용
+  const screenHeight = Dimensions.get("window").height || SCREEN_HEIGHT;
   return Math.min(
-    Math.round(SCREEN_HEIGHT * ratio),
-    SCREEN_HEIGHT - topGap - bottomGap,
+    Math.round(screenHeight * ratio),
+    screenHeight - topGap - bottomGap,
   );
 }
