@@ -40,7 +40,6 @@ import {
   takePendingPurchaseFilterParams,
 } from "@/src/features/products/filterUtils";
 import { consumePurchaseListDirty } from "@/src/features/products/productRefresh";
-import { useAppLoadingOverlay } from "@/src/providers/AppLoadingProvider";
 import { PurchaseProductCard } from "@/src/features/products/PurchaseProductCard";
 import { SalesTypeDropdown } from "@/src/features/products/SalesTypeDropdown";
 import { SortBottomSheet } from "@/src/features/products/SortBottomSheet";
@@ -51,6 +50,7 @@ import {
   toText,
 } from "@/src/features/products/utils";
 import { showAppAlert } from "@/src/providers/appDialog";
+import { useAppLoadingOverlay } from "@/src/providers/AppLoadingProvider";
 
 type Filters = ProductSearchFilters;
 
@@ -137,8 +137,10 @@ export default function PurchaseScreen() {
   );
   const listRef = useRef<FlatList<ProductListItem>>(null);
   const scrollOffsetRef = useRef(purchaseListCache?.scrollOffset ?? 0);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fetchGenerationRef = useRef(0);
   const keywordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
   const [keywordDraft, setKeywordDraft] = useState(
     () => filtersFromParams(params).keyword ?? "",
@@ -390,9 +392,18 @@ export default function PurchaseScreen() {
     loadMore({ silent: true });
   }, [currentPage, isLoading, loadMore, totalPages]);
 
+  useEffect(() => {
+    return () => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
+  }, []);
+
   const onListScroll = useCallback(
     (event: { nativeEvent: { contentOffset: { y: number } } }) => {
       scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+      setIsScrolling(true);
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+      scrollTimerRef.current = setTimeout(() => setIsScrolling(false), 500);
     },
     [],
   );
@@ -666,58 +677,69 @@ export default function PurchaseScreen() {
       />
 
       <View className="flex-1 bg-white">
-          <FlatList
-            ref={listRef}
-            data={visibleProducts}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingTop: 8,
-              paddingBottom: fabListPaddingBottom,
-            }}
-            ListEmptyComponent={showEmptyList ? ListEmpty : null}
-            ListFooterComponent={ListFooter}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={() => loadFirstPage(true)}
-              />
-            }
-            onScroll={onListScroll}
-            scrollEventThrottle={16}
-            onEndReached={() => loadMore()}
-            onEndReachedThreshold={2}
-            removeClippedSubviews
-            initialNumToRender={8}
-            maxToRenderPerBatch={6}
-            windowSize={7}
-            updateCellsBatchingPeriod={50}
-          />
+        <FlatList
+          ref={listRef}
+          data={visibleProducts}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: fabListPaddingBottom,
+          }}
+          ListEmptyComponent={showEmptyList ? ListEmpty : null}
+          ListFooterComponent={ListFooter}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={() => loadFirstPage(true)}
+            />
+          }
+          onScroll={onListScroll}
+          scrollEventThrottle={16}
+          onEndReached={() => loadMore()}
+          onEndReachedThreshold={2}
+          removeClippedSubviews
+          initialNumToRender={8}
+          maxToRenderPerBatch={6}
+          windowSize={7}
+          updateCellsBatchingPeriod={50}
+        />
 
-          <View className="absolute bottom-5 right-4">
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: "/products/purchase/inquiry",
-                  params: filtersToParams(filters),
-                })
-              }
-            >
+        <View className="absolute bottom-5 right-4">
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: "/products/purchase/inquiry",
+                params: filtersToParams(filters),
+              })
+            }
+          >
+            {isScrolling ? (
               <LinearGradient
                 colors={["#535AFF", "#397AFF", "#10ACFF"]}
                 start={{ x: 0, y: 0.5 }}
                 end={{ x: 1, y: 0.5 }}
-                className="h-[44px] flex-row items-center justify-center rounded-full px-4"
+                className="h-[52px] w-[52px] items-center justify-center rounded-full"
               >
-                <Ionicons name="search-outline" size={16} color="#fff" />
-                <Text className="ml-2 text-[14px] font-bold text-white">
+                <Ionicons name="search-outline" size={22} color="#fff" />
+              </LinearGradient>
+            ) : (
+              <LinearGradient
+                colors={["#535AFF", "#397AFF", "#10ACFF"]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                className="h-[52px] flex-row items-center justify-center rounded-full px-4"
+              >
+                <Ionicons name="search-outline" size={20} color="#fff" />
+                <Text className="ml-2 text-[16px] font-bold text-white">
                   내가 찾는 차량이 없다면?
                 </Text>
               </LinearGradient>
-            </Pressable>
-          </View>
+            )}
+          </Pressable>
         </View>
+      </View>
     </Screen>
   );
 }

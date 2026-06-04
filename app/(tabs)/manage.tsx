@@ -13,7 +13,6 @@ import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
 import { Screen } from "@/src/components/common/Screen";
 import {
   APPROVAL_STATUS_APPROVAL,
-  APPROVAL_STATUS_WAITING,
   PRODUCT_STATUS_COMPLETE,
   PRODUCT_STATUS_PAUSE,
   PRODUCT_STATUS_SALE,
@@ -24,6 +23,7 @@ import { formatPrice } from "@/src/features/home/utils";
 import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEditOptionSheet";
 import { InlineProductPriceEditor } from "@/src/features/products/InlineProductPriceEditor";
 import { PauseSaleModal } from "@/src/features/products/PauseSaleModal";
+import { isDealerMember } from "@/src/features/products/productInquiryUtils";
 import {
   ProductPriceReduceNoticeModal,
   shouldShowPriceReduceNotice,
@@ -32,7 +32,6 @@ import {
   consumePurchaseListDirty,
   invalidateProductCaches,
 } from "@/src/features/products/productRefresh";
-import { isDealerMember } from "@/src/features/products/productInquiryUtils";
 import {
   ApprovalStatusBadge,
   PRODUCT_STATUS_DESC,
@@ -62,7 +61,6 @@ import React, {
   useState,
 } from "react";
 import {
-  ActivityIndicator,
   AppState,
   Modal,
   Pressable,
@@ -417,7 +415,8 @@ const ManageSaleCard = React.memo(function ManageSaleCard({
 export default function ManageScreen() {
   const { fabListPaddingBottom } = useScreenInsets();
   const { alert } = useAppDialog();
-  const { isAuthenticated, isInitializing, token, memberId, profile } = useAuth();
+  const { isAuthenticated, isInitializing, token, memberId, profile } =
+    useAuth();
   const isDealer = isDealerMember(profile?.memberTypeCode);
   const isFocused = useIsFocused();
 
@@ -960,7 +959,9 @@ export default function ManageScreen() {
     setAlertModal({
       open: true,
       reason: item.approvalStatusList?.at(-1)?.reason ?? "",
-      modifiedDate: formatYYYYMMDD(item.approvalStatusList?.at(-1)?.modifiedDate),
+      modifiedDate: formatYYYYMMDD(
+        item.approvalStatusList?.at(-1)?.modifiedDate,
+      ),
     });
   }, []);
 
@@ -1092,11 +1093,28 @@ export default function ManageScreen() {
           </Pressable>
         </View>
       ) : isNone ? (
-        <View className="flex-1 items-center justify-center px-4">
-          <Ionicons name="car-sport-outline" size={80} color="#DCDCDC" />
-          <Text className="mt-5 text-[16px] text-gray700">
-            차량 내역이 없습니다.
-          </Text>
+        <View className="flex-1">
+          <View className="flex-1 items-center justify-center px-4">
+            <Ionicons name="car-sport-outline" size={80} color="#DCDCDC" />
+            <Text className="mt-5 text-[16px] text-gray700">
+              차량 내역이 없습니다.
+            </Text>
+          </View>
+          <View className="absolute bottom-5 right-4">
+            <Pressable onPress={() => router.push("/sell-car")}>
+              <LinearGradient
+                colors={["#535AFF", "#397AFF", "#10ACFF"]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                className="h-[44px] flex-row items-center justify-center rounded-full px-4"
+              >
+                <Ionicons name="car-sport-outline" size={16} color="#fff" />
+                <Text className="ml-2 text-[14px] font-bold text-white">
+                  차량 판매하러 가기
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
         </View>
       ) : (
         <View className="flex-1">
@@ -1212,10 +1230,10 @@ export default function ManageScreen() {
                   colors={["#535AFF", "#397AFF", "#10ACFF"]}
                   start={{ x: 0, y: 0.5 }}
                   end={{ x: 1, y: 0.5 }}
-                  className="h-[52px] min-w-[190px] flex-row items-center justify-center rounded-full px-5"
+                  className="h-[52px] flex-row items-center justify-center rounded-full px-4"
                 >
                   <Ionicons name="car-sport-outline" size={20} color="#fff" />
-                  <Text className="ml-2 text-[18px] font-bold text-white">
+                  <Text className="ml-2 text-[16px] font-bold text-white">
                     차량 판매하러 가기
                   </Text>
                 </LinearGradient>

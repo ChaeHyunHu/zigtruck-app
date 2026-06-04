@@ -31,6 +31,10 @@ import {
   LIST_THUMB_WIDTH,
   buildListCardImageSource,
 } from "@/src/features/products/listCardImage";
+import {
+  fetchProductListImages,
+  getCachedProductListImages,
+} from "@/src/features/products/productListImageCache";
 import type { ProductListItem } from "@/src/features/products/types";
 import {
   enumCode,
@@ -136,19 +140,21 @@ type Props = {
   onPress: (id: number) => void;
 };
 
+function buildCardImageUrls(item: ProductListItem): string[] {
+  const urls = item.imageUrls?.length ? [...item.imageUrls] : [];
+  if (item.representImageUrl && !urls.includes(item.representImageUrl)) {
+    urls.unshift(item.representImageUrl);
+  }
+  if (urls.length > 0) return urls;
+  if (item.representImageUrl) return [item.representImageUrl];
+  return [];
+}
+
 export const PurchaseProductCard = memo(function PurchaseProductCard({
   item,
   onPress,
 }: Props) {
-  const images = useMemo(() => {
-    const urls = item.imageUrls?.length ? [...item.imageUrls] : [];
-    if (item.representImageUrl && !urls.includes(item.representImageUrl)) {
-      urls.unshift(item.representImageUrl);
-    }
-    if (urls.length > 0) return urls;
-    if (item.representImageUrl) return [item.representImageUrl];
-    return [];
-  }, [item.imageUrls, item.representImageUrl]);
+  const [images, setImages] = useState(() => buildCardImageUrls(item));
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [thumbnailsReady, setThumbnailsReady] = useState(false);
@@ -164,9 +170,34 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
   );
 
   useEffect(() => {
+    const nextImages = buildCardImageUrls(item);
+    setImages(nextImages);
     setSelectedIndex(0);
     setThumbnailsReady(false);
-  }, [item.id]);
+
+    if (nextImages.length > 1) return;
+
+    const cached = getCachedProductListImages(item.id);
+    if (cached && cached.length > 1) {
+      setImages(cached);
+      return;
+    }
+
+    let cancelled = false;
+    const task = InteractionManager.runAfterInteractions(() => {
+      void fetchProductListImages(item.id, item.representImageUrl).then(
+        (urls) => {
+          if (cancelled || urls.length <= 1) return;
+          setImages(urls);
+        },
+      );
+    });
+
+    return () => {
+      cancelled = true;
+      task.cancel();
+    };
+  }, [item.id, item.imageUrls, item.representImageUrl]);
 
   useEffect(() => {
     if (!showThumbnails) {
