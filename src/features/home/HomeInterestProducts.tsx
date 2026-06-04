@@ -51,7 +51,7 @@ export function HomeInterestProducts({
         className="mb-2 flex-row items-center justify-between px-4"
         onPress={onPressHeader}
       >
-        <Text className="text-[20px] font-semibold text-gray800">찜한 차량</Text>
+        <Text className="text-[20px] font-bold text-gray800">찜한 차량</Text>
         <Ionicons name="chevron-forward" size={24} color={appColors.gray600} />
       </Pressable>
       <FlatList

@@ -11,6 +11,8 @@ import {
   Easing,
   FlatList,
   Linking,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -24,18 +26,17 @@ import {
   getRecommendProducts,
   getYoutubeVideos,
 } from "@/src/api/public";
+import { GradientOutlineButton } from "@/src/components/common/GradientOutlineButton";
+import { appColors } from "@/src/constants/colors";
+import { SALES_TYPE_ASSURANCE } from "@/src/constants/products";
+import { IMAGE_BASE_URL, ZIGTRUCK_YOUTUBE_HOME_URL } from "@/src/constants/url";
 import {
   getCachedHomeBanners,
   preloadHomeBanners,
 } from "@/src/features/home/homeBannerCache";
-import { GradientOutlineButton } from "@/src/components/common/GradientOutlineButton";
-import { showAppAlert } from "@/src/providers/appDialog";
-import { appColors } from "@/src/constants/colors";
-import { SALES_TYPE_ASSURANCE } from "@/src/constants/products";
-import { IMAGE_BASE_URL, ZIGTRUCK_YOUTUBE_HOME_URL } from "@/src/constants/url";
 import { HomeBannerCarousel } from "@/src/features/home/HomeBannerCarousel";
-import { HomePopupBannerModal } from "@/src/features/home/HomePopupBannerModal";
 import { HomeInterestProducts } from "@/src/features/home/HomeInterestProducts";
+import { HomePopupBannerModal } from "@/src/features/home/HomePopupBannerModal";
 import { HomeProductCard } from "@/src/features/home/HomeProductCard";
 import { RecommendProducts } from "@/src/features/home/RecommendProducts";
 import {
@@ -53,6 +54,7 @@ import {
 import { normalizeListItem } from "@/src/features/products/utils";
 import { useAuth } from "@/src/hooks/useAuth";
 import { promptLogin } from "@/src/lib/authNavigation";
+import { showAppAlert } from "@/src/providers/appDialog";
 import { useNotifications } from "@/src/providers/NotificationProvider";
 
 const toHomeProductItem = (
@@ -171,7 +173,11 @@ function NotificationBellButton() {
 
   return (
     <Pressable onPress={onPress} hitSlop={10} className="relative">
-      <Ionicons name="notifications-outline" size={24} color={appColors.gray800} />
+      <Ionicons
+        name="notifications-outline"
+        size={24}
+        color={appColors.gray800}
+      />
       {hasUnread ? (
         <View className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-red-500" />
       ) : null}
@@ -202,14 +208,35 @@ export default function HomeScreen() {
   >([]);
   const badgeScale = useRef(new Animated.Value(1)).current;
   const badgeRipple = useRef(new Animated.Value(0)).current;
+  const assuranceListRef = useRef<FlatList<ProductsListItem>>(null);
+  const isAssuranceLoopJumpingRef = useRef(false);
+
+  const assuranceDisplayProducts = useMemo(
+    () => assuranceProducts.slice(0, 10),
+    [assuranceProducts],
+  );
+
+  const extendedAssuranceProducts = useMemo(() => {
+    if (assuranceDisplayProducts.length <= 1) return assuranceDisplayProducts;
+    return [
+      assuranceDisplayProducts[assuranceDisplayProducts.length - 1],
+      ...assuranceDisplayProducts,
+      assuranceDisplayProducts[0],
+    ];
+  }, [assuranceDisplayProducts]);
+
+  const assuranceInitialIndex = assuranceDisplayProducts.length > 1 ? 1 : 0;
 
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS !== "android") return;
-      const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-        BackHandler.exitApp();
-        return true;
-      });
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          BackHandler.exitApp();
+          return true;
+        },
+      );
       return () => subscription.remove();
     }, []),
   );
@@ -408,6 +435,49 @@ export default function HomeScreen() {
     [isAuthenticated, router],
   );
 
+  const jumpAssuranceToIndex = useCallback((index: number) => {
+    isAssuranceLoopJumpingRef.current = true;
+    assuranceListRef.current?.scrollToOffset({
+      offset: index * ASSURANCE_SNAP_INTERVAL,
+      animated: false,
+    });
+    requestAnimationFrame(() => {
+      isAssuranceLoopJumpingRef.current = false;
+    });
+  }, []);
+
+  const handleAssuranceMomentumEnd = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (isAssuranceLoopJumpingRef.current) return;
+
+      const nextIndex = Math.round(
+        event.nativeEvent.contentOffset.x / ASSURANCE_SNAP_INTERVAL,
+      );
+      const count = assuranceDisplayProducts.length;
+      if (count <= 1) return;
+
+      if (nextIndex === 0) {
+        jumpAssuranceToIndex(count);
+        return;
+      }
+
+      if (nextIndex === count + 1) {
+        jumpAssuranceToIndex(1);
+      }
+    },
+    [assuranceDisplayProducts.length, jumpAssuranceToIndex],
+  );
+
+  useEffect(() => {
+    if (assuranceDisplayProducts.length <= 1) return;
+    requestAnimationFrame(() => {
+      assuranceListRef.current?.scrollToOffset({
+        offset: assuranceInitialIndex * ASSURANCE_SNAP_INTERVAL,
+        animated: false,
+      });
+    });
+  }, [assuranceDisplayProducts.length, assuranceInitialIndex]);
+
   return (
     <Screen variant="tab" className="flex-1 bg-white">
       <HomePopupBannerModal banners={banners} />
@@ -422,11 +492,7 @@ export default function HomeScreen() {
         />
         <View className="flex-row gap-[10px]">
           <Pressable onPress={onPressCall} hitSlop={10}>
-            <Ionicons
-              name="call-outline"
-              size={24}
-              color={appColors.gray800}
-            />
+            <Ionicons name="call-outline" size={24} color={appColors.gray800} />
           </Pressable>
           <NotificationBellButton />
         </View>
@@ -445,8 +511,8 @@ export default function HomeScreen() {
                 shadowColor: "#000",
                 shadowOpacity: 0.08,
                 shadowRadius: 8,
-                shadowOffset: { width: 0, height: 3 },
-                elevation: 2,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 8,
               }}
               onPress={onPressSellCar}
             >
@@ -470,8 +536,8 @@ export default function HomeScreen() {
                 shadowColor: "#000",
                 shadowOpacity: 0.08,
                 shadowRadius: 8,
-                shadowOffset: { width: 0, height: 3 },
-                elevation: 2,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 8,
               }}
               onPress={() => router.push("/(tabs)/purchase")}
             >
@@ -528,7 +594,8 @@ export default function HomeScreen() {
           {serviceCards.map((item) => (
             <Pressable
               key={item.title}
-              className="min-h-16 flex-row items-center justify-between px-4 py-2"
+              className="min-h-16 flex-row items-center justify-between px-4 py-[10px]
+              border border-gray300 mx-4 rounded-lg  bg-white mb-2"
               onPress={() =>
                 onPressService(
                   item.path,
@@ -542,7 +609,7 @@ export default function HomeScreen() {
                   className="h-10 w-10"
                 />
                 <View>
-                  <Text className="mb-[3px] text-[12px] text-gray700">
+                  <Text className="mb-[3px] text-[14px] text-gray700">
                     {item.subTitle}
                   </Text>
                   <Text className="text-[16px] font-bold text-gray800">
@@ -565,14 +632,17 @@ export default function HomeScreen() {
               직트럭에서 검수한 차량
             </Text>
             <FlatList
+              ref={assuranceListRef}
               horizontal
-              data={assuranceProducts.slice(0, 10)}
-              keyExtractor={(item) => String(item.id)}
+              data={extendedAssuranceProducts}
+              initialScrollIndex={assuranceInitialIndex}
+              keyExtractor={(item, index) => `${item.id}-${index}`}
               showsHorizontalScrollIndicator={false}
               decelerationRate="fast"
               disableIntervalMomentum
               snapToInterval={ASSURANCE_SNAP_INTERVAL}
               snapToAlignment="start"
+              removeClippedSubviews={false}
               contentContainerStyle={{
                 paddingHorizontal: ASSURANCE_SIDE_INSET,
                 paddingBottom: 6,
@@ -582,6 +652,13 @@ export default function HomeScreen() {
                 offset: ASSURANCE_SNAP_INTERVAL * index,
                 index,
               })}
+              onMomentumScrollEnd={handleAssuranceMomentumEnd}
+              onScrollToIndexFailed={(info) => {
+                assuranceListRef.current?.scrollToOffset({
+                  offset: info.index * ASSURANCE_SNAP_INTERVAL,
+                  animated: false,
+                });
+              }}
               renderItem={({ item }) => (
                 <HomeProductCard
                   item={item}
@@ -624,13 +701,13 @@ export default function HomeScreen() {
 
         <View className="mt-[10px] bg-white py-[14px]">
           <Pressable
-            className="flex-row items-center gap-1.5 pr-4"
+            className="flex-row items-center gap-1.5 pr-2 mb-[10px]"
             onPress={() => Linking.openURL(ZIGTRUCK_YOUTUBE_HOME_URL)}
           >
-            <Text className="mb-[10px] px-4 text-[20px] font-bold text-gray800">
+            <Text className="pr-2 pl-4 text-[20px] font-bold text-gray800">
               직트럭 유튜브
             </Text>
-            <Ionicons name="logo-youtube" size={22} color={appColors.gray800} />
+            <Ionicons name="logo-youtube" size={22} color={appColors.danger} />
           </Pressable>
           <ScrollView
             horizontal
