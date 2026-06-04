@@ -19,6 +19,7 @@ import {
 } from "react-native";
 
 import { patchBanner } from "@/src/api/public";
+import { prefetchPopupBannerImages } from "@/src/features/home/homeBannerCache";
 import { navigateBannerLink } from "@/src/features/home/navigateBannerLink";
 import type { BannerItem } from "@/src/features/home/types";
 import {
@@ -56,6 +57,11 @@ export function HomePopupBannerModal({ banners }: Props) {
     [banners],
   );
 
+  useEffect(() => {
+    if (popupBanners.length === 0) return;
+    void prefetchPopupBannerImages(popupBanners);
+  }, [popupBanners]);
+
   const popupWidth = Math.min(SCREEN.width - 48, 360);
 
   const extendedBanners = useMemo(() => {
@@ -84,16 +90,21 @@ export function HomePopupBannerModal({ banners }: Props) {
       const requestId = beginHomePopupOpenRequest();
       let mounted = true;
 
-      void shouldShowHomePopupToday().then((show) => {
+      void (async () => {
+        const show = await shouldShowHomePopupToday();
         if (!mounted || !show || !isHomePopupOpenRequestActive(requestId)) return;
+
+        await prefetchPopupBannerImages(popupBanners);
+        if (!mounted || !isHomePopupOpenRequestActive(requestId)) return;
+
         setVisible(true);
-      });
+      })();
 
       return () => {
         mounted = false;
         invalidateHomePopupOpenRequests();
       };
-    }, [popupBanners.length]),
+    }, [popupBanners]),
   );
 
   useEffect(() => {
@@ -226,6 +237,9 @@ export function HomePopupBannerModal({ banners }: Props) {
                 >
                   <Image
                     source={{ uri: item.contents }}
+                    recyclingKey={String(item.id)}
+                    cachePolicy="memory-disk"
+                    priority="high"
                     style={{ width: popupWidth, height: POPUP_IMAGE_MAX_HEIGHT }}
                     contentFit="cover"
                     transition={0}

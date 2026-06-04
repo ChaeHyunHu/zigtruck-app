@@ -20,11 +20,14 @@ import {
 
 import {
   getAssuranceProducts,
-  getBanner,
   getCounts,
   getRecommendProducts,
   getYoutubeVideos,
 } from "@/src/api/public";
+import {
+  getCachedHomeBanners,
+  preloadHomeBanners,
+} from "@/src/features/home/homeBannerCache";
 import { GradientOutlineButton } from "@/src/components/common/GradientOutlineButton";
 import { showAppAlert } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
@@ -218,12 +221,15 @@ export default function HomeScreen() {
 
   useEffect(() => {
     let mounted = true;
-    void getBanner()
-      .then((bannerData) => {
-        if (!mounted) return;
-        setBanners(Array.isArray(bannerData) ? bannerData : []);
-      })
-      .catch(() => undefined);
+    const cached = getCachedHomeBanners();
+    if (cached) {
+      setBanners(cached);
+    }
+
+    void preloadHomeBanners().then((bannerData) => {
+      if (!mounted) return;
+      setBanners(bannerData);
+    });
 
     return () => {
       mounted = false;

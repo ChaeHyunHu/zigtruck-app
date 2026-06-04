@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import React from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, Platform, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GradientIcon, GradientText } from "@/src/components/common/GradientMask";
 import { appColors } from "@/src/constants/colors";
 import { TAB_BAR_BASE_HEIGHT } from "@/src/constants/layout";
+import { preloadHomeBanners } from "@/src/features/home/homeBannerCache";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useChat } from "@/src/providers/ChatProvider";
 
@@ -44,6 +45,10 @@ export default function TabLayout() {
   const { isInitializing, isAuthenticated } = useAuth();
   const { totalUnread } = useChat();
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    void preloadHomeBanners();
+  }, []);
   const tabBarPaddingBottom =
     Platform.OS === "android"
       ? insets.bottom > 0

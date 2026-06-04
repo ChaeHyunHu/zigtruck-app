@@ -17,6 +17,7 @@ import {
 } from "react-native";
 
 import { patchBanner } from "@/src/api/public";
+import { prefetchBannerImageUris } from "@/src/features/home/homeBannerCache";
 import { navigateBannerLink } from "@/src/features/home/navigateBannerLink";
 import { BannerItem } from "@/src/features/home/types";
 
@@ -28,12 +29,14 @@ type BannerSlideProps = {
   item: BannerItem;
   screenWidth: number;
   onPress: (item: BannerItem) => void;
+  priority?: "high" | "normal";
 };
 
 const BannerSlide = React.memo(function BannerSlide({
   item,
   screenWidth,
   onPress,
+  priority = "normal",
 }: BannerSlideProps) {
   return (
     <Pressable
@@ -45,6 +48,7 @@ const BannerSlide = React.memo(function BannerSlide({
         source={{ uri: item.contents }}
         recyclingKey={String(item.id)}
         cachePolicy="memory-disk"
+        priority={priority}
         className="w-full rounded-xl bg-gray100"
         style={{ aspectRatio: 300 / 128 }}
         contentFit="cover"
@@ -78,11 +82,9 @@ export function HomeBannerCarousel({ banners }: Props) {
   const isLoopJumpingRef = useRef(false);
 
   useEffect(() => {
-    sourceBanners.forEach((banner) => {
-      if (banner.contents) {
-        Image.prefetch(banner.contents).catch(() => undefined);
-      }
-    });
+    void prefetchBannerImageUris(
+      sourceBanners.map((banner) => banner.contents).filter(Boolean),
+    );
   }, [sourceBanners]);
 
   useEffect(() => {
@@ -230,11 +232,12 @@ export function HomeBannerCarousel({ banners }: Props) {
           offset: screenWidth * index,
           index,
         })}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <BannerSlide
             item={item}
             screenWidth={screenWidth}
             onPress={onPressBanner}
+            priority={index === initialIndex ? "high" : "normal"}
           />
         )}
       />

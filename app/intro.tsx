@@ -1,12 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { View } from "react-native";
 
+import { preloadHomeBanners } from "@/src/features/home/homeBannerCache";
 import { ONBOARDING_COMPLETED_KEY } from "@/src/features/onboarding/onboardingConstants";
 import { OnboardingView } from "@/src/features/onboarding/OnboardingView";
 
 export default function IntroScreen() {
+  useEffect(() => {
+    void preloadHomeBanners();
+  }, []);
+
   const finishOnboarding = useCallback(async () => {
     try {
       await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");

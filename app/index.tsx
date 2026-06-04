@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 
+import { preloadHomeBanners } from "@/src/features/home/homeBannerCache";
 import { ONBOARDING_COMPLETED_KEY } from "@/src/features/onboarding/onboardingConstants";
 import { useAuth } from "@/src/hooks/useAuth";
 
@@ -42,6 +43,9 @@ export default function Index() {
 
   useEffect(() => {
     if (isInitializing || !storageReady) return;
+    if (onboardingDone) {
+      void preloadHomeBanners();
+    }
     router.replace(onboardingDone ? "/(tabs)" : "/intro");
   }, [isInitializing, onboardingDone, storageReady]);
 
