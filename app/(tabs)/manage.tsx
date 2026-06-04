@@ -249,7 +249,7 @@ const isConsignmentSale = (item: ProductDetailResponse): boolean =>
 const canShowInstantSaleLink = (item: ProductDetailResponse): boolean =>
   item.status?.code !== PRODUCT_STATUS_COMPLETE &&
   item.type?.code !== PRODUCT_TYPE_SPEED &&
-  !item.statusOfSpeedProduct &&
+  // !item.statusOfSpeedProduct &&
   item.salesType?.code !== SALES_TYPE_CONSIGNMENT &&
   item.salesType?.code !== SALES_TYPE_ASSURANCE;
 
