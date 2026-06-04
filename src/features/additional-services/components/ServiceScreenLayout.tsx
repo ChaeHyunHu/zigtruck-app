@@ -18,6 +18,10 @@ import { Screen } from "@/src/components/common/Screen";
 import { appColors } from "@/src/constants/colors";
 
 import { REPRESENTATIVE_NUMBER } from "../constants";
+import {
+  SERVICE_COMPLETED_BUTTON,
+  SERVICE_PRIMARY_BUTTON,
+} from "../serviceButtonStyles";
 
 type ServiceScreenLayoutProps = {
   title: string;
@@ -57,7 +61,10 @@ export function ServiceScreenLayout({
   }, []);
 
   const onPressMainButton = useCallback(() => {
-    if (isAlreadyApply) return;
+    if (isAlreadyApply) {
+      if (!isNearBottom) scrollToBottom();
+      return;
+    }
     if (isNearBottom) {
       onPressApply();
       return;
@@ -70,13 +77,21 @@ export function ServiceScreenLayout({
   }, []);
 
   const buttonLabel = isAlreadyApply
-    ? completedLabel
+    ? isNearBottom
+      ? completedLabel
+      : "아래로 내리기"
     : isNearBottom
       ? applyLabel
       : "아래로 내리기";
 
-  const buttonDisabled =
-    isAlreadyApply || (isNearBottom && isSubmitDisabled);
+  const buttonDisabled = isAlreadyApply
+    ? isNearBottom
+    : isNearBottom && isSubmitDisabled;
+
+  const buttonStyle =
+    isAlreadyApply && isNearBottom
+      ? SERVICE_COMPLETED_BUTTON
+      : SERVICE_PRIMARY_BUTTON;
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">
@@ -119,9 +134,9 @@ export function ServiceScreenLayout({
         <View pointerEvents={buttonDisabled ? "none" : "auto"} style={{ opacity: buttonDisabled ? 0.5 : 1 }}>
           <BasicButton
             name={buttonLabel}
-            bgColor={appColors.primary}
-            borderColor={appColors.primary}
-            textColor={appColors.white}
+            bgColor={buttonStyle.backgroundColor}
+            borderColor={buttonStyle.borderColor}
+            textColor={buttonStyle.textColor}
             fontSize={16}
             height={48}
             fontWeight="bold"

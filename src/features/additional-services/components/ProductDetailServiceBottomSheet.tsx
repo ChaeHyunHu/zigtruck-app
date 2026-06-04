@@ -186,10 +186,25 @@ export function ProductDetailServiceBottomSheet({
   if (!sheetKind || !config) return null;
 
   const footerLabel = isAlreadyApply
-    ? config.completedLabel
+    ? isNearBottom
+      ? config.completedLabel
+      : "아래로 내리기"
     : isNearBottom
       ? config.applyLabel
       : "아래로 내리기";
+
+  const footerButtonStyle =
+    isAlreadyApply && isNearBottom
+      ? {
+          backgroundColor: appColors.gray400,
+          borderColor: appColors.gray400,
+          textColor: appColors.gray600,
+        }
+      : {
+          backgroundColor: appColors.primary,
+          borderColor: appColors.primary,
+          textColor: "#ffffff",
+        };
 
   return (
     <>
@@ -248,16 +263,20 @@ export function ProductDetailServiceBottomSheet({
               />
               <BasicButton
                 name={footerLabel}
-                bgColor={isAlreadyApply ? appColors.gray400 : appColors.primary}
-                borderColor={isAlreadyApply ? appColors.gray400 : appColors.primary}
-                textColor="#ffffff"
+                bgColor={footerButtonStyle.backgroundColor}
+                borderColor={footerButtonStyle.borderColor}
+                textColor={footerButtonStyle.textColor}
                 height={48}
                 onClick={
-                  isAlreadyApply || submitting
+                  submitting
                     ? () => undefined
-                    : isNearBottom
-                      ? onPressApply
-                      : scrollToBottom
+                    : isAlreadyApply
+                      ? isNearBottom
+                        ? () => undefined
+                        : scrollToBottom
+                      : isNearBottom
+                        ? onPressApply
+                        : scrollToBottom
                 }
               />
             </View>

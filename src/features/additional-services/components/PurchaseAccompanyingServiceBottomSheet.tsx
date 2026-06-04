@@ -142,14 +142,17 @@ export function PurchaseAccompanyingServiceBottomSheet({
   ]);
 
   const footerLabel = isAlreadyApply
-    ? "서비스 신청완료"
+    ? isNearBottom
+      ? "서비스 신청완료"
+      : "아래로 내리기"
     : isNearBottom
       ? "서비스 신청하기"
       : "아래로 내리기";
 
-  const footerButtonStyle = isAlreadyApply
-    ? SERVICE_COMPLETED_BUTTON
-    : SERVICE_PRIMARY_BUTTON;
+  const footerButtonStyle =
+    isAlreadyApply && isNearBottom
+      ? SERVICE_COMPLETED_BUTTON
+      : SERVICE_PRIMARY_BUTTON;
 
   return (
     <>
@@ -212,11 +215,15 @@ export function PurchaseAccompanyingServiceBottomSheet({
               textColor={footerButtonStyle.textColor}
               height={48}
               onClick={
-                isAlreadyApply || submitting
+                submitting
                   ? () => undefined
-                  : isNearBottom
-                    ? onPressApply
-                    : scrollToBottom
+                  : isAlreadyApply
+                    ? isNearBottom
+                      ? () => undefined
+                      : scrollToBottom
+                    : isNearBottom
+                      ? onPressApply
+                      : scrollToBottom
               }
             />
           </View>
