@@ -210,6 +210,18 @@ export default function PurchaseScreen() {
     if (paramsKey === appliedParamsKeyRef.current) return;
 
     const urlFilters = filtersFromParams(params);
+    const inMemoryKey = JSON.stringify(filtersToParams(filtersRef.current));
+
+    // 필터 모달 적용 직후: 메모리 필터는 최신인데 탭 URL params만 늦게 갱신되는 경우 덮어쓰지 않음
+    if (
+      hasActiveFilters(filtersRef.current) &&
+      inMemoryKey === appliedParamsKeyRef.current &&
+      inMemoryKey !== paramsKey
+    ) {
+      router.setParams(filtersToParams(filtersRef.current) as never);
+      return;
+    }
+
     if (!hasActiveFilters(urlFilters)) return;
 
     appliedParamsKeyRef.current = paramsKey;
@@ -239,6 +251,7 @@ export default function PurchaseScreen() {
         prevFiltersRef.current = nextFilters;
         setFilters(nextFilters);
         setKeywordDraft(nextFilters.keyword ?? "");
+        router.setParams(pending as never);
         hasDataRef.current = false;
         scrollOffsetRef.current = 0;
         purchaseListCache = null;
@@ -397,6 +410,7 @@ export default function PurchaseScreen() {
 
     filtersKeyRef.current = nextKey;
     prevFiltersRef.current = filters;
+    router.setParams(filtersToParams(filters) as never);
 
     if (!keywordOnly) {
       hasDataRef.current = false;
@@ -472,6 +486,8 @@ export default function PurchaseScreen() {
   const isKeywordPending =
     keywordDraft.trim() !== (filters.keyword ?? "").trim();
   const showSearchLoading = isSearching || isKeywordPending;
+  const showEmptyList =
+    !showInitialLoading && !isSearching && visibleProducts.length === 0;
 
   const onChangeKeyword = useCallback((value: string) => {
     setKeywordDraft(value);
@@ -660,7 +676,7 @@ export default function PurchaseScreen() {
               paddingTop: 8,
               paddingBottom: fabListPaddingBottom,
             }}
-            ListEmptyComponent={ListEmpty}
+            ListEmptyComponent={showEmptyList ? ListEmpty : null}
             ListFooterComponent={ListFooter}
             refreshControl={
               <RefreshControl

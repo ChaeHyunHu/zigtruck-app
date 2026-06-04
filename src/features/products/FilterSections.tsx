@@ -3,6 +3,7 @@ import { Pressable, Text, TextInput, View } from "react-native";
 
 import { RangeSlider } from "@/src/components/common/RangeSlider";
 import { appColors } from "@/src/constants/colors";
+import { formatFilterRadioLabel } from "@/src/features/products/filterUtils";
 
 type Props = {
   label: string;
@@ -241,7 +242,7 @@ export function FilterRadioSection({
           return (
             <PressableRadio
               key={option.code}
-              label={option.label}
+              label={formatFilterRadioLabel(option.label, option.count)}
               active={isActive}
               onPress={() => {
                 if (isActive) return;

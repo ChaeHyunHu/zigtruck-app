@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 
 import { preloadHomeBanners } from "@/src/features/home/homeBannerCache";
 import { ONBOARDING_COMPLETED_KEY } from "@/src/features/onboarding/onboardingConstants";
@@ -49,16 +49,6 @@ export default function Index() {
     router.replace(onboardingDone ? "/(tabs)" : "/intro");
   }, [isInitializing, onboardingDone, storageReady]);
 
-  return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: "#FFFFFF",
-      }}
-    >
-      <ActivityIndicator color="#2563EB" />
-    </View>
-  );
+  // 네이티브 스플래시(직트럭 로고)만 보이게 — Lottie/스피너 없음
+  return <View style={{ flex: 1, backgroundColor: "#FFFFFF" }} />;
 }

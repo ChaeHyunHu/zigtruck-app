@@ -38,8 +38,9 @@ import type {
   ProductSearchFilters,
 } from "@/src/features/products/filterTypes";
 import {
-  buildProductListQuery,
+  buildProductFilterApiQuery,
   clampNumber,
+  parseProductCountResponse,
   createDefaultFilters,
   filtersFromParams,
   filtersToParams,
@@ -77,6 +78,7 @@ export default function ProductFilterScreen() {
   const [isCountLoading, setIsCountLoading] = useState(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const countRequestRef = useRef(0);
+  const filterInfoRequestRef = useRef(0);
   const appliedParamsKeyRef = useRef<string | null>(null);
 
   const incomingParamsKey = useMemo(
@@ -118,25 +120,24 @@ export default function ProductFilterScreen() {
   );
 
   useEffect(() => {
-    let mounted = true;
-    const loadFilterInfo = async () => {
+    const requestId = ++filterInfoRequestRef.current;
+    const timer = setTimeout(async () => {
       try {
         const response = await getProductFilterInfo(
-          buildProductListQuery(filters, 1, 1),
+          buildProductFilterApiQuery(filters),
         );
-        if (!mounted) return;
+        if (requestId !== filterInfoRequestRef.current) return;
         const parsed = parseFilterInfo(response?.data);
         setManufacturers(parsed.manufacturers);
         setLoadedTypes(parsed.loadedTypes);
         setAxisOptions(parsed.axis);
         setTransmissionOptions(parsed.transmission);
       } catch {
-        if (!mounted) return;
+        if (requestId !== filterInfoRequestRef.current) return;
       }
-    };
-    loadFilterInfo();
+    }, 300);
     return () => {
-      mounted = false;
+      clearTimeout(timer);
     };
   }, [filters]);
 
@@ -145,13 +146,11 @@ export default function ProductFilterScreen() {
     const timer = setTimeout(async () => {
       setIsCountLoading(true);
       try {
-        const query = buildProductListQuery(filters, 1, 1);
-        delete query.page;
-        delete query.size;
-        const response = await getProductCount(query);
+        const response = await getProductCount(
+          buildProductFilterApiQuery(filters),
+        );
         if (requestId !== countRequestRef.current) return;
-        const total = Number(response?.data ?? 0) || 0;
-        setResultCount(total);
+        setResultCount(parseProductCountResponse(response?.data));
       } catch {
         if (requestId !== countRequestRef.current) return;
         setResultCount(null);

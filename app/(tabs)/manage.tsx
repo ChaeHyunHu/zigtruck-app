@@ -423,7 +423,7 @@ export default function ManageScreen() {
 
   const [myProducts, setMyProducts] = useState<ProductDetailResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  useAppLoadingOverlay(isInitializing || (isAuthenticated && isLoading));
+  useAppLoadingOverlay(isAuthenticated && isLoading);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isNone, setIsNone] = useState(false);
   const [listFetchFailed, setListFetchFailed] = useState(false);

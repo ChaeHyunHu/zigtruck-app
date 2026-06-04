@@ -10,8 +10,6 @@ import { TAB_BAR_BASE_HEIGHT } from "@/src/constants/layout";
 import { preloadHomeBanners } from "@/src/features/home/homeBannerCache";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useChat } from "@/src/providers/ChatProvider";
-import { useAppLoadingOverlay } from "@/src/providers/AppLoadingProvider";
-
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 const TAB_LABEL_STYLE = { fontSize: 12, fontWeight: "600" as const };
@@ -62,8 +60,6 @@ export default function TabLayout() {
         ? "99+"
         : String(totalUnread)
       : undefined;
-
-  useAppLoadingOverlay(isInitializing);
 
   if (isInitializing) {
     return <View className="flex-1 bg-white" />;

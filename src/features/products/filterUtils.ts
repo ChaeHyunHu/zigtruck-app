@@ -67,7 +67,8 @@ export const filtersFromParams = (
     loaded: loaded || undefined,
     loadedLengthMin: get("loadedLengthMin") ?? "",
     loadedLengthMax: get("loadedLengthMax") ?? "",
-    axis: get("axis") || undefined,
+    axis:
+      get("axis") && get("axis") !== "ALL" ? get("axis") : undefined,
     distanceMin: get("distanceMin") ?? defaults.distanceMin,
     distanceMax: get("distanceMax") ?? defaults.distanceMax,
     transmission:
@@ -201,6 +202,56 @@ export const buildProductListQuery = (
   }
 
   return query;
+};
+
+/** filter-info / count API용 (웹 /products/count 와 동일 파라미터) */
+export const buildProductFilterApiQuery = (
+  filters: ProductSearchFilters,
+): Record<string, string> => ({
+  keyword: filters.keyword ?? "",
+  manufacturerCategoriesId: filters.manufacturerCategoriesId ?? "",
+  minYear: filters.yearMin,
+  maxYear: filters.yearMax,
+  minTons: filters.onlyOneTon ? "1" : filters.tonsMin,
+  maxTons: filters.onlyOneTon ? "1.2" : filters.tonsMax,
+  minDistance:
+    filters.distanceMin !== ""
+      ? String(Number(filters.distanceMin) * 10000)
+      : "0",
+  maxDistance:
+    filters.distanceMax !== ""
+      ? String(Number(filters.distanceMax) * 10000)
+      : "",
+  axis: filters.axis ?? "",
+  transmission: filters.transmission ?? "",
+  loaded: filters.loaded ?? "",
+  minLoadedInnerLength: filters.loadedLengthMin ?? "",
+  maxLoadedInnerLength: filters.loadedLengthMax ?? "",
+  salesType: filters.salesType ?? "",
+  area1: "",
+  area2: "",
+  area3: "",
+});
+
+export const parseProductCountResponse = (payload: unknown): number => {
+  if (typeof payload === "number" && Number.isFinite(payload)) return payload;
+  if (typeof payload === "string") {
+    const parsed = Number(payload);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (payload && typeof payload === "object") {
+    const data = (payload as { data?: unknown }).data;
+    if (data !== undefined) return parseProductCountResponse(data);
+  }
+  return 0;
+};
+
+export const formatFilterRadioLabel = (
+  label: string,
+  count?: number,
+): string => {
+  if (count === undefined || !Number.isFinite(count)) return label;
+  return `${label}(${count.toLocaleString("ko-KR")})`;
 };
 
 export const clampNumber = (

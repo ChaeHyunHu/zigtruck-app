@@ -17,20 +17,21 @@ export const getPriceTrend = async (queryParams: ApiQueryParams) => {
   return res.data;
 };
 
+/** 내차구매·필터는 웹과 동일하게 zigtruck.io 공개 API 사용 */
 export const getProductFilterInfo = (queryParams?: ApiQueryParams) => {
-  return newApiManager.get("/api/v1/public/products/filter-info", {
+  return apiManager.get("/api/v1/public/products/filter-info", {
     params: queryParams,
   });
 };
 
 export const getProductCount = (queryParams?: ApiQueryParams) => {
-  return newApiManager.get("/api/v1/public/products/count", {
+  return apiManager.get("/api/v1/public/products/count", {
     params: queryParams,
   });
 };
 
 export const getProductList = (queryParams?: ApiQueryParams) => {
-  return newApiManager.get('/api/v1/public/products', { params: queryParams });
+  return apiManager.get("/api/v1/public/products", { params: queryParams });
 };
 
 export const getNotifications = () => apiManager.get('/api/v1/notifications');
