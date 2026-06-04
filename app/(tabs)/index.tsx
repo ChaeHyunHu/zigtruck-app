@@ -411,29 +411,31 @@ export default function HomeScreen() {
   return (
     <Screen variant="tab" className="flex-1 bg-white">
       <HomePopupBannerModal banners={banners} />
+      <View
+        className="z-10 h-[52px] flex-row items-center justify-between border-b border-gray300 bg-white px-4"
+        style={{ elevation: 4 }}
+      >
+        <Image
+          source={{ uri: `${IMAGE_BASE_URL}/logo_gra.png` }}
+          className="h-[26px] w-[52px]"
+          contentFit="contain"
+        />
+        <View className="flex-row gap-[10px]">
+          <Pressable onPress={onPressCall} hitSlop={10}>
+            <Ionicons
+              name="call-outline"
+              size={24}
+              color={appColors.gray800}
+            />
+          </Pressable>
+          <NotificationBellButton />
+        </View>
+      </View>
       <ScrollView
         style={{ flex: 1 }}
         className="flex-1 bg-gray100"
         contentContainerStyle={{ paddingBottom: listPaddingBottom }}
       >
-        <View className="h-[52px] flex-row items-center justify-between bg-white/85 px-4">
-          <Image
-            source={{ uri: `${IMAGE_BASE_URL}/logo_gra.png` }}
-            className="h-[26px] w-[52px]"
-            contentFit="contain"
-          />
-          <View className="flex-row gap-[10px]">
-            <Pressable onPress={onPressCall} hitSlop={10}>
-              <Ionicons
-                name="call-outline"
-                size={24}
-                color={appColors.gray800}
-              />
-            </Pressable>
-            <NotificationBellButton />
-          </View>
-        </View>
-
         <View className="bg-white pb-4 pt-2">
           <HomeBannerCarousel banners={homeBanners} />
           <View className="mt-[14px] gap-[10px] px-4">
