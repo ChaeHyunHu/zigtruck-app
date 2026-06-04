@@ -24,6 +24,7 @@ import { AuthProvider } from "@/src/providers/AuthProvider";
 import { ChatProvider } from "@/src/providers/ChatProvider";
 import { NotificationProvider } from "@/src/providers/NotificationProvider";
 import { AppDialogProvider } from "@/src/providers/AppDialogProvider";
+import { AppLoadingProvider } from "@/src/providers/AppLoadingProvider";
 import { ToastProvider } from "@/src/providers/ToastProvider";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -48,6 +49,7 @@ export default function RootLayout() {
           <ChatProvider>
             <NotificationProvider>
             <AppDialogProvider>
+            <AppLoadingProvider>
             <ToastProvider>
             <PushNotificationBootstrap />
             <ThemeProvider
@@ -105,6 +107,7 @@ export default function RootLayout() {
                   name="sell-car"
                   options={{ headerShown: false }}
                 />
+                <Stack.Screen name="guide/index" options={{ headerShown: false }} />
                 <Stack.Screen name="guide/sale" options={{ headerShown: false }} />
                 <Stack.Screen name="guide/perchase" options={{ headerShown: false }} />
                 <Stack.Screen name="notice/index" options={{ headerShown: false }} />
@@ -132,6 +135,7 @@ export default function RootLayout() {
               <StatusBar style="auto" translucent={false} />
             </ThemeProvider>
             </ToastProvider>
+            </AppLoadingProvider>
             </AppDialogProvider>
             </NotificationProvider>
           </ChatProvider>

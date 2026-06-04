@@ -65,6 +65,7 @@ function isContractPath(url?: string): boolean {
 function mapNavigatePath(url: string): string | null {
   const path = url.split("?")[0]?.replace(/^\//, "") ?? "";
   if (path === "contract") return "/contract";
+  if (path === "guide" || path === "guide/index") return "/guide";
   if (path === "guide/sale" || path === "guide/perchase") return `/${path}`;
   if (path === "transfer-agency-service") return "/additional-services/transfer-agency";
   return null;
@@ -126,7 +127,7 @@ async function handleScenarioButtonPress(
   }
 
   if (button.text?.includes("가이드")) {
-    showAppAlert({ title: "안내", message: "차량 확인 가이드는 곧 제공됩니다." });
+    router.push("/guide");
     return;
   }
 

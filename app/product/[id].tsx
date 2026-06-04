@@ -14,14 +14,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  ActivityIndicator,
-  Dimensions,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, Pressable, ScrollView, Text, View } from "react-native";
 
 import {
   fetchAuthedProductDetail,
@@ -96,6 +89,7 @@ import {
 import { useAuth } from "@/src/hooks/useAuth";
 import { useScreenInsets } from "@/src/hooks/useScreenInsets";
 import { showAppAlert } from "@/src/providers/appDialog";
+import { useAppLoadingOverlay } from "@/src/providers/AppLoadingProvider";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const FALLBACK_IMAGE = `${IMAGE_BASE_URL}/car_none.png`;
@@ -114,6 +108,8 @@ export default function ProductDetailScreen() {
 
   const [detail, setDetail] = useState<ProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useAppLoadingOverlay(isLoading || !detail);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<DetailTab>("info");
   const scrollRef = useRef<ScrollView>(null);
@@ -462,10 +458,8 @@ export default function ProductDetailScreen() {
         </View>
       </View>
 
-      {isLoading || !detail ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+      {!detail ? (
+        <View className="flex-1 bg-white" />
       ) : (
         <View className="flex-1">
           <ScrollView

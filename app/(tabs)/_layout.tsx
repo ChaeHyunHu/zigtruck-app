@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React, { useEffect } from "react";
-import { ActivityIndicator, Platform, Text, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { GradientIcon, GradientText } from "@/src/components/common/GradientMask";
@@ -10,6 +10,7 @@ import { TAB_BAR_BASE_HEIGHT } from "@/src/constants/layout";
 import { preloadHomeBanners } from "@/src/features/home/homeBannerCache";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useChat } from "@/src/providers/ChatProvider";
+import { useAppLoadingOverlay } from "@/src/providers/AppLoadingProvider";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -62,12 +63,10 @@ export default function TabLayout() {
         : String(totalUnread)
       : undefined;
 
+  useAppLoadingOverlay(isInitializing);
+
   if (isInitializing) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <View className="flex-1 bg-white" />;
   }
 
   return (

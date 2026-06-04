@@ -48,6 +48,7 @@ import type { RegistrationProduct } from "@/src/features/sell-car/registration/t
 import { useAuth } from "@/src/hooks/useAuth";
 import { useScreenInsets } from "@/src/hooks/useScreenInsets";
 import { useAppDialog } from "@/src/providers/AppDialogProvider";
+import { useAppLoadingOverlay } from "@/src/providers/AppLoadingProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
 import { Image } from "expo-image";
@@ -422,6 +423,7 @@ export default function ManageScreen() {
 
   const [myProducts, setMyProducts] = useState<ProductDetailResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  useAppLoadingOverlay(isInitializing || (isAuthenticated && isLoading));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isNone, setIsNone] = useState(false);
   const [listFetchFailed, setListFetchFailed] = useState(false);
@@ -1045,8 +1047,8 @@ export default function ManageScreen() {
 
   if (isInitializing) {
     return (
-      <Screen className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator />
+      <Screen className="flex-1 bg-white">
+        <View className="flex-1" />
       </Screen>
     );
   }
@@ -1069,9 +1071,7 @@ export default function ManageScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <View className="flex-1 bg-white" />
       ) : listFetchFailed && myProducts.length === 0 ? (
         <View className="flex-1 items-center justify-center px-6">
           <Ionicons name="cloud-offline-outline" size={64} color="#DCDCDC" />

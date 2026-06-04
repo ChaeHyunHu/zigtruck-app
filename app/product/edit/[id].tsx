@@ -1,13 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { Screen } from "@/src/components/common/Screen";
 import { showAppAlert } from "@/src/providers/appDialog";
 import {
@@ -43,6 +37,7 @@ import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEdit
 import { PriceInputField } from "@/src/features/sell-car/registration/PriceInputField";
 import type { ProductEnumData, RegistrationProduct } from "@/src/features/sell-car/registration/types";
 import { useAuth } from "@/src/hooks/useAuth";
+import { useAppLoadingOverlay } from "@/src/providers/AppLoadingProvider";
 
 const PHONE_REGEX = /01[016789]-?\d{3,4}-?\d{4}/;
 
@@ -67,6 +62,7 @@ export default function ProductEditScreen() {
     isEditTab(tab) ? tab : "vehicle",
   );
   const [isLoading, setIsLoading] = useState(true);
+  useAppLoadingOverlay(isLoading || !detail || !editForm);
   const [isSaving, setIsSaving] = useState(false);
   const [images, setImages] = useState<ProductImagesState>({});
   const [priceInput, setPriceInput] = useState<number | undefined>();
@@ -326,10 +322,8 @@ export default function ProductEditScreen() {
         })}
       </View>
 
-      {isLoading || !detail || !editForm ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+      {!detail || !editForm ? (
+        <View className="flex-1 bg-white" />
       ) : (
         <View className="flex-1">
           <ScrollView

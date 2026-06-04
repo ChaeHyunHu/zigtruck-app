@@ -1,10 +1,17 @@
-import { Image } from "expo-image";
 import { type Href, router } from "expo-router";
 import React from "react";
-import { Linking, Pressable, Text, View } from "react-native";
+import { Dimensions, Linking, Pressable, Text, View } from "react-native";
+
+import { RemoteImageWithSkeleton } from "@/src/components/common/RemoteImageWithSkeleton";
 
 const GUIDE_IMAGE_BASE =
   "https://zigtruck-service-public-image.s3.ap-northeast-2.amazonaws.com";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const GUIDE_CONTENT_WIDTH = SCREEN_WIDTH - 32;
+const GUIDE_COVER_HEIGHT = SCREEN_WIDTH / 2;
+const GUIDE_INLINE_HEIGHT = GUIDE_CONTENT_WIDTH / 1.4;
+const GUIDE_CONTRACT_HEIGHT = GUIDE_CONTENT_WIDTH / 0.72;
 
 export const guideImages = {
   salePlanCover: `${GUIDE_IMAGE_BASE}/guide_sale_plan_cover.png`,
@@ -22,13 +29,17 @@ export const guideImages = {
 
 export function GuideCoverImage({ uri, alt }: { uri: string; alt?: string }) {
   return (
-    <View className="w-full items-center justify-center overflow-hidden bg-white">
-      <Image
+    <View
+      className="w-full items-center justify-center overflow-hidden bg-white"
+      accessibilityLabel={alt}
+    >
+      <RemoteImageWithSkeleton
         source={{ uri }}
-        accessibilityLabel={alt}
-        style={{ width: "100%", aspectRatio: 2 }}
+        recyclingKey={uri}
+        style={{ width: "100%", height: GUIDE_COVER_HEIGHT }}
         contentFit="contain"
         contentPosition="center"
+        priority="high"
       />
     </View>
   );
@@ -119,10 +130,11 @@ export function GuideLink({ href, children }: { href: string; children: string }
 
 export function GuideInlineImage({ uri }: { uri: string }) {
   return (
-    <Image
+    <RemoteImageWithSkeleton
       source={{ uri }}
+      recyclingKey={uri}
       className="mb-4 w-full"
-      style={{ width: "100%", aspectRatio: 1.4 }}
+      style={{ width: "100%", height: GUIDE_INLINE_HEIGHT }}
       contentFit="contain"
     />
   );
@@ -132,9 +144,10 @@ export function GuideInlineImage({ uri }: { uri: string }) {
 export function GuideContractSampleImage({ uri }: { uri: string }) {
   return (
     <View className="mb-4 w-full">
-      <Image
+      <RemoteImageWithSkeleton
         source={{ uri }}
-        style={{ width: "100%", aspectRatio: 0.72 }}
+        recyclingKey={uri}
+        style={{ width: "100%", height: GUIDE_CONTRACT_HEIGHT }}
         contentFit="contain"
         contentPosition="top center"
       />

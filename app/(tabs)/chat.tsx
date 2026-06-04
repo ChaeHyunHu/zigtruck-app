@@ -14,7 +14,7 @@ import { Screen } from "@/src/components/common/Screen";
 import { ChatListRow } from "@/src/features/chat/ChatListRow";
 import { useAuth } from "@/src/hooks/useAuth";
 import { useChat } from "@/src/providers/ChatProvider";
-import { promptLogin } from "@/src/lib/authNavigation";
+import { navigateToLogin } from "@/src/lib/authNavigation";
 
 export default function ChatScreen() {
   const { isAuthenticated } = useAuth();
@@ -46,7 +46,7 @@ export default function ChatScreen() {
             로그인 후 채팅 목록을 확인할 수 있어요.
           </Text>
           <Pressable
-            onPress={() => promptLogin()}
+            onPress={navigateToLogin}
             className="mt-4 rounded-lg bg-primary px-6 py-3"
           >
             <Text className="text-[15px] font-bold text-white">로그인하기</Text>

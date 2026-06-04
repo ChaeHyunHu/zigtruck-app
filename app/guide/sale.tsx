@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import { GuideScreenShell } from "@/src/features/guide/components/GuideScreenShell";
+import { GuideTabPanels } from "@/src/features/guide/components/GuideTabPanels";
 import type { GuideTabItem } from "@/src/features/guide/components/GuideTabBar";
+import { preloadGuideImages } from "@/src/features/guide/guideImageCache";
 import {
   PreSaleCheckListPanel,
   SaleAfterCarePanel,
@@ -19,20 +21,19 @@ const TABS: GuideTabItem[] = [
 export default function SaleGuideScreen() {
   const [tabIndex, setTabIndex] = useState(0);
 
-  const panel = useMemo(() => {
-    switch (tabIndex) {
-      case 0:
-        return <SalePlanPanel />;
-      case 1:
-        return <PreSaleCheckListPanel />;
-      case 2:
-        return <SaleContractPanel />;
-      case 3:
-        return <SaleAfterCarePanel />;
-      default:
-        return <SalePlanPanel />;
-    }
-  }, [tabIndex]);
+  useEffect(() => {
+    void preloadGuideImages();
+  }, []);
+
+  const panels = useMemo(
+    () => [
+      <SalePlanPanel key="plan" />,
+      <PreSaleCheckListPanel key="check" />,
+      <SaleContractPanel key="contract" />,
+      <SaleAfterCarePanel key="after" />,
+    ],
+    [],
+  );
 
   return (
     <GuideScreenShell
@@ -41,7 +42,7 @@ export default function SaleGuideScreen() {
       tabIndex={tabIndex}
       onTabChange={setTabIndex}
     >
-      {panel}
+      <GuideTabPanels activeIndex={tabIndex} panels={panels} />
     </GuideScreenShell>
   );
 }

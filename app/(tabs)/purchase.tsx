@@ -16,7 +16,6 @@ import React, {
   useState,
 } from "react";
 import {
-  ActivityIndicator,
   FlatList,
   ListRenderItem,
   Pressable,
@@ -27,10 +26,8 @@ import {
 } from "react-native";
 
 import { getProductList } from "@/src/api/public";
-import { showAppAlert } from "@/src/providers/appDialog";
 import { AppSwitch } from "@/src/components/common/AppSwitch";
 import { SearchLoadingIndicator } from "@/src/components/common/SearchLoadingIndicator";
-import { appColors } from "@/src/constants/colors";
 import { QUICK_SORT_OPTIONS, SORT_OPTIONS } from "@/src/constants/products";
 import type { ProductSearchFilters } from "@/src/features/products/filterTypes";
 import {
@@ -43,6 +40,7 @@ import {
   takePendingPurchaseFilterParams,
 } from "@/src/features/products/filterUtils";
 import { consumePurchaseListDirty } from "@/src/features/products/productRefresh";
+import { useAppLoadingOverlay } from "@/src/providers/AppLoadingProvider";
 import { PurchaseProductCard } from "@/src/features/products/PurchaseProductCard";
 import { SalesTypeDropdown } from "@/src/features/products/SalesTypeDropdown";
 import { SortBottomSheet } from "@/src/features/products/SortBottomSheet";
@@ -52,6 +50,7 @@ import {
   pickArray,
   toText,
 } from "@/src/features/products/utils";
+import { showAppAlert } from "@/src/providers/appDialog";
 
 type Filters = ProductSearchFilters;
 
@@ -107,6 +106,8 @@ export default function PurchaseScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const showInitialLoading = isLoading && products.length === 0;
+  useAppLoadingOverlay(showInitialLoading);
   const [currentPage, setCurrentPage] = useState(
     () => purchaseListCache?.currentPage ?? 1,
   );
@@ -188,7 +189,10 @@ export default function PurchaseScreen() {
         hasDataRef.current = items.length > 0;
       } catch {
         if (generation !== fetchGenerationRef.current) return;
-        showAppAlert({ title: "목록 불러오기 실패", message: "내차구매 목록을 불러오지 못했어요." });
+        showAppAlert({
+          title: "목록 불러오기 실패",
+          message: "내차구매 목록을 불러오지 못했어요.",
+        });
       } finally {
         if (generation !== fetchGenerationRef.current) return;
         setIsLoading(false);
@@ -544,7 +548,11 @@ export default function PurchaseScreen() {
     const hasMore = currentPage < totalPages;
     return (
       <View className="h-14 items-center justify-center">
-        {isLoadingMore ? <ActivityIndicator /> : null}
+        {isLoadingMore ? (
+          <Text className="py-2 text-center text-[13px] text-gray600">
+            불러오는 중...
+          </Text>
+        ) : null}
         {!isLoadingMore && products.length > 0 && !hasMore ? (
           <Text className="text-[12px] text-gray700">
             모든 매물을 확인했어요
@@ -641,12 +649,7 @@ export default function PurchaseScreen() {
         onSelect={onSelectSort}
       />
 
-      {isLoading && products.length === 0 ? (
-        <View className="flex-1 items-center justify-center bg-white">
-          <ActivityIndicator />
-        </View>
-      ) : (
-        <View className="flex-1 bg-white">
+      <View className="flex-1 bg-white">
           <FlatList
             ref={listRef}
             data={visibleProducts}
@@ -699,7 +702,6 @@ export default function PurchaseScreen() {
             </Pressable>
           </View>
         </View>
-      )}
     </Screen>
   );
 }

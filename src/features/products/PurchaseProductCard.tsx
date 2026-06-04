@@ -1,4 +1,3 @@
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import React, {
   memo,
@@ -15,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { RemoteImageWithSkeleton } from "@/src/components/common/RemoteImageWithSkeleton";
 import { formatPrice } from "@/src/features/home/utils";
 import { AssuranceInspectionBadge } from "@/src/features/products/AssuranceInspectionBadge";
 import {
@@ -23,7 +23,7 @@ import {
 } from "@/src/features/products/assuranceInspection";
 import { ProductYoutubeIcon } from "@/src/features/products/ProductYoutubeIcon";
 import {
-  LIST_CARD_MAIN_ASPECT,
+  LIST_CARD_MAIN_HEIGHT,
   LIST_CARD_MAIN_PIXEL,
   LIST_THUMB_GAP,
   LIST_THUMB_HEIGHT,
@@ -69,7 +69,10 @@ function getSalesTypeBadgeColors(code?: string): GradientColors {
       return SALES_TYPE_BADGE_GRADIENT.NORMAL;
   }
 }
-const MAIN_IMAGE_STYLE = { width: "100%" as const, aspectRatio: LIST_CARD_MAIN_ASPECT };
+const MAIN_IMAGE_STYLE = {
+  width: "100%" as const,
+  height: LIST_CARD_MAIN_HEIGHT,
+};
 const THUMB_IMAGE_STYLE = { width: "100%" as const, height: "100%" as const };
 const THUMB_PLACEHOLDER_STYLE = { width: "100%" as const, height: "100%" as const };
 
@@ -112,13 +115,12 @@ const ProductCardThumbnail = memo(function ProductCardThumbnail({
       }}
     >
       {loadImage ? (
-        <Image
+        <RemoteImageWithSkeleton
           source={source}
           style={THUMB_IMAGE_STYLE}
+          imageStyle={THUMB_IMAGE_STYLE}
           contentFit="cover"
-          cachePolicy="memory-disk"
           recyclingKey={`${itemId}-thumb-${index}`}
-          transition={0}
           priority="low"
           allowDownscaling
         />
@@ -224,17 +226,13 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
         <View className="overflow-hidden rounded-[12px] bg-gray200">
           <View className="relative">
             {mainImageSource ? (
-              <Image
+              <RemoteImageWithSkeleton
                 source={mainImageSource}
                 style={MAIN_IMAGE_STYLE}
                 contentFit="cover"
-                cachePolicy="memory-disk"
-                recyclingKey={`${item.id}-main`}
-                transition={0}
+                recyclingKey={`${item.id}-main-${selectedIndex}`}
                 priority="normal"
                 allowDownscaling
-                placeholder={{ blurhash: "L6PZfSi_.AyE_3t7t7R**0o#DgR4" }}
-                placeholderContentFit="cover"
               />
             ) : (
               <View style={MAIN_IMAGE_STYLE} className="bg-gray200" />
