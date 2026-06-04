@@ -55,11 +55,12 @@ export function RemoteImageWithSkeleton({
     setIsLoading(!loadedUriKeys.has(cacheKey));
   }, [cacheKey]);
 
-  const handleLoadEnd = useCallback(() => {
+  const markLoaded = useCallback(() => {
     loadedUriKeys.add(cacheKey);
     setIsLoading(false);
   }, [cacheKey]);
 
+  const handleLoadEnd = markLoaded;
   const handleError = useCallback(() => {
     loadedUriKeys.add(cacheKey);
     setIsLoading(false);
@@ -92,6 +93,7 @@ export function RemoteImageWithSkeleton({
         transition={0}
         priority={priority}
         allowDownscaling={allowDownscaling}
+        onLoad={markLoaded}
         onLoadEnd={handleLoadEnd}
         onError={handleError}
       />

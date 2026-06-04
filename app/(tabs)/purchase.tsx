@@ -51,6 +51,7 @@ import {
 } from "@/src/features/products/utils";
 import { showAppAlert } from "@/src/providers/appDialog";
 import { useAppLoadingOverlay } from "@/src/providers/AppLoadingProvider";
+import { useIsFocused } from "@react-navigation/native";
 
 type Filters = ProductSearchFilters;
 
@@ -68,6 +69,7 @@ type PurchaseListCache = {
 let purchaseListCache: PurchaseListCache | null = null;
 
 export default function PurchaseScreen() {
+  const isFocused = useIsFocused();
   const { fabListPaddingBottom } = useScreenInsets();
   const params = useLocalSearchParams<Record<string, string>>();
   const paramsKey = useMemo(
@@ -107,7 +109,7 @@ export default function PurchaseScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const showInitialLoading = isLoading && products.length === 0;
-  useAppLoadingOverlay(showInitialLoading);
+  useAppLoadingOverlay(isFocused && showInitialLoading);
   const [currentPage, setCurrentPage] = useState(
     () => purchaseListCache?.currentPage ?? 1,
   );

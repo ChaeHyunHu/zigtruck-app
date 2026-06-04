@@ -78,14 +78,12 @@ const MAIN_IMAGE_STYLE = {
   height: LIST_CARD_MAIN_HEIGHT,
 };
 const THUMB_IMAGE_STYLE = { width: "100%" as const, height: "100%" as const };
-const THUMB_PLACEHOLDER_STYLE = { width: "100%" as const, height: "100%" as const };
 
 type ThumbnailProps = {
   uri: string;
   itemId: number;
   index: number;
   isSelected: boolean;
-  loadImage: boolean;
   onSelect: (index: number) => void;
 };
 
@@ -94,7 +92,6 @@ const ProductCardThumbnail = memo(function ProductCardThumbnail({
   itemId,
   index,
   isSelected,
-  loadImage,
   onSelect,
 }: ThumbnailProps) {
   const source = useMemo(
@@ -118,19 +115,15 @@ const ProductCardThumbnail = memo(function ProductCardThumbnail({
         borderColor: isSelected ? "#1E42A6" : "#e5e5e5",
       }}
     >
-      {loadImage ? (
-        <RemoteImageWithSkeleton
-          source={source}
-          style={THUMB_IMAGE_STYLE}
-          imageStyle={THUMB_IMAGE_STYLE}
-          contentFit="cover"
-          recyclingKey={`${itemId}-thumb-${index}`}
-          priority="low"
-          allowDownscaling
-        />
-      ) : (
-        <View style={THUMB_PLACEHOLDER_STYLE} className="bg-gray200" />
-      )}
+      <RemoteImageWithSkeleton
+        source={source}
+        style={THUMB_IMAGE_STYLE}
+        imageStyle={THUMB_IMAGE_STYLE}
+        contentFit="cover"
+        recyclingKey={`${itemId}-thumb-${uri}`}
+        priority="normal"
+        allowDownscaling
+      />
     </Pressable>
   );
 });
@@ -157,7 +150,6 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
   const [images, setImages] = useState(() => buildCardImageUrls(item));
 
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [thumbnailsReady, setThumbnailsReady] = useState(false);
   const activeImage = images[selectedIndex] ?? images[0] ?? "";
   const showThumbnails = images.length > 1;
 
@@ -173,7 +165,6 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
     const nextImages = buildCardImageUrls(item);
     setImages(nextImages);
     setSelectedIndex(0);
-    setThumbnailsReady(false);
 
     if (nextImages.length > 1) return;
 
@@ -199,29 +190,11 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
     };
   }, [item.id, item.imageUrls, item.representImageUrl]);
 
-  useEffect(() => {
-    if (!showThumbnails) {
-      setThumbnailsReady(false);
-      return;
-    }
-
-    let cancelled = false;
-    const task = InteractionManager.runAfterInteractions(() => {
-      if (!cancelled) setThumbnailsReady(true);
-    });
-
-    return () => {
-      cancelled = true;
-      task.cancel();
-    };
-  }, [item.id, showThumbnails]);
-
   const handlePress = useCallback(() => {
     onPress(item.id);
   }, [item.id, onPress]);
 
   const handleSelectThumbnail = useCallback((index: number) => {
-    setThumbnailsReady(true);
     setSelectedIndex(index);
   }, []);
 
@@ -311,7 +284,7 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          removeClippedSubviews
+          removeClippedSubviews={false}
           contentContainerStyle={{
             paddingTop: 10,
             gap: LIST_THUMB_GAP,
@@ -320,12 +293,11 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
         >
           {images.map((uri, index) => (
             <ProductCardThumbnail
-              key={`${item.id}-thumb-${index}`}
+              key={`${item.id}-thumb-${index}-${uri}`}
               uri={uri}
               itemId={item.id}
               index={index}
               isSelected={index === selectedIndex}
-              loadImage={thumbnailsReady}
               onSelect={handleSelectThumbnail}
             />
           ))}

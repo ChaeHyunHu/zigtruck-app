@@ -421,8 +421,8 @@ export default function ManageScreen() {
   const isFocused = useIsFocused();
 
   const [myProducts, setMyProducts] = useState<ProductDetailResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  useAppLoadingOverlay(isAuthenticated && isLoading);
+  const [isLoading, setIsLoading] = useState(false);
+  useAppLoadingOverlay(isFocused && isAuthenticated && isLoading);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isNone, setIsNone] = useState(false);
   const [listFetchFailed, setListFetchFailed] = useState(false);
