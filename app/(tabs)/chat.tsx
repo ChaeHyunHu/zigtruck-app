@@ -13,12 +13,13 @@ import {
 import { Screen } from "@/src/components/common/Screen";
 import { ChatListRow } from "@/src/features/chat/ChatListRow";
 import { useAuth } from "@/src/hooks/useAuth";
-import { useChat } from "@/src/providers/ChatProvider";
 import { navigateToLogin } from "@/src/lib/authNavigation";
+import { useChat } from "@/src/providers/ChatProvider";
 
 export default function ChatScreen() {
   const { isAuthenticated } = useAuth();
-  const { items, isLoading, refreshList, getUnreadCount, clearUnread } = useChat();
+  const { items, isLoading, refreshList, getUnreadCount, clearUnread } =
+    useChat();
   const [refreshing, setRefreshing] = useState(false);
 
   useFocusEffect(
@@ -60,14 +61,20 @@ export default function ChatScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => String(item.chatRoomId)}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           contentContainerStyle={
-            items.length === 0 ? { flexGrow: 1, justifyContent: "center" } : { paddingBottom: 24 }
+            items.length === 0
+              ? { flexGrow: 1, justifyContent: "center" }
+              : { paddingBottom: 2 }
           }
           ListEmptyComponent={
             <View className="items-center px-6">
               <Ionicons name="chatbubbles-outline" size={48} color="#bdbdbd" />
-              <Text className="mt-3 text-[15px] text-gray700">채팅 내역이 없습니다.</Text>
+              <Text className="mt-3 text-[15px] text-gray700">
+                채팅 내역이 없습니다.
+              </Text>
             </View>
           }
           renderItem={({ item }) => {

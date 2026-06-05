@@ -6,9 +6,9 @@ import { Pressable, Text, View } from "react-native";
 import { appColors } from "@/src/constants/colors";
 import { resolveImageUri } from "@/src/features/products/utils";
 
-import { formatChatListPreview } from "./utils";
 import { formatChatTimeAgo } from "./dateUtils";
 import type { ChatListItem } from "./types";
+import { formatChatListPreview } from "./utils";
 
 type ChatListRowProps = {
   item: ChatListItem;
@@ -23,7 +23,7 @@ export function ChatListRow({ item, unreadCount, onPress }: ChatListRowProps) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center border-b border-gray200 px-4 py-3"
+      className="flex-row items-center border-b border-gray200 px-4 py-6"
     >
       {profileUri ? (
         <Image
@@ -32,18 +32,23 @@ export function ChatListRow({ item, unreadCount, onPress }: ChatListRowProps) {
           contentFit="cover"
         />
       ) : (
-        <View className="h-12 w-12 items-center justify-center rounded-full bg-gray200">
+        <View className="h-[48px] w-[48px] items-center justify-center rounded-full bg-gray200">
           <Ionicons name="person" size={24} color={appColors.gray500} />
         </View>
       )}
 
       <View className="ml-2 min-h-12 flex-1 justify-center pr-2">
         <View className="flex-row flex-wrap items-center">
-          <Text className="text-[15px] font-semibold text-gray900" numberOfLines={1}>
+          <Text
+            className="text-[15px] font-semibold text-gray900"
+            numberOfLines={1}
+          >
             {item.memberName ?? "판매자"}
           </Text>
           {item.truckNumber ? (
-            <Text className="text-[13px] text-gray700">[{item.truckNumber}]</Text>
+            <Text className="text-[13px] text-gray700">
+              [{item.truckNumber}]
+            </Text>
           ) : null}
           {item.lastMessageTime ? (
             <Text className="text-[12px] text-gray500">

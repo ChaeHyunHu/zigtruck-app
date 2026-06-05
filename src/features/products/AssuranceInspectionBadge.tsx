@@ -19,10 +19,10 @@ export const AssuranceInspectionBadge = memo(function AssuranceInspectionBadge({
   if (isMaintenance) {
     return (
       <View
-        className="mt-3 items-center justify-center rounded-lg px-2 py-[10px]"
+        className="mt-1 items-center justify-center rounded-lg px-2 py-[10px]"
         style={{ backgroundColor: ASSURANCE_INSPECTION_MAINTENANCE_BG }}
       >
-        <Text className="text-center text-[18px] font-bold text-white">
+        <Text className="text-center text-[14px] font-bold text-white">
           입고 점검중
         </Text>
       </View>
