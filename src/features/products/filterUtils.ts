@@ -6,7 +6,41 @@ import {
   FILTER_YEAR_MAX,
   FILTER_YEAR_MIN,
 } from "./filterConstants";
-import type { ProductSearchFilters } from "./filterTypes";
+import type { FilterOptionItem, ProductSearchFilters } from "./filterTypes";
+
+/** expo-router URL params 에서 CSV(쉼표) 값이 잘리지 않도록 구분자 */
+const ROUTER_CSV_SEPARATOR = "|";
+
+const encodeRouterCsv = (value?: string): string => {
+  if (!value) return "";
+  return value.replace(/,/g, ROUTER_CSV_SEPARATOR);
+};
+
+const decodeRouterCsv = (value?: string): string | undefined => {
+  if (!value) return undefined;
+  if (value.includes(ROUTER_CSV_SEPARATOR)) {
+    return value.replace(/\|/g, ",");
+  }
+  return value;
+};
+
+const getParamValue = (
+  params: Record<string, string | string[] | undefined>,
+  key: string,
+): string | undefined => {
+  const value = params[key];
+  if (typeof value === "string") {
+    return decodeRouterCsv(value);
+  }
+  if (Array.isArray(value)) {
+    const joined = value
+      .filter((item): item is string => typeof item === "string" && item.length > 0)
+      .map((item) => decodeRouterCsv(item) ?? item)
+      .join(",");
+    return joined || undefined;
+  }
+  return undefined;
+};
 
 export const createDefaultFilters = (): ProductSearchFilters => ({
   yearMin: String(FILTER_YEAR_MIN),
@@ -54,8 +88,13 @@ export const filtersFromParams = (
 
   const transmission = get("transmission");
   const manufacturerCategoriesId =
-    get("manufacturerCategoriesId") || get("manufacturer") || undefined;
-  const loaded = get("loaded") || get("loadedType") || undefined;
+    getParamValue(params, "manufacturerCategoriesId") ||
+    getParamValue(params, "manufacturer") ||
+    undefined;
+  const loaded =
+    getParamValue(params, "loaded") ||
+    getParamValue(params, "loadedType") ||
+    undefined;
 
   return {
     keyword: get("keyword") || undefined,
@@ -96,8 +135,8 @@ export const filtersToParams = (
   distanceMax: filters.distanceMax,
   sort: filters.sort,
   onlyOneTon: filters.onlyOneTon ? "true" : "false",
-  manufacturerCategoriesId: filters.manufacturerCategoriesId ?? "",
-  loaded: filters.loaded ?? "",
+  manufacturerCategoriesId: encodeRouterCsv(filters.manufacturerCategoriesId),
+  loaded: encodeRouterCsv(filters.loaded),
   axis: filters.axis ?? "",
   transmission: filters.transmission ?? "",
   salesType: filters.salesType ?? "",
@@ -163,7 +202,10 @@ export const buildProductListQuery = (
         ? String(Number(filters.distanceMax) * 10000)
         : "",
     axis: filters.axis ?? "",
-    transmission: filters.transmission ?? "",
+    transmission:
+      filters.transmission === "BOTH"
+        ? ""
+        : (filters.transmission ?? ""),
     loaded: filters.loaded ?? "",
     minLoadedInnerLength: filters.loadedLengthMin ?? "",
     maxLoadedInnerLength: filters.loadedLengthMax ?? "",
@@ -223,7 +265,8 @@ export const buildProductFilterApiQuery = (
       ? String(Number(filters.distanceMax) * 10000)
       : "",
   axis: filters.axis ?? "",
-  transmission: filters.transmission ?? "",
+  transmission:
+    filters.transmission === "BOTH" ? "" : (filters.transmission ?? ""),
   loaded: filters.loaded ?? "",
   minLoadedInnerLength: filters.loadedLengthMin ?? "",
   maxLoadedInnerLength: filters.loadedLengthMax ?? "",
@@ -253,6 +296,39 @@ export const formatFilterRadioLabel = (
   if (count === undefined || !Number.isFinite(count)) return label;
   return `${label}(${count.toLocaleString("ko-KR")})`;
 };
+
+/** filter-info 의 axis/transmission count 는 현재 필터를 반영하지 않아 count API 로 보정 */
+export async function enrichRadioFacetOptionCounts(
+  filters: ProductSearchFilters,
+  options: FilterOptionItem[],
+  field: "axis" | "transmission",
+  fetchCount: (query: Record<string, string>) => Promise<unknown>,
+): Promise<FilterOptionItem[]> {
+  if (options.length === 0) return options;
+
+  return Promise.all(
+    options.map(async (option) => {
+      try {
+        const facetFilters: ProductSearchFilters = { ...filters };
+        if (field === "axis") {
+          facetFilters.axis = option.code;
+        } else {
+          facetFilters.transmission =
+            option.code === "BOTH" ? undefined : option.code;
+        }
+        const payload = await fetchCount(
+          buildProductFilterApiQuery(facetFilters),
+        );
+        return {
+          ...option,
+          count: parseProductCountResponse(payload),
+        };
+      } catch {
+        return option;
+      }
+    }),
+  );
+}
 
 export const clampNumber = (
   value: string,

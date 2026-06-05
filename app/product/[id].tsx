@@ -767,7 +767,7 @@ function TabBar({
     { tab: "calc", label: "할부 계산기" },
   ];
   return (
-    <View className="mt-2 flex-row border-b border-gray600 bg-white">
+    <View className="mt-2 flex-row border-b border-gray500 bg-white">
       {items.map((item) => {
         const isActive = activeTab === item.tab;
         return (

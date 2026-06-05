@@ -245,7 +245,10 @@ export function FilterRadioSection({
               label={formatFilterRadioLabel(option.label, option.count)}
               active={isActive}
               onPress={() => {
-                if (isActive) return;
+                if (isActive) {
+                  onSelect(undefined);
+                  return;
+                }
                 onSelect(option.code);
               }}
             />

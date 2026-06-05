@@ -40,6 +40,7 @@ import type {
 import {
   buildProductFilterApiQuery,
   clampNumber,
+  enrichRadioFacetOptionCounts,
   parseProductCountResponse,
   createDefaultFilters,
   filtersFromParams,
@@ -130,8 +131,28 @@ export default function ProductFilterScreen() {
         const parsed = parseFilterInfo(response?.data);
         setManufacturers(parsed.manufacturers);
         setLoadedTypes(parsed.loadedTypes);
-        setAxisOptions(parsed.axis);
-        setTransmissionOptions(parsed.transmission);
+
+        const fetchCount = async (query: Record<string, string>) => {
+          const countResponse = await getProductCount(query);
+          return countResponse?.data;
+        };
+        const [axisWithCounts, transmissionWithCounts] = await Promise.all([
+          enrichRadioFacetOptionCounts(
+            filters,
+            parsed.axis,
+            "axis",
+            fetchCount,
+          ),
+          enrichRadioFacetOptionCounts(
+            filters,
+            parsed.transmission,
+            "transmission",
+            fetchCount,
+          ),
+        ]);
+        if (requestId !== filterInfoRequestRef.current) return;
+        setAxisOptions(axisWithCounts);
+        setTransmissionOptions(transmissionWithCounts);
       } catch {
         if (requestId !== filterInfoRequestRef.current) return;
       }
