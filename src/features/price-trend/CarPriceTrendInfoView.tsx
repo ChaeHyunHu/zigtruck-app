@@ -196,7 +196,7 @@ export function CarPriceTrendInfoView({
         </Text>
       ) : null}
 
-      <View className={`items-center ${showMarker ? "mb-10" : "mb-4 mt-4"}`}>
+      <View className={`items-center ${showMarker ? "mb-14" : "mb-4 mt-4"}`}>
         <Text className="mb-1 text-[14px] text-gray700">직거래 평균시세</Text>
         <Text className="text-center text-[20px] font-semibold leading-[28px] text-gray900">
           {formatPrice(Number(priceInfo?.lowPrice ?? 0))} ~{" "}

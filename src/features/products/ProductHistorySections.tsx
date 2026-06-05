@@ -44,7 +44,9 @@ function DateContentItem({
 }) {
   return (
     <View className={showTopSpacing ? "mt-5 border-t border-gray300 pt-5" : ""}>
-      {date ? <Text className="text-[15px] font-bold text-gray900">{date}</Text> : null}
+      {date ? (
+        <Text className="text-[15px] font-bold text-gray900">{date}</Text>
+      ) : null}
       {content ? <View className="mt-3">{content}</View> : null}
     </View>
   );
@@ -102,8 +104,8 @@ export function ProductHistorySections({
   );
 
   return (
-    <View className="bg-white pb-6" onLayout={handleRootLayout}>
-      <View className="px-4 pt-2 pb-6">
+    <View className="bg-white" onLayout={handleRootLayout}>
+      <View className="px-4 pt-4 pb-6">
         <Text className="text-[18px] font-bold text-gray900">
           소유자 정보 (현물출자 이력)
         </Text>
@@ -113,10 +115,14 @@ export function ProductHistorySections({
             emptyText="소유자 정보 없음"
           >
             {lastOwner?.date ? (
-              <Text className="text-[15px] font-bold text-gray900">{lastOwner.date}</Text>
+              <Text className="text-[15px] font-bold text-gray900">
+                {lastOwner.date}
+              </Text>
             ) : null}
             {lastOwner?.content ? (
-              <Text className={`text-[15px] text-gray800 ${lastOwner?.date ? "mt-1" : ""}`}>
+              <Text
+                className={`text-[15px] text-gray800 ${lastOwner?.date ? "mt-1" : ""}`}
+              >
                 {lastOwner.content}
               </Text>
             ) : null}
@@ -128,14 +134,20 @@ export function ProductHistorySections({
         <>
           <SectionDivider />
           <View className="px-4 py-6" onLayout={makeSectionLayout("SEIZURE")}>
-            <Text className="text-[18px] font-bold text-gray900">압류 이력</Text>
+            <Text className="text-[18px] font-bold text-gray900">
+              압류 이력
+            </Text>
             <View className="mt-3">
               <HistoryBox
                 isEmpty={!seizureHistory.length}
                 emptyText="압류 이력 없음"
               >
                 {seizureHistory.map((item, index) => (
-                  <SeizureItem key={`${item.regDate}-${index}`} item={item} index={index} />
+                  <SeizureItem
+                    key={`${item.regDate}-${index}`}
+                    item={item}
+                    index={index}
+                  />
                 ))}
               </HistoryBox>
             </View>
@@ -147,7 +159,9 @@ export function ProductHistorySections({
         <>
           <SectionDivider />
           <View className="px-4 py-6" onLayout={makeSectionLayout("MORTGAGE")}>
-            <Text className="text-[18px] font-bold text-gray900">저당 이력</Text>
+            <Text className="text-[18px] font-bold text-gray900">
+              저당 이력
+            </Text>
             <View className="mt-3">
               <HistoryBox
                 isEmpty={!mortgageHistory.length}
@@ -184,14 +198,20 @@ export function ProductHistorySections({
 
       <SectionDivider />
       <View className="px-4 py-6" onLayout={makeSectionLayout("TUNING")}>
-        <Text className="text-[18px] font-bold text-gray900">구조 변경 이력</Text>
+        <Text className="text-[18px] font-bold text-gray900">
+          구조 변경 이력
+        </Text>
         <View className="mt-3">
           <HistoryBox
             isEmpty={!tuningHistory?.length}
             emptyText="구조 변경 이력 없음"
           >
             {tuningHistory?.map((item, index) => (
-              <TuningItem key={`${item.date}-${index}`} item={item} index={index} />
+              <TuningItem
+                key={`${item.date}-${index}`}
+                item={item}
+                index={index}
+              />
             ))}
           </HistoryBox>
         </View>
@@ -223,7 +243,9 @@ function HistoryListSection({
               showTopSpacing={index > 0}
               content={
                 item.content ? (
-                  <Text className="text-[15px] text-gray800">{item.content}</Text>
+                  <Text className="text-[15px] text-gray800">
+                    {item.content}
+                  </Text>
                 ) : null
               }
             />
@@ -241,8 +263,12 @@ function SeizureItem({ item, index }: { item: HistoryItem; index: number }) {
       showTopSpacing={index > 0}
       content={
         <View className="gap-1">
-          <Text className="text-[15px] text-gray800">・ 압류내역 : {item.content ?? "-"}</Text>
-          <Text className="text-[15px] text-gray800">・ 촉탁기관 : {item.agency ?? "-"}</Text>
+          <Text className="text-[15px] text-gray800">
+            ・ 압류내역 : {item.content ?? "-"}
+          </Text>
+          <Text className="text-[15px] text-gray800">
+            ・ 촉탁기관 : {item.agency ?? "-"}
+          </Text>
           {item.agencyPhoneNumber ? (
             <Text className="text-[15px] text-gray800">
               ・ 전화번호 : {item.agencyPhoneNumber}
@@ -270,18 +296,23 @@ function MortgageItem({
         showTopSpacing={index > 0}
         content={
           <View className="gap-1">
-            <Text className="text-[15px] text-gray800">・ 기관 : {item.mortgageName ?? "-"}</Text>
+            <Text className="text-[15px] text-gray800">
+              ・ 기관 : {item.mortgageName ?? "-"}
+            </Text>
             <Text className="text-[15px] text-gray800">
               ・ 채무자 : (차주){item.debtorName ?? "-"}
             </Text>
-            <Text className="text-[15px] text-gray800">・ 채권가액 : {item.amount ?? "-"}원</Text>
+            <Text className="text-[15px] text-gray800">
+              ・ 채권가액 : {item.amount ?? "-"}원
+            </Text>
           </View>
         }
       />
       {isLast ? (
         <Text className="mt-4 text-[12px] leading-[16px] text-gray700">
-          * 차량 대금 입금 전, ‘조회 당일 기준’ 남아있는 완납금을 확인하시고 차량 대금보다
-          완납 금액이 높게 남아있을 경우 차액 금액은 판매자가 처리할 수 있어야 합니다.
+          * 차량 대금 입금 전, ‘조회 당일 기준’ 남아있는 완납금을 확인하시고
+          차량 대금보다 완납 금액이 높게 남아있을 경우 차액 금액은 판매자가
+          처리할 수 있어야 합니다.
         </Text>
       ) : null}
     </View>
@@ -295,7 +326,9 @@ function TuningItem({ item, index }: { item: HistoryItem; index: number }) {
       showTopSpacing={index > 0}
       content={
         <View className="gap-1">
-          <Text className="text-[15px] text-gray800">・ 구조변경 : {item.before ?? "-"}</Text>
+          <Text className="text-[15px] text-gray800">
+            ・ 구조변경 : {item.before ?? "-"}
+          </Text>
           <Text className="text-[15px] text-gray800">
             ・ 구조변경 후 내역 : {item.after ?? "-"}
           </Text>

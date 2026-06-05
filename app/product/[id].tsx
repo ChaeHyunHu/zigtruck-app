@@ -49,6 +49,10 @@ import {
 import { ProductImageCarousel } from "@/src/features/products/ProductImageCarousel";
 import { ProductImageViewer } from "@/src/features/products/ProductImageViewer";
 import {
+  isDealerMember,
+  isDealerProduct,
+} from "@/src/features/products/productInquiryUtils";
+import {
   ProductPriceReduceNoticeModal,
   shouldShowPriceReduceNotice,
 } from "@/src/features/products/ProductPriceReduceNoticeModal";
@@ -59,10 +63,6 @@ import {
   PRODUCT_STATUS_DESC,
   ProductStatusBadge,
 } from "@/src/features/products/productStatusBadge";
-import {
-  isDealerMember,
-  isDealerProduct,
-} from "@/src/features/products/productInquiryUtils";
 import { ProductYoutubeIcon } from "@/src/features/products/ProductYoutubeIcon";
 import { ProductYoutubePlayer } from "@/src/features/products/ProductYoutubePlayer";
 import { SaleCompleteReviewModal } from "@/src/features/products/SaleCompleteReviewModal";
@@ -377,7 +377,10 @@ export default function ProductDetailScreen() {
           showAppAlert({ title: "완료", message: "판매 가격이 변경되었어요." });
         }
       } catch {
-        showAppAlert({ title: "오류", message: "판매 가격 변경에 실패했습니다." });
+        showAppAlert({
+          title: "오류",
+          message: "판매 가격 변경에 실패했습니다.",
+        });
       } finally {
         setIsSavingPrice(false);
       }
@@ -582,7 +585,9 @@ export default function ProductDetailScreen() {
                 </View>
               )}
 
-              {isMine && !isDealer && enumCode(detail.status) === PRODUCT_STATUS_SALE ? (
+              {isMine &&
+              !isDealer &&
+              enumCode(detail.status) === PRODUCT_STATUS_SALE ? (
                 <SalePriceTipBox className="mt-4" />
               ) : null}
 
@@ -718,7 +723,7 @@ function HistoryBadgeRow({
     { label: "구조변경", value: detail.structureChangeCount, key: "TUNING" },
   ];
   return (
-    <View className="mt-6 flex-row items-center justify-around bg-white py-4">
+    <View className="mt-3 flex-row items-center justify-around bg-white py-4 border-y-[8px] border-gray100">
       {items.map((item) => {
         const text = formatCount(item.value);
         const isHighlight = (item.value ?? 0) > 0;
@@ -762,7 +767,7 @@ function TabBar({
     { tab: "calc", label: "할부 계산기" },
   ];
   return (
-    <View className="mt-2 flex-row border-b border-gray300 bg-white">
+    <View className="mt-2 flex-row border-b border-gray600 bg-white">
       {items.map((item) => {
         const isActive = activeTab === item.tab;
         return (
@@ -772,7 +777,7 @@ function TabBar({
             className="flex-1 items-center justify-center pb-3 pt-3"
           >
             <Text
-              className={`text-[14px] ${
+              className={`text-[16px] ${
                 isActive ? "font-bold text-gray900" : "font-medium text-gray700"
               }`}
             >
