@@ -8,11 +8,24 @@ import {
   View,
 } from "react-native";
 
+import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { appColors } from "@/src/constants/colors";
 import { formatNumberWithComma, formatPrice } from "@/src/features/home/utils";
 
 const MAX_REVIEW_LENGTH = 200;
 const MAX_PRICE_DIGITS = 5;
+const PRICE_DIFF_THRESHOLD = 1000;
+
+function isLargePriceDifference(
+  price: number | null | undefined,
+  actualSalePrice: number,
+) {
+  if (price == null) return false;
+  return (
+    price + PRICE_DIFF_THRESHOLD < actualSalePrice ||
+    price - PRICE_DIFF_THRESHOLD > actualSalePrice
+  );
+}
 
 type SaleCompleteReviewModalProps = {
   visible: boolean;
@@ -38,6 +51,10 @@ export function SaleCompleteReviewModal({
   const [review, setReview] = useState("");
   const [priceError, setPriceError] = useState(false);
   const [reviewError, setReviewError] = useState(false);
+  const [priceConfirmVisible, setPriceConfirmVisible] = useState(false);
+  const [pendingActualSalePrice, setPendingActualSalePrice] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     if (!visible) {
@@ -45,6 +62,8 @@ export function SaleCompleteReviewModal({
       setReview("");
       setPriceError(false);
       setReviewError(false);
+      setPriceConfirmVisible(false);
+      setPendingActualSalePrice(null);
     }
   }, [visible]);
 
@@ -66,16 +85,31 @@ export function SaleCompleteReviewModal({
       hasError = true;
     }
     if (hasError) return;
+
+    if (isLargePriceDifference(price, actualSalePrice)) {
+      setPendingActualSalePrice(actualSalePrice);
+      setPriceConfirmVisible(true);
+      return;
+    }
+
     onConfirm(actualSalePrice, trimmedReview);
   };
 
+  const handleConfirmPriceDifference = () => {
+    if (pendingActualSalePrice == null || loading) return;
+    setPriceConfirmVisible(false);
+    onConfirm(pendingActualSalePrice, review.trim());
+    setPendingActualSalePrice(null);
+  };
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleClose}
-    >
+    <>
+      <Modal
+        visible={visible && !priceConfirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={handleClose}
+      >
       <View className="flex-1 items-center justify-center bg-black/35 px-5">
         <View className="max-h-[85%] w-full overflow-hidden rounded-2xl bg-white">
           <ScrollView
@@ -184,6 +218,34 @@ export function SaleCompleteReviewModal({
           </View>
         </View>
       </View>
-    </Modal>
+      </Modal>
+
+      <ConfirmDialog
+        visible={visible && priceConfirmVisible}
+        leftLabel="다시 입력"
+        rightLabel="이대로 입력"
+        onLeft={() => {
+          setPriceConfirmVisible(false);
+          setPendingActualSalePrice(null);
+        }}
+        onRight={handleConfirmPriceDifference}
+      >
+        <Text className="text-center text-[16px] font-medium leading-[24px] text-gray900">
+          입력하신 실제 판매 금액과{"\n"}
+          기존 금액의 차이가 큽니다.{"\n"}
+          이대로 입력하시겠어요?
+        </Text>
+        {price != null && pendingActualSalePrice != null ? (
+          <View className="mt-6">
+            <Text className="text-[16px] leading-[19px] text-gray700">
+              기존 금액 {formatPrice(price)}
+            </Text>
+            <Text className="text-[16px] leading-[19px] text-gray700">
+              실제 판매 금액 {formatPrice(pendingActualSalePrice)}
+            </Text>
+          </View>
+        ) : null}
+      </ConfirmDialog>
+    </>
   );
 }

@@ -48,7 +48,7 @@ export function HomeInterestProducts({
   return (
     <View className="mt-[10px] bg-white pb-4 pt-[10px]">
       <Pressable
-        className="mb-2 flex-row items-center justify-between px-4"
+        className="mb-5 flex-row items-center justify-between px-4"
         onPress={onPressHeader}
       >
         <Text className="text-[20px] font-bold text-gray800">찜한 차량</Text>

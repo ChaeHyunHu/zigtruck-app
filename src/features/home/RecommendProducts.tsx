@@ -132,7 +132,7 @@ export function RecommendProducts({ products, onPressProduct }: Props) {
   if (!products.length) return null;
 
   return (
-    <View className="mt-[10px] bg-white pb-[30px]">
+    <View className="mt-[10px] bg-white py-[14px]">
       <Text className="px-4 text-[20px] font-bold text-gray800">
         회원님의 맞춤차량
       </Text>

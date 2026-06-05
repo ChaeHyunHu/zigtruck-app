@@ -588,7 +588,7 @@ export default function HomeScreen() {
         </View>
 
         <View className="mt-[10px] bg-white py-[14px]">
-          <Text className="mb-[10px] px-4 text-[20px] font-bold text-gray800">
+          <Text className="mb-5 px-4 text-[20px] font-bold text-gray800">
             더 많은 서비스
           </Text>
           {serviceCards.map((item) => (
@@ -628,7 +628,7 @@ export default function HomeScreen() {
 
         {assuranceProducts.length > 0 ? (
           <View className="mt-[10px] bg-white py-[14px]">
-            <Text className="mb-[10px] px-4 text-[20px] font-bold text-gray800">
+            <Text className="mb-5 px-4 text-[20px] font-bold text-gray800">
               직트럭에서 검수한 차량
             </Text>
             <FlatList
