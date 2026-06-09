@@ -251,6 +251,12 @@ const matchOwnerId = (payload: any): number | undefined => {
   );
 };
 
+const normalizeIsLicense = (value: unknown): number | undefined => {
+  if (value === 1 || value === true || value === "1") return 1;
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  return undefined;
+};
+
 export const normalizeListItem = (item: any): ProductListItem | null => {
   const id = item?.id ?? item?.productId ?? item?.productsId;
   if (id === undefined || id === null) return null;
@@ -311,7 +317,9 @@ export const normalizeListItem = (item: any): ProductListItem | null => {
           : (item?.price ?? item?.salePrice ?? null),
     salesType: item?.salesType,
     status: item?.status ?? item?.productStatus,
-    isLicense: typeof item?.isLicense === "number" ? item.isLicense : undefined,
+    isLicense:
+      normalizeIsLicense(item?.isLicense) ??
+      (item?.license != null ? 1 : undefined),
     youtubeUrl: pickString(item?.youtubeUrl),
   };
 };

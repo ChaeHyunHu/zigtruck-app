@@ -30,8 +30,9 @@ export const getProductCount = (queryParams?: ApiQueryParams) => {
   });
 };
 
+/** 목록 전용 필드(isLicense, youtubeUrl, truckNumber)는 NEW 서버 응답에 포함 */
 export const getProductList = (queryParams?: ApiQueryParams) => {
-  return apiManager.get("/api/v1/public/products", { params: queryParams });
+  return newApiManager.get("/api/v1/public/products", { params: queryParams });
 };
 
 export const getNotifications = () => apiManager.get('/api/v1/notifications');

@@ -21,6 +21,7 @@ import {
   isAssuranceMaintenanceSale,
   isAssuranceProduct,
 } from "@/src/features/products/assuranceInspection";
+import { LicensePlateBadge } from "@/src/features/products/LicensePlateBadge";
 import { ProductYoutubeIcon } from "@/src/features/products/ProductYoutubeIcon";
 import {
   LIST_CARD_MAIN_HEIGHT,
@@ -204,6 +205,8 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
     item.status,
   );
   const hasYoutube = Boolean(item.youtubeUrl?.trim());
+  const showLicensePlate =
+    item.isLicense === 1 && Boolean(item.truckNumber?.trim());
 
   const specLine = useMemo(() => {
     const parts = [
@@ -329,11 +332,9 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
           <Text className="text-[22px] font-extrabold text-gray900">
             {formatPrice(item.price)}
           </Text>
-          {item.isLicense === 1 ? (
-            <View className="ml-2 rounded-md border border-[#d6a900] bg-[#ffe27a] px-2 py-0.5">
-              <Text className="text-[12px] font-bold text-[#7a5a00]">
-                {toText(item.truckNumber, "")}
-              </Text>
+          {showLicensePlate ? (
+            <View className="ml-2">
+              <LicensePlateBadge truckNumber={item.truckNumber!} />
             </View>
           ) : null}
         </View>
