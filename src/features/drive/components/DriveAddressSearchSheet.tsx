@@ -36,6 +36,7 @@ type Props = {
   visible: boolean;
   title: string;
   searchPlaceholder: string;
+  noModal?: boolean;
   onClose: () => void;
   onSelect: (result: AddressLocateResult) => void;
 };
@@ -44,6 +45,7 @@ export function DriveAddressSearchSheet({
   visible,
   title,
   searchPlaceholder,
+  noModal = false,
   onClose,
   onSelect,
 }: Props) {
@@ -120,6 +122,8 @@ export function DriveAddressSearchSheet({
       onClose={handleHeaderClose}
       sheetHeight={sheetHeight}
       minTopInset={minTopInset}
+      noModal={noModal}
+      overlayZIndex={noModal ? 1002 : undefined}
     >
       <View className="flex-1 bg-white">
         <BottomSheetHeader title={title} onClose={handleHeaderClose} />

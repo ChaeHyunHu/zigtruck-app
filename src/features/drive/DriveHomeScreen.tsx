@@ -75,7 +75,7 @@ function listsFromDriveInfo(data: DriveInfoResponse): DaySheetLists {
 
 import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
 import { useAuth } from "@/src/hooks/useAuth";
-import { navigateToLogin } from "@/src/lib/authNavigation";
+import { promptLogin } from "@/src/lib/authNavigation";
 
 
 export function DriveHomeScreen() {
@@ -202,15 +202,26 @@ export function DriveHomeScreen() {
   }, [loadHistory, loadVehicle]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigateToLogin();
-      return;
-    }
+    // 비회원도 진입 가능. 회원이면 데이터 로드, 비회원이면 차량 미등록 UI 노출.
     getDriveOnboardingSeen().then((seen) => {
       setShowOnboarding(!seen);
-      if (seen) void refresh();
+      if (!seen) return;
+      if (isAuthenticated) {
+        void refresh();
+      } else {
+        setLoading(false);
+      }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 최초 진입 1회만
+  }, [isAuthenticated]);
+
+  // 차량 등록 진입 — 비회원이면 로그인 유도
+  const handleRegisterVehicle = useCallback(() => {
+    if (!isAuthenticated) {
+      promptLogin();
+      return;
+    }
+    router.push("/drive/vehicle");
   }, [isAuthenticated]);
 
   useFocusEffect(
@@ -388,6 +399,10 @@ export function DriveHomeScreen() {
           if (result) applyDaySheetResult(result.baseDay, result.lists);
         })
         .catch(() => {
+          // 로드 실패 시 빈 백드롭만 남지 않도록 시트를 닫는다
+          if (formatYYYYMMDD(selectedDateRef.current) === baseDay) {
+            setDaySheetOpen(false);
+          }
           showAppAlert({ title: "오류", message: "일지 정보를 불러오지 못했습니다." });
         });
     },
@@ -664,7 +679,7 @@ export function DriveHomeScreen() {
                 운행일지 작성을 위해 차량의 기본 정보를 입력해주세요.
               </Text>
               <Pressable
-                onPress={() => router.push("/drive/vehicle")}
+                onPress={handleRegisterVehicle}
                 className="mt-3 self-end rounded-lg bg-primary px-4 py-2"
               >
                 <Text className="text-[14px] font-semibold text-white">등록하기</Text>
@@ -688,7 +703,12 @@ export function DriveHomeScreen() {
       />
 
       <DriveDaySheet
-        visible={daySheetOpen && Boolean(vehicle?.id)}
+        visible={
+          daySheetOpen &&
+          Boolean(vehicle?.id) &&
+          daySheetListsDay === formatYYYYMMDD(selectedDate) &&
+          daySheetLists !== null
+        }
         selectedDate={selectedDate}
         listsSettled={
           daySheetListsDay === formatYYYYMMDD(selectedDate) && daySheetLists !== null
@@ -754,7 +774,7 @@ export function DriveHomeScreen() {
         onLeft={() => setVehiclePromptOpen(false)}
         onRight={() => {
           setVehiclePromptOpen(false);
-          router.push("/drive/vehicle");
+          handleRegisterVehicle();
         }}
       >
         <Text className="text-center text-[14px] text-gray700">

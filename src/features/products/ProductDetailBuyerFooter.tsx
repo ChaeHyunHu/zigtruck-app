@@ -145,21 +145,14 @@ export function ProductDetailBuyerFooter({
     await navigateToProductChatSafely(product.id);
   }, [isAuthenticated, product.id]);
 
+  // 비로그인 상태에서도 바텀시트는 열고, 시트 내부 '신청하기'에서 로그인 유도
   const onPressPurchaseAccompanying = useCallback(() => {
-    if (!isAuthenticated) {
-      promptLogin();
-      return;
-    }
     setAccompanyingOpen(true);
-  }, [isAuthenticated]);
+  }, []);
 
   const onPressCapital = useCallback(() => {
-    if (!isAuthenticated) {
-      promptLogin();
-      return;
-    }
     setCapitalSheetOpen(true);
-  }, [isAuthenticated]);
+  }, []);
 
   const onPressContact = useCallback(() => {
     if (!isAuthenticated) {

@@ -11,6 +11,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Keyboard,
   Modal,
   Pressable,
   StyleSheet,
@@ -51,6 +52,12 @@ type AnimatedBottomSheetModalProps = {
    * 튜토리얼 spotlight처럼 시트와 같은 native window에서 가장 위에 그려야 하는 경우 사용.
    */
   tutorialOverlay?: React.ReactNode;
+  /**
+   * 시트와 같은 native window 안(가장 위)에 그릴 중첩 시트(달력·주소검색 등).
+   * 부모가 Modal이어도 자식 noModal 시트가 같은 window에 stacking되어
+   * Modal-on-Modal 문제(자식이 안 열리거나 닫은 뒤 터치 먹통) 없이 동작한다.
+   */
+  nestedSheets?: React.ReactNode;
 };
 
 export type AnimatedBottomSheetModalRef = {
@@ -73,6 +80,7 @@ export const AnimatedBottomSheetModal = forwardRef<
     noModal = false,
     overlayZIndex = 1001,
     tutorialOverlay,
+    nestedSheets,
   },
   ref,
 ) {
@@ -90,12 +98,25 @@ export const AnimatedBottomSheetModal = forwardRef<
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const sheetTranslateY = useRef(new Animated.Value(effectiveSheetHeight)).current;
   const insets = useAppSafeAreaInsets();
+  // 닫기 애니메이션 도중 다시 열렸는지 판단용 (teardown 취소)
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
+  // noModal 시트: 마운트 후 시트 뷰가 실제 레이아웃된 뒤(onLayout) 슬라이드업을 1회 시작
+  const openOnLayoutRef = useRef(false);
 
   useEffect(() => {
     if (!isOnScreen) {
       sheetTranslateY.setValue(effectiveSheetHeight);
+      return;
     }
-  }, [isOnScreen, effectiveSheetHeight, sheetTranslateY]);
+    // noModal 시트에 한해: 열려 있어야 하는데(visible) 열기/닫기 애니메이션 중이 아니면
+    // 항상 0으로 고정. (예: 운행일지 DaySheet 에서 listsSettled 변경으로 sheetHeight 가
+    // 바뀔 때 시트가 화면 밖에 stuck 되어 backdrop 만 보이는 현상 방지)
+    // RN Modal 시트는 onShow 기반 애니메이션을 건드리지 않도록 제외한다.
+    if (noModal && visible && !isOpeningRef.current && !isClosingRef.current) {
+      sheetTranslateY.setValue(0);
+    }
+  }, [isOnScreen, visible, effectiveSheetHeight, sheetTranslateY, noModal]);
 
   const completeClose = useCallback(
     (afterClose?: () => void) => {
@@ -115,6 +136,9 @@ export const AnimatedBottomSheetModal = forwardRef<
         afterClose?.();
         return;
       }
+      // iOS: 키보드가 열린 채 시트/Modal이 닫히면 투명 레이어가 남아 화면 터치가
+      // 막히는 현상 방지 — 닫기 시작 시 키보드를 내린다.
+      Keyboard.dismiss();
       isClosingRef.current = true;
 
       // 닫을 때: 시트 슬라이드 다운과 backdrop fade-out을 함께 → 깜빡임 없음
@@ -132,6 +156,11 @@ export const AnimatedBottomSheetModal = forwardRef<
           useNativeDriver: true,
         }),
       ]).start(({ finished }) => {
+        // 닫는 도중 다시 열렸다면(useLayoutEffect rising 분기가 isClosingRef 를 false 로
+        // 리셋하고 새 open 을 시작) teardown 을 건너뛴다.
+        if (!isClosingRef.current) {
+          return;
+        }
         completeClose(finished ? afterClose : undefined);
         if (!finished) {
           afterClose?.();
@@ -155,6 +184,10 @@ export const AnimatedBottomSheetModal = forwardRef<
 
     const completeOpen = () => {
       isOpeningRef.current = false;
+      // 실기기에서 슬라이드업이 묻혀 화면 밖에 stuck 되는 경우 방지 — 끝나면 0으로 보장
+      if (visibleRef.current && !isClosingRef.current) {
+        sheetTranslateY.setValue(0);
+      }
     };
 
     const sheetAnim = Animated.timing(sheetTranslateY, {
@@ -189,16 +222,25 @@ export const AnimatedBottomSheetModal = forwardRef<
     if (visible) {
       if (rising) {
         openedAtRef.current = Date.now();
+        // 입력(키보드) 중에 시트가 새로 열리면 키보드를 내린다.
+        // (input 포커스 상태에서 날짜·카테고리 등 다른 시트 여는 버튼을 누른 경우)
+        Keyboard.dismiss();
       }
       isClosingRef.current = false;
       setIsOnScreen(true);
       if (rising) {
-        // noModal은 인라인 렌더라 즉시 애니메이션 시작.
-        // RN Modal은 마운트 경합(특히 모달 위 모달)으로 슬라이드업이 묻히므로
-        // Modal onShow에서 애니메이션을 시작한다. 그 전까지는 시트를 화면 밖에 둔다.
         if (noModal) {
-          runOpenAnimation();
+          // noModal은 인라인 렌더. 마운트 직후 즉시 애니메이션을 시작하면 실기기에서
+          // 네이티브 뷰 레이아웃 경합으로 슬라이드업이 묻히거나 끊겨
+          // "올라왔다 사라졌다 다시 올라오는" 모션이 생긴다.
+          // → 시트 뷰가 실제 레이아웃된 뒤(onLayout) 한 번만 슬라이드업을 시작한다.
+          sheetTranslateY.setValue(effectiveSheetHeight);
+          backdropOpacity.setValue(0);
+          isOpeningRef.current = true;
+          openOnLayoutRef.current = true;
         } else {
+          // RN Modal은 마운트 경합(특히 모달 위 모달)으로 슬라이드업이 묻히므로
+          // Modal onShow에서 애니메이션을 시작한다. 그 전까지는 시트를 화면 밖에 둔다.
           sheetTranslateY.setValue(effectiveSheetHeight);
           backdropOpacity.setValue(0);
         }
@@ -284,6 +326,13 @@ export const AnimatedBottomSheetModal = forwardRef<
           />
         )}
         <Animated.View
+          onLayout={() => {
+            // noModal 시트는 뷰가 실제 레이아웃된 이 시점에 슬라이드업을 1회 시작 (묻힘/더블모션 방지)
+            if (openOnLayoutRef.current) {
+              openOnLayoutRef.current = false;
+              runOpenAnimation();
+            }
+          }}
           style={[
             styles.sheet,
             {
@@ -302,6 +351,10 @@ export const AnimatedBottomSheetModal = forwardRef<
           {tutorialOverlay}
         </View>
       ) : null}
+
+      {/* 중첩 시트(달력·주소검색 등)는 각자 absolute 오버레이라 래퍼 없이 직접 렌더한다.
+          (불필요한 full-screen 레이어가 폼의 X·저장 버튼 터치를 가리는 문제 방지) */}
+      {nestedSheets}
     </View>
   );
 

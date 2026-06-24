@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Keyboard, Pressable, ScrollView, Text, View } from "react-native";
 
 import {
   BottomSheet,
@@ -90,6 +90,8 @@ export function OtherExpenseFormBottomSheet({
   useEffect(() => {
     if (!visible) {
       setCategorySheetOpen(false);
+      setCalendarOpen(false);
+      setDeleteOpen(false);
       return;
     }
     if (tutorialStep === 5 || tutorialOpenCategory) {
@@ -133,6 +135,8 @@ export function OtherExpenseFormBottomSheet({
       showAppAlert({ title: "입력 확인", message: "금액을 입력해주세요." });
       return;
     }
+    // iOS: 키보드가 열린 채 Modal이 닫히면 터치가 막히는 현상 방지
+    Keyboard.dismiss();
     try {
       setSubmitting(true);
       const body = {
@@ -160,6 +164,31 @@ export function OtherExpenseFormBottomSheet({
     }
   };
 
+  const nestedSheets = (
+    <>
+      <DriveDateCalendarPicker
+        visible={calendarOpen}
+        selectedYmd={formDay}
+        onClose={() => setCalendarOpen(false)}
+        onSelect={setFormDay}
+      />
+
+      <OtherExpenseCategorySheet
+        visible={categorySheetOpen}
+        categoryType={categoryType}
+        driveVehicleInfoId={driveVehicleInfoId}
+        categories={categories}
+        selectedCategoryId={selectedCategory?.id ?? null}
+        initialManageMode={tutorialStep === 5}
+        tutorialOverlay={tutorialSubSheetOverlay}
+        noModal
+        onClose={() => setCategorySheetOpen(false)}
+        onSelect={setSelectedCategory}
+        onCategoriesChange={setCategories}
+      />
+    </>
+  );
+
   return (
     <>
       <BottomSheet
@@ -169,6 +198,7 @@ export function OtherExpenseFormBottomSheet({
         minTopInset={minTopInset}
         noModal={noModal}
         tutorialOverlay={tutorialOverlay}
+        nestedSheets={nestedSheets}
       >
         <View className="flex-1 bg-white">
           <BottomSheetHeader
@@ -178,6 +208,7 @@ export function OtherExpenseFormBottomSheet({
           <ScrollView
             className="flex-1"
             keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
             contentContainerStyle={{ paddingBottom: 8 }}
           >
             <DriveFormRow
@@ -281,13 +312,6 @@ export function OtherExpenseFormBottomSheet({
         </View>
       </BottomSheet>
 
-      <DriveDateCalendarPicker
-        visible={calendarOpen}
-        selectedYmd={formDay}
-        onClose={() => setCalendarOpen(false)}
-        onSelect={setFormDay}
-      />
-
       <ConfirmDialog
         visible={deleteOpen}
         title="기타내역 삭제"
@@ -295,6 +319,7 @@ export function OtherExpenseFormBottomSheet({
         onLeft={() => setDeleteOpen(false)}
         onRight={async () => {
           if (!editId) return;
+          Keyboard.dismiss();
           try {
             setSubmitting(true);
             await removeOtherExpenseHistories([editId]);
@@ -310,20 +335,6 @@ export function OtherExpenseFormBottomSheet({
       >
         <Text className="text-center text-[14px] text-gray700">삭제하시겠습니까?</Text>
       </ConfirmDialog>
-
-      <OtherExpenseCategorySheet
-        visible={categorySheetOpen}
-        categoryType={categoryType}
-        driveVehicleInfoId={driveVehicleInfoId}
-        categories={categories}
-        selectedCategoryId={selectedCategory?.id ?? null}
-        initialManageMode={tutorialStep === 5}
-        tutorialOverlay={tutorialSubSheetOverlay}
-        noModal={noModal}
-        onClose={() => setCategorySheetOpen(false)}
-        onSelect={setSelectedCategory}
-        onCategoriesChange={setCategories}
-      />
     </>
   );
 }

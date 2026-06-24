@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Keyboard, Pressable, ScrollView, Text, View } from "react-native";
 
 import { showAppAlert } from "@/src/providers/appDialog";
 
@@ -113,7 +113,16 @@ export function DriveLogBottomSheet({
   }, [transits]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      // 시트가 닫힐 때 하위 오버레이(달력·주소·운송사·주유비)를 모두 닫아
+      // 고아 오버레이가 화면 터치를 막는 현상 방지
+      setCalendarOpen(false);
+      setAddressField(null);
+      setFuelSheetOpen(false);
+      setTransportSearch(null);
+      setDeleteOpen(false);
+      return;
+    }
     setFormDate(
       initial?.transferStartDate?.slice(0, 10) ?? baseDay ?? formatYYYYMMDD(new Date()),
     );
@@ -270,7 +279,11 @@ export function DriveLogBottomSheet({
 
   const submit = async () => {
     if (!validate()) return;
+    // iOS: 키보드가 열린 채 Modal(폼)이 닫히면 모달 컨테이너가 first-responder에 묶여
+    // 투명 레이어가 남아 화면 터치가 막히는 현상 방지 — 닫기 전에 키보드를 내린다.
+    Keyboard.dismiss();
     const tollNum = toll ? Number(toll.replace(/,/g, "")) : null;
+    const isEdit = Boolean(editId && initial);
 
     try {
       setSubmitting(true);
@@ -296,7 +309,6 @@ export function DriveLogBottomSheet({
           return;
         }
         await updateDriveHistory(editId, body);
-        showAppAlert({ title: "완료", message: "운행일지가 수정되었습니다." });
       } else {
         await saveDriveHistory({
           transferStartDate: formDate,
@@ -314,6 +326,13 @@ export function DriveLogBottomSheet({
       }
       onSaved();
       onClose();
+      if (isEdit) {
+        // iOS: 폼 Modal이 닫히는 동안 알림 Modal을 띄우면 두 Modal 전환이 겹쳐
+        // 투명 레이어가 남아 터치가 막힘 → 폼이 완전히 닫힌 뒤 표시한다.
+        setTimeout(() => {
+          showAppAlert({ title: "완료", message: "운행일지가 수정되었습니다." });
+        }, 400);
+      }
     } catch {
       showAppAlert({ title: "오류", message: "저장에 실패했습니다." });
     } finally {
@@ -323,6 +342,7 @@ export function DriveLogBottomSheet({
 
   const onDelete = async () => {
     if (!editId) return;
+    Keyboard.dismiss();
     try {
       setSubmitting(true);
       await removeDriveHistory(editId);
@@ -336,6 +356,73 @@ export function DriveLogBottomSheet({
     }
   };
 
+  const nestedSheets = (
+    <>
+      <DriveDateCalendarPicker
+        visible={calendarOpen}
+        selectedYmd={formDate}
+        onClose={() => setCalendarOpen(false)}
+        onSelect={setFormDate}
+      />
+
+      {addressField ? (
+        <DriveAddressSearchSheet
+          visible
+          noModal
+          title={
+            addressField === "start"
+              ? "상차지 주소 검색"
+              : addressField === "end"
+                ? "하차지 주소 검색"
+                : "경유지 주소 검색"
+          }
+          searchPlaceholder={
+            addressField === "start"
+              ? "상차지 검색"
+              : addressField === "end"
+                ? "하차지 검색"
+                : "경유지 검색"
+          }
+          onClose={closeAddressSearch}
+          onSelect={handleAddressSelect}
+        />
+      ) : null}
+
+      {transportSearch ? (
+        <DriveTransportSearchSheet
+          visible
+          noModal
+          kind={transportSearch.kind}
+          title={transportSearch.kind === "company" ? "운송사" : "운송 품목"}
+          placeholder={transportSearch.kind === "company" ? "운송사" : "운송품목"}
+          initialValue={
+            transportSearch.kind === "company"
+              ? transports[transportSearch.index]?.transportCompany ?? ""
+              : transports[transportSearch.index]?.transportItem ?? ""
+          }
+          onClose={() => setTransportSearch(null)}
+          onConfirm={(value) => {
+            if (transportSearch.kind === "company") {
+              updateTransport(transportSearch.index, { transportCompany: value });
+            } else {
+              updateTransport(transportSearch.index, { transportItem: value });
+            }
+          }}
+        />
+      ) : null}
+
+      <FuelFormBottomSheet
+        visible={fuelSheetOpen}
+        driveVehicleInfoId={driveVehicleInfoId}
+        defaultRefuelDay={formDate}
+        noModal
+        onClose={() => setFuelSheetOpen(false)}
+        onSaved={setFuelingDisplay}
+        onRefetch={onSaved}
+      />
+    </>
+  );
+
   return (
     <>
       <BottomSheet
@@ -345,6 +432,7 @@ export function DriveLogBottomSheet({
         minTopInset={minTopInset}
         noModal={noModal}
         tutorialOverlay={tutorialOverlay}
+        nestedSheets={nestedSheets}
       >
         <View className="flex-1 bg-white">
           <BottomSheetHeader
@@ -354,6 +442,7 @@ export function DriveLogBottomSheet({
           <ScrollView
             className="flex-1"
             keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
             contentContainerStyle={{ paddingBottom: 8 }}
           >
             <DriveFormRow
@@ -602,66 +691,6 @@ export function DriveLogBottomSheet({
           </View>
         </View>
       </BottomSheet>
-
-      <DriveDateCalendarPicker
-        visible={calendarOpen}
-        selectedYmd={formDate}
-        onClose={() => setCalendarOpen(false)}
-        onSelect={setFormDate}
-      />
-
-      {addressField ? (
-        <DriveAddressSearchSheet
-          visible
-          title={
-            addressField === "start"
-              ? "상차지 주소 검색"
-              : addressField === "end"
-                ? "하차지 주소 검색"
-                : "경유지 주소 검색"
-          }
-          searchPlaceholder={
-            addressField === "start"
-              ? "상차지 검색"
-              : addressField === "end"
-                ? "하차지 검색"
-                : "경유지 검색"
-          }
-          onClose={closeAddressSearch}
-          onSelect={handleAddressSelect}
-        />
-      ) : null}
-
-      {transportSearch ? (
-        <DriveTransportSearchSheet
-          visible
-          kind={transportSearch.kind}
-          title={transportSearch.kind === "company" ? "운송사" : "운송 품목"}
-          placeholder={transportSearch.kind === "company" ? "운송사" : "운송품목"}
-          initialValue={
-            transportSearch.kind === "company"
-              ? transports[transportSearch.index]?.transportCompany ?? ""
-              : transports[transportSearch.index]?.transportItem ?? ""
-          }
-          onClose={() => setTransportSearch(null)}
-          onConfirm={(value) => {
-            if (transportSearch.kind === "company") {
-              updateTransport(transportSearch.index, { transportCompany: value });
-            } else {
-              updateTransport(transportSearch.index, { transportItem: value });
-            }
-          }}
-        />
-      ) : null}
-
-      <FuelFormBottomSheet
-        visible={fuelSheetOpen}
-        driveVehicleInfoId={driveVehicleInfoId}
-        defaultRefuelDay={formDate}
-        onClose={() => setFuelSheetOpen(false)}
-        onSaved={setFuelingDisplay}
-        onRefetch={onSaved}
-      />
 
       <ConfirmDialog
         visible={deleteOpen}

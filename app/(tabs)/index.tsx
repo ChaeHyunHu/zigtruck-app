@@ -506,7 +506,7 @@ export default function HomeScreen() {
           <HomeBannerCarousel banners={homeBanners} />
           <View className="mt-[14px] gap-[10px] px-4">
             <Pressable
-              className="min-h-[100px] overflow-hidden rounded-xl bg-white px-[18px] py-4"
+              className="rounded-xl bg-white"
               style={{
                 shadowColor: "#000",
                 shadowOpacity: 0.08,
@@ -516,22 +516,24 @@ export default function HomeScreen() {
               }}
               onPress={onPressSellCar}
             >
-              <View className="z-10 w-[54%]">
-                <Text className="text-[20px] font-bold text-gray900">
-                  내차판매
-                </Text>
-                <Text className="mt-1.5 text-[12px] text-gray700">
-                  1분만에 빠르게 판매 등록하기
-                </Text>
+              <View className="min-h-[100px] overflow-hidden rounded-xl bg-white px-[18px] py-4">
+                <View className="z-10 w-[54%]">
+                  <Text className="text-[20px] font-bold text-gray900">
+                    내차판매
+                  </Text>
+                  <Text className="mt-1.5 text-[12px] text-gray700">
+                    1분만에 빠르게 판매 등록하기
+                  </Text>
+                </View>
+                <Image
+                  source={{ uri: `${IMAGE_BASE_URL}/car-sale.png` }}
+                  className="absolute right-[-8px] top-[-2px] h-[106px] w-[140px]"
+                  contentFit="contain"
+                />
               </View>
-              <Image
-                source={{ uri: `${IMAGE_BASE_URL}/car-sale.png` }}
-                className="absolute right-[-8px] top-[-2px] h-[106px] w-[140px]"
-                contentFit="contain"
-              />
             </Pressable>
             <Pressable
-              className="min-h-[100px] overflow-hidden rounded-xl bg-white px-[18px] py-4"
+              className="rounded-xl bg-white"
               style={{
                 shadowColor: "#000",
                 shadowOpacity: 0.08,
@@ -541,48 +543,50 @@ export default function HomeScreen() {
               }}
               onPress={() => router.push("/(tabs)/purchase")}
             >
-              <View className="z-10 w-[54%]">
-                <Text className="text-[20px] font-bold text-gray900">
-                  내차구매
-                </Text>
-                <Text className="mt-1.5 text-[12px] text-gray700">
-                  찾고 있는 그 차량, 여기에 있어요!
-                </Text>
-              </View>
-              {counts.productsCount > 0 ? (
-                <View className="absolute right-[6px] top-[6px] h-[22px] min-w-[22px] items-center justify-center">
-                  <Animated.View
-                    className="absolute h-[22px] w-[22px] rounded-full bg-[#ef4444]"
-                    style={{
-                      opacity: badgeRipple.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.45, 0],
-                      }),
-                      transform: [
-                        {
-                          scale: badgeRipple.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [1, 1.9],
-                          }),
-                        },
-                      ],
-                    }}
-                  />
-                  <Animated.View
-                    className="h-[22px] min-w-[22px] items-center justify-center rounded-full bg-[#FB2C36] px-1.5"
-                    style={{ transform: [{ scale: badgeScale }] }}
-                  >
-                    <Text className="text-[11px] font-bold text-white">
-                      {counts.productsCount}
-                    </Text>
-                  </Animated.View>
+              <View className="min-h-[100px] overflow-hidden rounded-xl bg-white px-[18px] py-4">
+                <View className="z-10 w-[54%]">
+                  <Text className="text-[20px] font-bold text-gray900">
+                    내차구매
+                  </Text>
+                  <Text className="mt-1.5 text-[12px] text-gray700">
+                    찾고 있는 그 차량, 여기에 있어요!
+                  </Text>
                 </View>
-              ) : null}
-              <Image
-                source={{ uri: `${IMAGE_BASE_URL}/car-purchase.png` }}
-                className="absolute right-[-4px] top-0 h-[102px] w-[132px]"
-                contentFit="contain"
-              />
+                {counts.productsCount > 0 ? (
+                  <View className="absolute right-[6px] top-[6px] h-[22px] min-w-[22px] items-center justify-center">
+                    <Animated.View
+                      className="absolute h-[22px] w-[22px] rounded-full bg-[#ef4444]"
+                      style={{
+                        opacity: badgeRipple.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.45, 0],
+                        }),
+                        transform: [
+                          {
+                            scale: badgeRipple.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 1.9],
+                            }),
+                          },
+                        ],
+                      }}
+                    />
+                    <Animated.View
+                      className="h-[22px] min-w-[22px] items-center justify-center rounded-full bg-[#FB2C36] px-1.5"
+                      style={{ transform: [{ scale: badgeScale }] }}
+                    >
+                      <Text className="text-[11px] font-bold text-white">
+                        {counts.productsCount}
+                      </Text>
+                    </Animated.View>
+                  </View>
+                ) : null}
+                <Image
+                  source={{ uri: `${IMAGE_BASE_URL}/car-purchase.png` }}
+                  className="absolute right-[-4px] top-0 h-[102px] w-[132px]"
+                  contentFit="contain"
+                />
+              </View>
             </Pressable>
           </View>
         </View>
@@ -599,7 +603,7 @@ export default function HomeScreen() {
               onPress={() =>
                 onPressService(
                   item.path,
-                  item.path === "/drive" || item.path === "/one-stop-service",
+                  item.path === "/one-stop-service",
                 )
               }
             >

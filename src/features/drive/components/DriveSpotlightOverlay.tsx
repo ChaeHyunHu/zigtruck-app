@@ -94,7 +94,9 @@ export function DriveSpotlightOverlay({
   useEffect(() => {
     if (prevStepKeyRef.current !== stepKey) {
       prevStepKeyRef.current = stepKey;
-      isFirstRectRef.current = true;
+      // 스텝이 바뀌어도 hole 을 즉시 점프시키지 않고, 새 위치가 측정되면
+      // 이전 위치에서 부드럽게 이동(slide)하도록 prevRect 만 초기화한다.
+      // (isFirstRectRef 는 첫 등장/측정 실패 후 재등장에만 즉시 배치)
       prevRectRef.current = null;
     }
   }, [stepKey]);

@@ -31,6 +31,7 @@ type Props = {
   title: string;
   placeholder: string;
   initialValue?: string;
+  noModal?: boolean;
   onClose: () => void;
   onConfirm: (value: string) => void;
 };
@@ -41,6 +42,7 @@ export function DriveTransportSearchSheet({
   title,
   placeholder,
   initialValue = "",
+  noModal = false,
   onClose,
   onConfirm,
 }: Props) {
@@ -79,6 +81,8 @@ export function DriveTransportSearchSheet({
       onClose={onClose}
       sheetHeight={sheetHeight}
       minTopInset={minTopInset}
+      noModal={noModal}
+      overlayZIndex={noModal ? 1002 : undefined}
     >
       <View className="flex-1 bg-white">
         <BottomSheetHeader title={title} onClose={onClose} />

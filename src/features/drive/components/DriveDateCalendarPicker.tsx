@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { appColors } from "@/src/constants/colors";
 import {
@@ -40,8 +40,11 @@ export function DriveDateCalendarPicker({
     onClose();
   };
 
+  if (!visible) return null;
+
+  // noModal 시트(인라인) 위에 안정적으로 렌더되도록 RN Modal 대신 absolute 오버레이 사용
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <View style={styles.overlay} pointerEvents="box-none">
       <Pressable className="flex-1 items-center justify-center bg-black/40 px-6" onPress={onClose}>
         <Pressable
           className="w-full max-w-[360px] rounded-2xl bg-white px-4 pb-4 pt-3"
@@ -118,6 +121,14 @@ export function DriveDateCalendarPicker({
           </Pressable>
         </Pressable>
       </Pressable>
-    </Modal>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1100,
+    elevation: 1100,
+  },
+});

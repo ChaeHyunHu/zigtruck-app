@@ -36,6 +36,8 @@ type BottomSheetProps = {
   overlayZIndex?: number;
   /** 시트 Modal 안 root 위에 absolute로 그려질 오버레이 (튜토리얼 spotlight 등) */
   tutorialOverlay?: React.ReactNode;
+  /** 시트와 같은 window 안에 stacking할 중첩 시트(달력·주소검색 등) */
+  nestedSheets?: React.ReactNode;
 };
 
 /**
@@ -59,6 +61,7 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
       noModal = false,
       overlayZIndex,
       tutorialOverlay,
+      nestedSheets,
     },
     ref,
   ) {
@@ -85,6 +88,7 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
         noModal={noModal}
         overlayZIndex={overlayZIndex}
         tutorialOverlay={tutorialOverlay}
+        nestedSheets={nestedSheets}
       >
         {body}
       </AnimatedBottomSheetModal>

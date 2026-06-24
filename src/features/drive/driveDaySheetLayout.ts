@@ -1,5 +1,3 @@
-import { Dimensions } from "react-native";
-
 import { getDefaultBottomSheetHeight } from "@/src/components/common/AnimatedBottomSheetModal";
 import type {
   DriveHistoryItem,
@@ -20,7 +18,6 @@ const DRIVE_PILLS_HEIGHT = 30;
 const FUEL_CARD_HEIGHT = 72;
 const OTHER_CARD_HEIGHT = 52;
 
-const MIN_RATIO_WITH_DATA = 0.52;
 const MAX_SHEET_RATIO = 0.84;
 
 export type DriveDaySheetLayoutInput = {
@@ -74,38 +71,32 @@ function estimateContentBodyHeight(input: DriveDaySheetLayoutInput) {
 }
 
 export function getDriveDaySheetLayout(input: DriveDaySheetLayoutInput) {
-  const screenHeight = Dimensions.get("window").height;
   const chromeHeight = HEADER_HEIGHT + ACTION_ROW_HEIGHT + SCROLL_PADDING_V;
   const maxHeight = getDefaultBottomSheetHeight(
     MAX_SHEET_RATIO,
     input.topReserved,
     input.bottomPad,
   );
-  const minWithData = Math.round(screenHeight * MIN_RATIO_WITH_DATA);
-
+  // 내역이 없으면 안내 문구 높이에 맞춰 최소로 (하단 빈 공백 제거)
   const isEmpty =
-    input.listsSettled &&
     input.driveItems.length === 0 &&
     input.fuelItems.length === 0 &&
     input.otherItems.length === 0;
-
-  if (!input.listsSettled) {
-    const sheetHeight = chromeHeight + 56 + input.bottomPad;
-    return { sheetHeight, contentLayout: "hug" as const };
-  }
 
   if (isEmpty) {
     const sheetHeight = chromeHeight + EMPTY_MESSAGE_HEIGHT + input.bottomPad;
     return { sheetHeight, contentLayout: "hug" as const };
   }
 
+  // 내역이 있으면 내용 높이에 맞춰(auto) 열고, max 를 넘으면 max 로 제한 + 내부 스크롤.
+  // 시트는 데이터가 확정된 뒤(DriveHomeScreen 에서 listsSettled 후) 열리므로,
+  // 열린 뒤 높이가 바뀌어 더블 모션이 생기는 일은 없다.
   const bodyHeight = estimateContentBodyHeight(input);
-  const totalNeeded = chromeHeight + bodyHeight;
+  const totalNeeded = chromeHeight + bodyHeight + input.bottomPad;
 
   if (totalNeeded >= maxHeight) {
     return { sheetHeight: maxHeight, contentLayout: "fill" as const };
   }
 
-  const sheetHeight = Math.max(minWithData, totalNeeded) + input.bottomPad;
-  return { sheetHeight, contentLayout: "hug" as const };
+  return { sheetHeight: totalNeeded, contentLayout: "hug" as const };
 }

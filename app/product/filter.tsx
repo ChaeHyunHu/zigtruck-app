@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   Pressable,
   Text,
   TextInput,
@@ -222,6 +223,9 @@ export default function ProductFilterScreen() {
   };
 
   const onApply = useCallback(() => {
+    // 내차구매 화면 복귀 시 검색 input 으로 포커스가 넘어가 키패드가
+    // 자동으로 뜨는 현상 방지
+    Keyboard.dismiss();
     setPendingPurchaseFilterParams(filtersToParams(filters));
     router.back();
   }, [filters]);

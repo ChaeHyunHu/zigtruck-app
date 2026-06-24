@@ -17,6 +17,7 @@ import React, {
 } from "react";
 import {
   FlatList,
+  Keyboard,
   ListRenderItem,
   Pressable,
   RefreshControl,
@@ -138,6 +139,7 @@ export default function PurchaseScreen() {
     })(),
   );
   const listRef = useRef<FlatList<ProductListItem>>(null);
+  const searchInputRef = useRef<TextInput>(null);
   const scrollOffsetRef = useRef(purchaseListCache?.scrollOffset ?? 0);
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fetchGenerationRef = useRef(0);
@@ -246,6 +248,14 @@ export default function PurchaseScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      // 필터 화면 등에서 복귀할 때 iOS 가 검색 input 으로 포커스를 복원하며
+      // 키패드를 자동으로 띄우는 현상 방지
+      Keyboard.dismiss();
+      searchInputRef.current?.blur();
+      requestAnimationFrame(() => {
+        searchInputRef.current?.blur();
+      });
+
       const pending = takePendingPurchaseFilterParams();
       if (pending) {
         const nextFilters = filtersFromParams(pending);
@@ -422,6 +432,9 @@ export default function PurchaseScreen() {
       (prev.keyword ?? "") !== (filters.keyword ?? "");
 
     filtersKeyRef.current = nextKey;
+    // 우리가 직접 URL을 갱신하는 경우이므로, 뒤이어 실행될 params effect가
+    // stale URL 로 필터를 다시 주입하지 않도록 appliedParamsKeyRef 도 동기화
+    appliedParamsKeyRef.current = nextKey;
     prevFiltersRef.current = filters;
     router.setParams(filtersToParams(filters) as never);
 
@@ -536,23 +549,11 @@ export default function PurchaseScreen() {
     setFilters((prev) => ({ ...prev, salesType }));
   }, []);
 
+  // 필터 해제: 메모리 필터 + URL params 를 모두 기본값으로 초기화해야
+  // stale URL 로 인해 필터가 되살아나지 않는다 (resetPurchaseFilters 와 동일 동작)
   const onClearFilters = useCallback(() => {
-    const defaults = createDefaultFilters();
-    const nextKey = JSON.stringify(filtersToParams(defaults));
-    appliedParamsKeyRef.current = nextKey;
-    filtersKeyRef.current = nextKey;
-    prevFiltersRef.current = defaults;
-    setFilters(defaults);
-    setKeywordDraft("");
-    hasDataRef.current = false;
-    scrollOffsetRef.current = 0;
-    purchaseListCache = null;
-    setProducts([]);
-    setCurrentPage(1);
-    setTotalPages(1);
-    listRef.current?.scrollToOffset({ offset: 0, animated: false });
-    loadFirstPage(false, defaults);
-  }, [loadFirstPage]);
+    resetPurchaseFilters();
+  }, [resetPurchaseFilters]);
 
   const showClearFilters = useMemo(() => hasActiveFilters(filters), [filters]);
 
@@ -613,6 +614,7 @@ export default function PurchaseScreen() {
 
         <View className="mt-3 flex-row items-center rounded-[10px] border border-gray300 bg-gray100 px-3">
           <TextInput
+            ref={searchInputRef}
             value={keywordDraft}
             onChangeText={onChangeKeyword}
             placeholder="차량을 검색해보세요."

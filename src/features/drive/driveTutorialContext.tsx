@@ -151,7 +151,10 @@ export function DriveTutorialProvider({
       setDisplayRect(null);
       return;
     }
-    setDisplayRect(rectsRef.current[step] ?? null);
+    // 스텝 전환 시 displayRect 를 비우거나 캐시로 즉시 바꾸지 않고 이전 위치를 유지한다.
+    // 새 위치가 측정되면 overlay 가 이전 hole 에서 새 hole 로 부드럽게 이동(slide)한다.
+    const cached = rectsRef.current[step];
+    if (cached) setDisplayRect(cached);
     measureStepRect(step);
     const timers = REMEASURE_MS.map((ms) =>
       setTimeout(() => measureStepRect(step), ms),

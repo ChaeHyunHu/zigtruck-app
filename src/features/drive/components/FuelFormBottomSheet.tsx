@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActionSheetIOS,
   Alert,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -51,6 +52,7 @@ type Props = {
   visible: boolean;
   driveVehicleInfoId: number;
   defaultRefuelDay: string;
+  noModal?: boolean;
   onClose: () => void;
   /** 일지 폼에서 주유비 연동 시에만 사용 */
   onSaved?: (displayValue: string) => void;
@@ -61,6 +63,7 @@ export function FuelFormBottomSheet({
   visible,
   driveVehicleInfoId,
   defaultRefuelDay,
+  noModal = false,
   onClose,
   onSaved,
   onRefetch,
@@ -85,6 +88,8 @@ export function FuelFormBottomSheet({
       setPrice("");
       setReceiptImageUrl("");
       setAmountError("");
+    } else {
+      setCalendarOpen(false);
     }
   }, [visible, defaultRefuelDay]);
 
@@ -226,6 +231,8 @@ export function FuelFormBottomSheet({
     }
     if (amountError) return;
 
+    // iOS: 키보드가 열린 채 Modal이 닫히면 터치가 막히는 현상 방지
+    Keyboard.dismiss();
     try {
       setSubmitting(true);
       await saveFuelingHistory({
@@ -250,6 +257,15 @@ export function FuelFormBottomSheet({
     }
   };
 
+  const nestedSheets = (
+    <DriveDateCalendarPicker
+      visible={calendarOpen}
+      selectedYmd={refuelDay || formatYYYYMMDD(new Date())}
+      onClose={() => setCalendarOpen(false)}
+      onSelect={setRefuelDay}
+    />
+  );
+
   return (
     <>
       <BottomSheet
@@ -257,10 +273,16 @@ export function FuelFormBottomSheet({
         onClose={onClose}
         sheetHeight={sheetHeight}
         minTopInset={minTopInset}
+        noModal={noModal}
+        nestedSheets={nestedSheets}
       >
         <View className="flex-1 bg-white">
           <BottomSheetHeader title="주유비 추가" onClose={onClose} />
-          <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
+          <ScrollView
+            className="flex-1"
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
+          >
             <View className="px-4 pb-28 pt-2">
               <Text className="mb-2 text-[15px] text-gray700">영수증</Text>
               <Pressable
@@ -362,13 +384,6 @@ export function FuelFormBottomSheet({
           </View>
         </View>
       </BottomSheet>
-
-      <DriveDateCalendarPicker
-        visible={calendarOpen}
-        selectedYmd={refuelDay || formatYYYYMMDD(new Date())}
-        onClose={() => setCalendarOpen(false)}
-        onSelect={setRefuelDay}
-      />
     </>
   );
 }

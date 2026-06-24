@@ -91,6 +91,7 @@ export function PurchaseAccompanyingServiceBottomSheet({
 
   const onPressApply = useCallback(() => {
     if (!isAuthenticated) {
+      dismissSheet();
       promptLogin();
       return;
     }
@@ -106,7 +107,7 @@ export function PurchaseAccompanyingServiceBottomSheet({
       return;
     }
     setConfirmOpen(true);
-  }, [isAuthenticated, productId, profile?.name, profile?.phoneNumber]);
+  }, [dismissSheet, isAuthenticated, productId, profile?.name, profile?.phoneNumber]);
 
   const onConfirmApply = useCallback(async () => {
     if (!productId || !profile?.name || !profile?.phoneNumber) return;

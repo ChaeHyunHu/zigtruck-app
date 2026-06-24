@@ -130,6 +130,7 @@ export function ProductDetailServiceBottomSheet({
 
   const onPressApply = useCallback(() => {
     if (!isAuthenticated) {
+      dismissSheet();
       promptLogin();
       return;
     }
@@ -141,7 +142,7 @@ export function ProductDetailServiceBottomSheet({
       return;
     }
     setConfirmOpen(true);
-  }, [isAuthenticated, profile?.name, profile?.phoneNumber]);
+  }, [dismissSheet, isAuthenticated, profile?.name, profile?.phoneNumber]);
 
   const onConfirmApply = useCallback(async () => {
     if (!sheetKind || !config || !profile?.name || !profile?.phoneNumber) return;

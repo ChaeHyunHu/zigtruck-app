@@ -8,8 +8,6 @@ import {
 } from "@/src/features/additional-services/components/ProductDetailServiceBottomSheet";
 import { formatNumberWithComma } from "@/src/features/home/utils";
 import { useLoanCalculator } from "@/src/hooks/useLoanCalculator";
-import { useAuth } from "@/src/hooks/useAuth";
-import { promptLogin } from "@/src/lib/authNavigation";
 
 import type { ProductDetail } from "./types";
 
@@ -25,15 +23,11 @@ type ProductDetailRecommendedServicesProps = {
 export function ProductDetailRecommendedServices({
   detail,
 }: ProductDetailRecommendedServicesProps) {
-  const { isAuthenticated } = useAuth();
   const { loanCalculatorState } = useLoanCalculator(detail.price ?? 0);
   const [sheetKind, setSheetKind] = useState<ProductDetailServiceSheetKind>(null);
 
+  // 비로그인 상태에서도 바텀시트는 열고, 시트 내부 '신청하기'에서 로그인 유도
   const openSheet = (kind: Exclude<ProductDetailServiceSheetKind, null>) => {
-    if (!isAuthenticated) {
-      promptLogin();
-      return;
-    }
     setSheetKind(kind);
   };
 
