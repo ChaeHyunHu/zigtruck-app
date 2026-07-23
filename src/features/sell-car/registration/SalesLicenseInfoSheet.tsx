@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Keyboard,
+  Platform,
   Pressable,
   Text,
   TextInput,
@@ -54,6 +56,24 @@ export function SalesLicenseInfoSheet({
   );
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [typeOptions, setTypeOptions] = useState<OptionItem[]>([]);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // 번호판 금액 input 포커스 시 키보드가 시트를 가리지 않도록, 키보드 높이만큼
+  // 시트를 위로 올린다. (input·저장 버튼이 키보드 위로 보이게)
+  useEffect(() => {
+    if (!visible) return;
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    });
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+      setKeyboardHeight(0);
+    };
+  }, [visible]);
 
   const tonsNumber = Number(tons);
   const maxTons = Number.isFinite(tonsNumber)
@@ -113,6 +133,7 @@ export function SalesLicenseInfoSheet({
       showAppAlert({ title: "입력 필요", message: "번호판 종류와 금액을 입력해주세요." });
       return;
     }
+    Keyboard.dismiss();
     onSave({
       licenseType,
       price: normalizedPrice,
@@ -121,21 +142,39 @@ export function SalesLicenseInfoSheet({
   };
 
   return (
-    <>
-      <BottomSheet
-        visible={visible}
-        onClose={onClose}
-        contentLayout="hug"
-        sheetHeight={sheetHeight}
-      >
-        <View className="bg-white">
+    <BottomSheet
+      visible={visible}
+      onClose={onClose}
+      contentLayout="hug"
+      sheetHeight={sheetHeight}
+      sheetStyle={keyboardHeight > 0 ? { marginBottom: keyboardHeight } : undefined}
+      nestedSheets={
+        <OptionPickerSheet
+          noModal
+          visible={typePickerOpen}
+          title="번호판 종류"
+          options={typeOptions}
+          selectedCode={licenseType.code || undefined}
+          onClose={() => setTypePickerOpen(false)}
+          onSelect={(item) => {
+            setLicenseType({ code: item.code, desc: item.desc });
+            setTypePickerOpen(false);
+          }}
+        />
+      }
+    >
+      <View className="bg-white">
           <BottomSheetHeader title="번호판 정보" onClose={onClose} bordered />
           <LicenseSearchTypeRow
             label="번호판 종류"
             value={
               getLicenseTypeDisplay(licenseType, maxTons) || "번호판 종류 선택"
             }
-            onPress={() => setTypePickerOpen(true)}
+            onPress={() => {
+              // 번호판 금액 input 키보드가 떠 있으면 먼저 내리고 종류 선택 시트를 올린다.
+              Keyboard.dismiss();
+              setTypePickerOpen(true);
+            }}
           />
           <View className="flex-row items-center border-b border-gray300 px-4 py-4">
             <Text className="w-[100px] text-[16px] font-semibold text-gray800">
@@ -167,19 +206,6 @@ export function SalesLicenseInfoSheet({
             </Pressable>
           </View>
         </View>
-      </BottomSheet>
-
-      <OptionPickerSheet
-        visible={typePickerOpen}
-        title="번호판 종류"
-        options={typeOptions}
-        selectedCode={licenseType.code || undefined}
-        onClose={() => setTypePickerOpen(false)}
-        onSelect={(item) => {
-          setLicenseType({ code: item.code, desc: item.desc });
-          setTypePickerOpen(false);
-        }}
-      />
-    </>
+    </BottomSheet>
   );
 }

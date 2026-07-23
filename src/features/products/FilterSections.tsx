@@ -225,6 +225,8 @@ type RadioProps = {
   options: Array<{ code: string; label: string; count?: number }>;
   selectedCode?: string;
   onSelect: (code?: string) => void;
+  /** false면 옵션 라벨에 매물 수(숫자)를 표시하지 않음 */
+  showCount?: boolean;
 };
 
 export function FilterRadioSection({
@@ -232,6 +234,7 @@ export function FilterRadioSection({
   options,
   selectedCode,
   onSelect,
+  showCount = true,
 }: RadioProps) {
   return (
     <View className="border-b border-gray200 px-4 py-5">
@@ -242,7 +245,11 @@ export function FilterRadioSection({
           return (
             <PressableRadio
               key={option.code}
-              label={formatFilterRadioLabel(option.label, option.count)}
+              label={
+                showCount
+                  ? formatFilterRadioLabel(option.label, option.count)
+                  : option.label
+              }
               active={isActive}
               onPress={() => {
                 if (isActive) {

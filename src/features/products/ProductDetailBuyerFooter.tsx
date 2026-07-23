@@ -135,14 +135,19 @@ export function ProductDetailBuyerFooter({
     setOwnerSheetOpen(false);
   }, [isAuthenticated, memberTypeCode, product]);
 
-  const onPressChat = useCallback(async () => {
+  const onPressChat = useCallback(() => {
     if (!isAuthenticated) {
       promptLogin();
       return;
     }
     setInquiryModalOpen(false);
     setOwnerSheetOpen(false);
-    await navigateToProductChatSafely(product.id);
+    // iOS: 소유자 확인 시트(native Modal) 닫기 애니메이션이 끝나기 전에 채팅방으로
+    // 이동하면 Modal이 orphaned 상태로 남아, 뒤로 돌아왔을 때 투명 레이어가 터치를
+    // 막는다. 시트가 완전히 닫힌 뒤 이동한다.
+    setTimeout(() => {
+      void navigateToProductChatSafely(product.id);
+    }, 320);
   }, [isAuthenticated, product.id]);
 
   // 비로그인 상태에서도 바텀시트는 열고, 시트 내부 '신청하기'에서 로그인 유도
@@ -186,9 +191,15 @@ export function ProductDetailBuyerFooter({
     void onPressPhone();
   }, [isAuthenticated, onPressPhone]);
 
+  // 소유자 확인 시트를 닫지 않고, 같은 Modal window 안에 문의 모달을 오버레이로 띄운다.
+  // (iOS에서 Modal 닫고 곧바로 다른 Modal 띄울 때 터치 막히는 문제 방지)
   const onOwnerSheetInquiry = useCallback(() => {
+    setInquiryModalOpen(true);
+  }, []);
+
+  const closeOwnerFlow = useCallback(() => {
+    setInquiryModalOpen(false);
     setOwnerSheetOpen(false);
-    setTimeout(() => setInquiryModalOpen(true), 280);
   }, []);
 
   return (
@@ -292,17 +303,19 @@ export function ProductDetailBuyerFooter({
       <OwnerVerificationBottomSheet
         visible={ownerSheetOpen}
         product={product}
-        onClose={() => setOwnerSheetOpen(false)}
+        onClose={closeOwnerFlow}
         onPressInquiry={onOwnerSheetInquiry}
-      />
-
-      <ProductInquiryModal
-        visible={inquiryModalOpen}
-        product={product}
-        memberTypeCode={memberTypeCode}
-        onClose={() => setInquiryModalOpen(false)}
-        onPressPhone={onPressPhone}
-        onPressChat={onPressChat}
+        nestedSheets={
+          <ProductInquiryModal
+            asOverlay
+            visible={inquiryModalOpen}
+            product={product}
+            memberTypeCode={memberTypeCode}
+            onClose={() => setInquiryModalOpen(false)}
+            onPressPhone={onPressPhone}
+            onPressChat={onPressChat}
+          />
+        }
       />
     </>
   );

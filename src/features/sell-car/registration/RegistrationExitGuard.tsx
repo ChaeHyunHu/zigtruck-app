@@ -1,4 +1,4 @@
-import { router, useGlobalSearchParams } from "expo-router";
+import { router, useGlobalSearchParams, usePathname } from "expo-router";
 import React, {
   createContext,
   useCallback,
@@ -36,10 +36,16 @@ export function RegistrationExitGuardProvider({
 }) {
   const { resetRegistration } = useProductRegistration();
   const { from } = useGlobalSearchParams<{ from?: string }>();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
   const entrySourceRef = useRef<RegistrationEntrySource>(
     REGISTRATION_ENTRY_SELL_CAR,
   );
   const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     if (from === REGISTRATION_ENTRY_MANAGE) {
@@ -58,11 +64,24 @@ export function RegistrationExitGuardProvider({
   const handleExit = useCallback(() => {
     setVisible(false);
     resetRegistration();
-    if (entrySourceRef.current === REGISTRATION_ENTRY_MANAGE) {
-      router.replace("/(tabs)/manage");
-      return;
-    }
-    router.replace("/sell-car");
+
+    const path = pathnameRef.current ?? "";
+    // 등록 첫 단계(등록원부 확인 / 모델 선택 1/9)에서 나가면 내차판매로,
+    // 그 이후(작성 진행 중)에 나가면 임시저장 차량을 볼 수 있는 내차관리로 이동.
+    const isFirstStep =
+      path.includes("/products/sales/info") ||
+      path.includes("/products/sales/model");
+    const target =
+      entrySourceRef.current === REGISTRATION_ENTRY_MANAGE
+        ? "/(tabs)/manage"
+        : isFirstStep
+          ? "/sell-car"
+          : "/(tabs)/manage";
+
+    // 확인 오버레이(setVisible(false))가 먼저 제거된 뒤 화면을 전환한다.
+    requestAnimationFrame(() => {
+      router.replace(target);
+    });
   }, [resetRegistration]);
 
   useEffect(() => {

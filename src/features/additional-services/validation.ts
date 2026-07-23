@@ -1,7 +1,8 @@
-const nameRegex = /^[가-힣a-zA-Z\s]+$/;
+const nameRegex = /^[가-힣a-zA-Z0-9]+$/;
 const phoneNumberRegex = /^01[0-9]{8,9}$/;
 
-export const NAME_VALIDATION_MESSAGE = "한글, 영문만 입력 가능합니다.";
+export const NAME_VALIDATION_MESSAGE =
+  "이름은 띄어쓰기 없이 한글, 영문, 숫자만 입력해주세요.";
 export const NAME_VALIDATION_LENGTH_MESSAGE = "이름은 20자 이내로 입력해주세요.";
 export const PHONE_NUMBER_VALIDATION_LENGTH_MESSAGE =
   "휴대폰 번호는 11자리 이하로 입력해주세요.";

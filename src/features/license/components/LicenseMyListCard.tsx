@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
@@ -39,7 +40,10 @@ export function LicenseMyListCard({ item, onChanged }: Props) {
   const onMenuAction = useCallback((code: string) => {
     switch (code) {
       case "MODIFY":
-        showAppAlert({ title: "안내", message: "번호판 수정은 준비 중입니다." });
+        router.push({
+          pathname: "/license/edit/[id]",
+          params: { id: String(item.id) },
+        });
         return;
       case "DELETE":
         setPendingAction("DELETE");

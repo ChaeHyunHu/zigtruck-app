@@ -11,7 +11,10 @@ type OptionPickerSheetProps = {
   selectedCode?: string;
   onClose: () => void;
   onSelect: (item: OptionItem) => void;
-  /** @deprecated ProductEditOptionSheet 사용 — 무시됨 */
+  /**
+   * true면 다른 바텀시트(Modal) 안의 nestedSheets로 넣을 때 사용.
+   * RN Modal 대신 같은 window 안 absoluteFill 오버레이로 렌더해 Modal-on-Modal을 피한다.
+   */
   noModal?: boolean;
   /** @deprecated ProductEditOptionSheet 사용 — 무시됨 */
   overlayZIndex?: number;
@@ -28,6 +31,7 @@ export const OptionPickerSheet = React.memo(function OptionPickerSheet({
   selectedCode,
   onClose,
   onSelect,
+  noModal = false,
 }: OptionPickerSheetProps) {
   return (
     <ProductEditOptionSheet
@@ -37,6 +41,7 @@ export const OptionPickerSheet = React.memo(function OptionPickerSheet({
       selectedCode={selectedCode}
       onClose={onClose}
       onSelect={onSelect}
+      asOverlay={noModal}
     />
   );
 });

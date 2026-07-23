@@ -19,6 +19,9 @@ export default function TransferAgencyServiceScreen() {
       completedLabel="서비스 신청완료"
       footerBgClassName="bg-gray200"
       guide={<TransferGuideView />}
+      showVehicleSelector={true}
+      vehicleLabel="이전할 차량 선택하기"
+      vehicleSelectPath="/transfer-agency-service/select"
       initialVehicle={initialVehicle}
       disclaimer={
         <View className="bg-gray200 px-4 pb-2 pt-6">
@@ -37,7 +40,7 @@ export default function TransferAgencyServiceScreen() {
         createTransferAgencyServices({
           name: payload.name,
           phoneNumber: payload.phoneNumber,
-          ...(payload.chatRoomId ? { chatRoomId: payload.chatRoomId } : {}),
+          ...(payload.productId ? { productId: payload.productId } : {}),
         })
       }
       successMessage="서류 이전 대행 서비스를 신청했어요."

@@ -38,18 +38,21 @@ export default function PhotoUploadScreen() {
 
   const canProceed = validateRequiredPhotos(images);
 
-  const handleImagesChange = (next: ProductImagesState) => {
-    setProductFormData((prev) =>
-      prev
-        ? {
-            ...prev,
-            productsImage: {
-              ...(prev.productsImage ?? {}),
-              ...next,
-            },
-          }
-        : prev,
-    );
+  const handleImagesChange = (
+    updater: (prev: ProductImagesState) => ProductImagesState,
+  ) => {
+    setProductFormData((prev) => {
+      if (!prev) return prev;
+      const prevImages = buildImagesStateFromDetail(prev.productsImage);
+      const nextImages = updater(prevImages);
+      return {
+        ...prev,
+        productsImage: {
+          ...(prev.productsImage ?? {}),
+          ...nextImages,
+        },
+      };
+    });
   };
 
   const onNext = async () => {

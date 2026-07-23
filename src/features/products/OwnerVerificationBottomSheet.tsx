@@ -14,6 +14,8 @@ type OwnerVerificationBottomSheetProps = {
   product: ProductDetail;
   onClose: () => void;
   onPressInquiry: () => void;
+  /** 같은 Modal window 안(시트 위)에 띄울 오버레이(문의 모달 등) */
+  nestedSheets?: React.ReactNode;
 };
 
 export function OwnerVerificationBottomSheet({
@@ -21,6 +23,7 @@ export function OwnerVerificationBottomSheet({
   product,
   onClose,
   onPressInquiry,
+  nestedSheets,
 }: OwnerVerificationBottomSheetProps) {
   const insets = useSafeAreaInsets();
   const hasLastOwner = Boolean(product.lastOwnerInfo?.content);
@@ -63,6 +66,7 @@ export function OwnerVerificationBottomSheet({
       onClose={onClose}
       sheetHeight={sheetHeight}
       contentLayout="hug"
+      nestedSheets={nestedSheets}
       sheetStyle={{
         backgroundColor: "#ffffff",
         borderTopLeftRadius: 16,

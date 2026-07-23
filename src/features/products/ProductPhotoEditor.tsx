@@ -11,7 +11,7 @@ import {
 } from "react-native";
 
 import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
-import { showAppAlert } from "@/src/providers/appDialog";
+import { showAppAlert, showAppConfirm } from "@/src/providers/appDialog";
 import { appColors } from "@/src/constants/colors";
 import { IMAGE_BASE_URL } from "@/src/constants/url";
 import { resolveImageUri } from "@/src/features/products/utils";
@@ -42,6 +42,38 @@ const OPTIONAL_PHOTO_KEYS = [
 ] as const;
 
 const MAX_OPTIONAL_COUNT = 10;
+
+const ALLOWED_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg"];
+const EXTENSION_ERROR_MESSAGE =
+  "이미지는 png, jpg, jpeg 확장자만 등록 가능합니다. 파일을 재선택 하시겠어요?";
+
+const getExtensionFromString = (value?: string | null): string | null => {
+  if (!value) return null;
+  const clean = value.split("?")[0].split("#")[0];
+  const match = /\.([a-zA-Z0-9]+)$/.exec(clean);
+  return match ? match[1].toLowerCase() : null;
+};
+
+/** 실제 업로드되는 파일(uri) 기준으로 확장자를 판단. 없으면 파일명 → mimeType 순. */
+const getAssetExtension = (
+  asset: ImagePicker.ImagePickerAsset,
+): string | null => {
+  const mimeExt = asset.mimeType?.includes("/")
+    ? asset.mimeType.split("/")[1]?.toLowerCase() ?? null
+    : null;
+  return (
+    getExtensionFromString(asset.uri) ??
+    getExtensionFromString(asset.fileName) ??
+    mimeExt
+  );
+};
+
+const isAllowedImageAsset = (asset: ImagePicker.ImagePickerAsset): boolean => {
+  const ext = getAssetExtension(asset);
+  // 확장자를 전혀 판별할 수 없으면 서버 검증에 맡긴다(기존 동작 유지).
+  if (!ext) return true;
+  return ALLOWED_IMAGE_EXTENSIONS.includes(ext);
+};
 
 export type ProductImagesState = {
   id?: number;
@@ -101,7 +133,12 @@ export const buildImagePatchPayload = (images: ProductImagesState) => ({
 type ProductPhotoEditorProps = {
   images: ProductImagesState;
   truckNumber?: string;
-  onChange: (next: ProductImagesState) => void;
+  /**
+   * 항상 최신 상태(prev) 기준으로 병합하도록 함수형 업데이트를 받는다.
+   * (이미지를 연속으로 추가할 때 직전 업로드가 아직 반영되지 않아 이전 이미지가
+   * 사라지는 race 방지)
+   */
+  onChange: (updater: (prev: ProductImagesState) => ProductImagesState) => void;
 };
 
 type UploadTarget =
@@ -171,8 +208,8 @@ export function ProductPhotoEditor({
 
   const applyUploadedUrl = useCallback(
     (target: UploadTarget, url: string) => {
-      onChange((() => {
-        const next = { ...images };
+      onChange((prev) => {
+        const next = { ...prev };
         if (target.type === "required") {
           next[target.key] = url;
           return next;
@@ -192,22 +229,31 @@ export function ProductPhotoEditor({
         optionImageUrl[target.index] = url;
         next.optionImageUrl = optionImageUrl;
         return next;
-      })());
+      });
     },
-    [images, onChange],
+    [onChange],
   );
 
   const pickSingle = (target: UploadTarget) => {
     setSourceTarget(target);
   };
 
-  const handlePickSource = async (source: "camera" | "library") => {
-    const target = sourceTarget;
-    setSourceTarget(null);
-    if (!target) return;
-
+  const runPick = async (source: "camera" | "library", target: UploadTarget) => {
     const result = await launchImagePickerForSource(source, { quality: 0.8 });
     if (!result || result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    if (!isAllowedImageAsset(asset)) {
+      showAppConfirm({
+        message: EXTENSION_ERROR_MESSAGE,
+        leftLabel: "닫기",
+        rightLabel: "재선택",
+        onRight: () => {
+          void runPick(source, target);
+        },
+      });
+      return;
+    }
 
     const key =
       target.type === "required"
@@ -220,7 +266,7 @@ export function ProductPhotoEditor({
 
     setUploadingKey(key);
     try {
-      const url = await uploadAsset(result.assets[0]);
+      const url = await uploadAsset(asset);
       applyUploadedUrl(target, url);
     } catch (error) {
       const message =
@@ -237,6 +283,13 @@ export function ProductPhotoEditor({
     }
   };
 
+  const handlePickSource = async (source: "camera" | "library") => {
+    const target = sourceTarget;
+    setSourceTarget(null);
+    if (!target) return;
+    await runPick(source, target);
+  };
+
   const pickBulk = async () => {
     if (!(await requestPermission())) return;
 
@@ -248,8 +301,20 @@ export function ProductPhotoEditor({
     });
     if (result.canceled || result.assets.length === 0) return;
 
+    // 하나라도 허용되지 않는 확장자가 있으면 업로드하지 않고 재선택 안내
+    if (result.assets.some((asset) => !isAllowedImageAsset(asset))) {
+      showAppConfirm({
+        message: EXTENSION_ERROR_MESSAGE,
+        leftLabel: "닫기",
+        rightLabel: "재선택",
+        onRight: () => {
+          void pickBulk();
+        },
+      });
+      return;
+    }
+
     setIsBulkUploading(true);
-    const next = { ...images };
     const targets: UploadTarget[] = [
       { type: "required", key: "frontSideImageUrl" },
       { type: "required", key: "backSideImageUrl" },
@@ -264,24 +329,31 @@ export function ProductPhotoEditor({
     }
 
     try {
+      const uploaded: Array<{ target: UploadTarget; url: string }> = [];
       for (let index = 0; index < result.assets.length; index += 1) {
         const target = targets[index];
         if (!target) break;
         const url = await uploadAsset(result.assets[index]);
-        if (target.type === "required") {
-          next[target.key] = url;
-        } else if (target.type === "optional") {
-          next[target.key] = url;
-        } else if (target.type === "option") {
-          const optionImageUrl = [...(next.optionImageUrl ?? [])];
-          while (optionImageUrl.length <= target.index) {
-            optionImageUrl.push("");
-          }
-          optionImageUrl[target.index] = url;
-          next.optionImageUrl = optionImageUrl;
-        }
+        uploaded.push({ target, url });
       }
-      onChange(next);
+      onChange((prev) => {
+        const next = { ...prev };
+        const optionImageUrl = [...(next.optionImageUrl ?? [])];
+        uploaded.forEach(({ target, url }) => {
+          if (target.type === "required") {
+            next[target.key] = url;
+          } else if (target.type === "optional") {
+            next[target.key] = url;
+          } else if (target.type === "option") {
+            while (optionImageUrl.length <= target.index) {
+              optionImageUrl.push("");
+            }
+            optionImageUrl[target.index] = url;
+          }
+        });
+        next.optionImageUrl = optionImageUrl;
+        return next;
+      });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "이미지 업로드에 실패했습니다.";
@@ -298,7 +370,7 @@ export function ProductPhotoEditor({
   };
 
   const removeRequired = (key: (typeof REQUIRED_PHOTOS)[number]["key"]) => {
-    onChange({ ...images, [key]: "" });
+    onChange((prev) => ({ ...prev, [key]: "" }));
   };
 
   const removeOptionalSlot = (
@@ -306,15 +378,17 @@ export function ProductPhotoEditor({
       | { kind: "fixed"; key: (typeof OPTIONAL_PHOTO_KEYS)[number] }
       | { kind: "option"; index: number },
   ) => {
-    const next = { ...images };
-    if (slot.kind === "fixed") {
-      next[slot.key] = "";
-    } else {
-      const optionImageUrl = [...(next.optionImageUrl ?? [])];
-      optionImageUrl.splice(slot.index, 1);
-      next.optionImageUrl = optionImageUrl;
-    }
-    onChange(next);
+    onChange((prev) => {
+      const next = { ...prev };
+      if (slot.kind === "fixed") {
+        next[slot.key] = "";
+      } else {
+        const optionImageUrl = [...(next.optionImageUrl ?? [])];
+        optionImageUrl.splice(slot.index, 1);
+        next.optionImageUrl = optionImageUrl;
+      }
+      return next;
+    });
   };
 
   const addOptionalPhoto = () => {
@@ -430,7 +504,7 @@ export function ProductPhotoEditor({
             <Pressable
               onPress={(event) => {
                 event.stopPropagation();
-                onChange({ ...images, certificateImageUrl: "" });
+                onChange((prev) => ({ ...prev, certificateImageUrl: "" }));
               }}
               className="absolute right-2 top-2 h-7 w-7 items-center justify-center rounded-full bg-white/95"
             >

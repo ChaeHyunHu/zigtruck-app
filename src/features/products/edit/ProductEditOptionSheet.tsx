@@ -29,6 +29,12 @@ type Props = {
   selectedCode?: string;
   onClose: () => void;
   onSelect: (item: OptionItem) => void;
+  /**
+   * true면 RN Modal로 감싸지 않고 부모 시트의 Modal window 안에서 absoluteFill
+   * 오버레이로 렌더한다. (Modal-on-Modal 시 시트가 안 뜨거나 닫은 뒤 터치가
+   * 막히는 iOS 문제 회피용 — 번호판 정보 시트 안의 번호판 종류 선택 등)
+   */
+  asOverlay?: boolean;
 };
 
 export function ProductEditOptionSheet({
@@ -38,6 +44,7 @@ export function ProductEditOptionSheet({
   selectedCode,
   onClose,
   onSelect,
+  asOverlay = false,
 }: Props) {
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(insets.bottom, 12);
@@ -112,54 +119,34 @@ export function ProductEditOptionSheet({
 
   if (!mounted) return null;
 
-  return (
-    <Modal
-      visible={mounted}
-      transparent
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
-      <View style={styles.root}>
-        <Animated.View
-          style={[styles.backdrop, { opacity: backdropOpacity }]}
-        >
-          <Pressable style={StyleSheet.absoluteFill} onPress={handleBackdropPress} />
-        </Animated.View>
+  const body = (
+    <View style={styles.root}>
+      <Animated.View
+        style={[styles.backdrop, { opacity: backdropOpacity }]}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleBackdropPress} />
+      </Animated.View>
 
-        <Animated.View
-          style={[
-            styles.sheet,
-            {
-              height: sheetHeight,
-              paddingBottom: bottomPadding,
-              transform: [{ translateY }],
-            },
-          ]}
-        >
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>{title}</Text>
-            <Pressable onPress={onClose} hitSlop={8} style={styles.closeButton}>
-              <Ionicons name="close" size={22} color="#414141" />
-            </Pressable>
-          </View>
+      <Animated.View
+        style={[
+          styles.sheet,
+          {
+            height: sheetHeight,
+            paddingBottom: bottomPadding,
+            transform: [{ translateY }],
+          },
+        ]}
+      >
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{title}</Text>
+          <Pressable onPress={onClose} hitSlop={8} style={styles.closeButton}>
+            <Ionicons name="close" size={22} color="#414141" />
+          </Pressable>
+        </View>
 
-          {scrollable ? (
-            <ScrollView style={{ maxHeight: scrollMaxHeight }}>
-              {options.map((item) => (
-                <OptionRow
-                  key={item.code}
-                  item={item}
-                  selected={item.code === selectedCode}
-                  onPress={() => {
-                    onSelect(item);
-                    onClose();
-                  }}
-                />
-              ))}
-            </ScrollView>
-          ) : (
-            options.map((item) => (
+        {scrollable ? (
+          <ScrollView style={{ maxHeight: scrollMaxHeight }}>
+            {options.map((item) => (
               <OptionRow
                 key={item.code}
                 item={item}
@@ -169,10 +156,42 @@ export function ProductEditOptionSheet({
                   onClose();
                 }}
               />
-            ))
-          )}
-        </Animated.View>
+            ))}
+          </ScrollView>
+        ) : (
+          options.map((item) => (
+            <OptionRow
+              key={item.code}
+              item={item}
+              selected={item.code === selectedCode}
+              onPress={() => {
+                onSelect(item);
+                onClose();
+              }}
+            />
+          ))
+        )}
+      </Animated.View>
+    </View>
+  );
+
+  if (asOverlay) {
+    return (
+      <View style={[StyleSheet.absoluteFill, { zIndex: 1003, elevation: 1003 }]}>
+        {body}
       </View>
+    );
+  }
+
+  return (
+    <Modal
+      visible={mounted}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      {body}
     </Modal>
   );
 }

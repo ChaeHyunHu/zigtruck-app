@@ -213,8 +213,11 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
       formatYearMonth(item.firstRegistrationDate),
       item.transmission ? enumDesc(item.transmission) : undefined,
       formatDistanceManKm(item.distance),
-      item.power ? formatPower(item.power) : undefined,
+      item.power ? `${formatPower(item.power)}마력` : undefined,
       formatLoadedLength(item.loadedInnerLength),
+      Number(item.palletCount) > 0
+        ? `파렛트 ${item.palletCount}개`
+        : undefined,
       item.region || undefined,
     ].filter((part): part is string => Boolean(part && part !== "-"));
     return parts.join(" · ");
@@ -222,6 +225,7 @@ export const PurchaseProductCard = memo(function PurchaseProductCard({
     item.distance,
     item.firstRegistrationDate,
     item.loadedInnerLength,
+    item.palletCount,
     item.power,
     item.region,
     item.transmission,

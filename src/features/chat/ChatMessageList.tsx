@@ -156,7 +156,24 @@ function ChatMessageRow({
 
   if (typeCode === CHAT_IMAGE && parsed.images?.length) {
     const images = parsed.images.filter(Boolean);
-    const openViewer = () => onPressImage?.(images, 0);
+
+    const imageStack = (
+      <View className="gap-1.5">
+        {images.map((uri, imgIndex) => (
+          <Pressable
+            key={`${uri}-${imgIndex}`}
+            onPress={() => onPressImage?.(images, imgIndex)}
+            className="overflow-hidden rounded-[14px]"
+          >
+            <Image
+              source={{ uri }}
+              style={{ width: 133, height: 100 }}
+              contentFit="cover"
+            />
+          </Pressable>
+        ))}
+      </View>
+    );
 
     if (isMine) {
       return (
@@ -165,13 +182,7 @@ function ChatMessageRow({
             {isLastInBlock ? (
               <MessageMeta time={time} isRead={item.isRead} align="right" />
             ) : null}
-            <Pressable onPress={openViewer} className="overflow-hidden rounded-[14px]">
-              <Image
-                source={{ uri: images[0] }}
-                style={{ width: 133, height: 100 }}
-                contentFit="cover"
-              />
-            </Pressable>
+            {imageStack}
           </View>
         </View>
       );
@@ -185,13 +196,7 @@ function ChatMessageRow({
           <View className="mr-2 w-7" />
         )}
         <View className="flex-1 flex-row items-end">
-          <Pressable onPress={openViewer} className="mr-1.5 overflow-hidden rounded-[14px]">
-            <Image
-              source={{ uri: images[0] }}
-              style={{ width: 133, height: 100 }}
-              contentFit="cover"
-            />
-          </Pressable>
+          <View className="mr-1.5">{imageStack}</View>
           {isLastInBlock ? <MessageMeta time={time} align="left" /> : null}
         </View>
       </View>

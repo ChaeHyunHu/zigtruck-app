@@ -1,10 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import React from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import React, { useCallback, useRef } from "react";
+import { Keyboard, Platform, Pressable, Text, TextInput, View } from "react-native";
 
+import { useKeyboardAwareScroll } from "@/src/components/common/KeyboardAwareScrollView";
 import { appColors } from "@/src/constants/colors";
 import type { ContractInfo } from "@/src/features/contract/types";
+
+const KEYBOARD_OPEN_DELAY_MS = Platform.OS === "ios" ? 350 : 400;
 
 export function ContractFieldLabel({
   title,
@@ -39,35 +42,95 @@ export function ContractUnderlineInput({
   value: string;
   onChangeText?: (text: string) => void;
   placeholder?: string;
-  keyboardType?: "default" | "numeric" | "phone-pad" | "decimal-pad";
+  keyboardType?:
+    | "default"
+    | "numeric"
+    | "phone-pad"
+    | "decimal-pad"
+    | "numbers-and-punctuation";
   maxLength?: number;
   error?: string;
   readOnly?: boolean;
   onPress?: () => void;
   suffix?: React.ReactNode;
 }) {
-  const content = (
+  const inputBoxRef = useRef<View>(null);
+  const inputRef = useRef<TextInput>(null);
+  const keyboardAware = useKeyboardAwareScroll();
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 시트를 여는 필드(onPress)나 읽기 전용이 아닌 경우에만 라인 탭으로 포커스
+  const isEditable = !readOnly && !onPress;
+
+  const handleFocus = useCallback(() => {
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    const node = inputBoxRef.current;
+    if (keyboardAware?.isKeyboardVisible) {
+      keyboardAware.ensureInputVisible(node);
+    } else {
+      focusTimerRef.current = setTimeout(() => {
+        keyboardAware?.ensureInputVisible(node);
+      }, KEYBOARD_OPEN_DELAY_MS);
+    }
+  }, [keyboardAware]);
+
+  const handleChangeText = useCallback(
+    (text: string) => {
+      onChangeText?.(text);
+      if (keyboardAware?.isKeyboardVisible) {
+        keyboardAware.ensureInputVisible(inputBoxRef.current);
+      }
+    },
+    [keyboardAware, onChangeText],
+  );
+
+  const box = (
     <View className="border-b border-gray300 pb-2">
       <ContractFieldLabel title={label} required={required} />
       <View className="min-h-[40px] flex-row items-center">
         <TextInput
+          ref={inputRef}
           value={value}
-          onChangeText={onChangeText}
+          onChangeText={handleChangeText}
+          onFocus={handleFocus}
           placeholder={placeholder}
           placeholderTextColor={appColors.gray500}
           keyboardType={keyboardType}
           maxLength={maxLength}
           editable={!readOnly}
+          pointerEvents={readOnly ? "none" : "auto"}
           className="flex-1 text-[18px] text-gray900"
         />
         {suffix}
       </View>
-      {error ? <Text className="mt-1 text-[13px] text-red-500">{error}</Text> : null}
+    </View>
+  );
+
+  const content = (
+    <View ref={inputBoxRef} collapsable={false}>
+      {isEditable ? (
+        // 라벨/빈 영역 등 라인 어디를 눌러도 입력에 포커스되도록 감싼다.
+        <Pressable onPress={() => inputRef.current?.focus()}>{box}</Pressable>
+      ) : (
+        box
+      )}
+      {error ? (
+        <Text className="mt-1.5 text-[13px] text-red-500">{error}</Text>
+      ) : null}
     </View>
   );
 
   if (onPress) {
-    return <Pressable onPress={onPress}>{content}</Pressable>;
+    // 날짜/주소 등 시트를 여는 필드: 눌렀을 때 키보드를 먼저 내린다.
+    return (
+      <Pressable
+        onPress={() => {
+          Keyboard.dismiss();
+          onPress();
+        }}
+      >
+        {content}
+      </Pressable>
+    );
   }
   return content;
 }

@@ -65,6 +65,10 @@ export function OptionPickerSheet({
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const backdropReadyRef = useRef(false);
   const [mounted, setMounted] = useState(visible);
+  // 옵션이 비동기로 로드되며 sheetHeight가 바뀌어도 진입 애니메이션이
+  // 재실행되지 않도록 최신 높이는 ref로만 참조한다. (열린 뒤 두 번 올라오는 현상 방지)
+  const sheetHeightRef = useRef(sheetHeight);
+  sheetHeightRef.current = sheetHeight;
 
   useEffect(() => {
     if (visible) setMounted(true);
@@ -75,7 +79,7 @@ export function OptionPickerSheet({
 
     if (visible) {
       backdropReadyRef.current = false;
-      translateY.setValue(sheetHeight);
+      translateY.setValue(sheetHeightRef.current);
       backdropOpacity.setValue(0);
       Animated.parallel([
         Animated.timing(backdropOpacity, {
@@ -106,7 +110,7 @@ export function OptionPickerSheet({
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
-        toValue: sheetHeight,
+        toValue: sheetHeightRef.current,
         duration: 220,
         easing: Easing.in(Easing.cubic),
         useNativeDriver: true,
@@ -114,7 +118,7 @@ export function OptionPickerSheet({
     ]).start(({ finished }) => {
       if (finished) setMounted(false);
     });
-  }, [visible, mounted, sheetHeight, translateY, backdropOpacity]);
+  }, [visible, mounted, translateY, backdropOpacity]);
 
   const handleBackdropPress = () => {
     if (!backdropReadyRef.current) return;

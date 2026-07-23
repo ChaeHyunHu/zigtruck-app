@@ -66,19 +66,20 @@ export function ProductEditDetailTab({
   );
 
   const setAccident = (hasAccident: boolean) => {
-    onChange((prev) => ({
-      ...prev,
-      accident: hasAccident,
-      accidentsHistory: {
+    onChange((prev) => {
+      // 없음 선택 시에도 입력값은 보존해, 다시 있음을 선택하면 원래 값이 복원되게 한다.
+      const preservedContents =
+        prev.accidentsHistory?.accidentContents ?? prev.accidentContents ?? "";
+      return {
+        ...prev,
         accident: hasAccident,
-        accidentContents: hasAccident
-          ? prev.accidentsHistory?.accidentContents ??
-            prev.accidentContents ??
-            ""
-          : "",
-      },
-      accidentContents: hasAccident ? prev.accidentContents ?? "" : "",
-    }));
+        accidentContents: preservedContents,
+        accidentsHistory: {
+          accident: hasAccident,
+          accidentContents: preservedContents,
+        },
+      };
+    });
   };
 
   const setProductFormAdapter: React.Dispatch<
@@ -104,24 +105,25 @@ export function ProductEditDetailTab({
           horizontal
         />
 
-        <LabeledTextInput
-          label="사고 상세내용"
-          required={accident}
-          placeholder="상세내용 입력"
-          value={
-            form.accidentsHistory?.accidentContents ??
-            form.accidentContents ??
-            ""
-          }
-          readOnly={!accident}
-          onChangeText={(text) =>
-            onChange((prev) => ({
-              ...prev,
-              accidentContents: text,
-              accidentsHistory: { accident: true, accidentContents: text },
-            }))
-          }
-        />
+        {accident ? (
+          <LabeledTextInput
+            label="사고 상세내용"
+            required
+            placeholder="상세내용 입력"
+            value={
+              form.accidentsHistory?.accidentContents ??
+              form.accidentContents ??
+              ""
+            }
+            onChangeText={(text) =>
+              onChange((prev) => ({
+                ...prev,
+                accidentContents: text,
+                accidentsHistory: { accident: true, accidentContents: text },
+              }))
+            }
+          />
+        ) : null}
 
         <View>
           <Text className="mb-2 text-[14px] font-semibold text-gray800">

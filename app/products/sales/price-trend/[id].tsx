@@ -57,7 +57,7 @@ export default function PriceTrendScreen() {
         className="flex-1 px-4 pt-6"
         contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
       >
-        <View className="flex-row items-start justify-between pt-2">
+        <View className="flex-row items-start justify-between">
           <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">
             차량 시세를{"\n"}확인해주세요.
           </Text>

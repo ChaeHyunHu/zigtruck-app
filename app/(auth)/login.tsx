@@ -31,8 +31,16 @@ import { DealerReviewModal } from "@/src/features/auth/DealerReviewModal";
 import { SocialLoginWebView } from "@/src/features/auth/SocialLoginWebView";
 import type { SocialLoginResult } from "@/src/features/auth/socialLogin";
 import { useAuth } from "@/src/hooks/useAuth";
+import { showToast } from "@/src/providers/toast";
 
 type LoginTab = "NORMAL" | "DEALER";
+
+// 회원 타입 불일치(일반 탭에서 딜러 계정 로그인 등)는 인라인 에러 대신 토스트로 노출
+const isMemberTypeMismatchMessage = (message?: string | null) =>
+  Boolean(
+    message &&
+      (message.includes("회원 타입") || message.includes("타입이 일치")),
+  );
 
 const TAB_GRADIENT = ["#535AFF", "#397AFF", "#10ACFF"] as const;
 const DEALER_GRADIENT = ["#1D2B44", "#233854"] as const;
@@ -58,6 +66,7 @@ export default function LoginScreen() {
     null,
   );
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showDealerReview, setShowDealerReview] = useState(false);
 
   const isDealer = tab === "DEALER";
@@ -106,11 +115,13 @@ export default function LoginScreen() {
     const hideEvent =
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
 
-    const showSub = Keyboard.addListener(showEvent, () => {
+    const showSub = Keyboard.addListener(showEvent, (event) => {
       setIsKeyboardVisible(true);
+      setKeyboardHeight(event.endCoordinates?.height ?? 0);
     });
     const hideSub = Keyboard.addListener(hideEvent, () => {
       setIsKeyboardVisible(false);
+      setKeyboardHeight(0);
     });
 
     return () => {
@@ -131,11 +142,11 @@ export default function LoginScreen() {
     [dismissKeyboard],
   );
 
+  // 키패드가 올라와도 폼은 paddingBottom 으로 키패드 위에 고정되므로
+  // 스크롤로 콘텐츠를 밀지 않고 항상 상단(로고/텍스트)을 보이게 유지한다.
   const scrollToForm = useCallback(() => {
     const scrollRef = isDealer ? dealerScrollRef : normalScrollRef;
-    setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
   }, [isDealer]);
 
   useEffect(() => {
@@ -147,6 +158,8 @@ export default function LoginScreen() {
   const handleLogin = useCallback(async () => {
     if (isDisabled) return;
 
+    // 토스트/에러 메시지가 키보드에 가리지 않도록 로그인 시 키보드를 내린다.
+    Keyboard.dismiss();
     setIsSubmitting(true);
     setErrorText("");
     try {
@@ -163,9 +176,29 @@ export default function LoginScreen() {
       }
       router.replace("/(tabs)");
     } catch (error: unknown) {
+      // 서버 에러는 AxiosInstance 인터셉터가 응답 body({ code, message })로 reject 하므로
+      // Error 인스턴스가 아니다. 회원 타입 불일치 등 서버 메시지를 그대로 노출한다.
+      const serverMessage =
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof (error as { message?: unknown }).message === "string"
+          ? (error as { message: string }).message
+          : undefined;
       const message =
-        error instanceof Error ? error.message : "로그인에 실패했습니다.";
-      setErrorText(message);
+        serverMessage ||
+        (error instanceof Error ? error.message : "로그인에 실패했습니다.");
+      // 회원 타입 불일치는 인라인 에러 대신, 현재 탭에 맞는 짧은 안내를 토스트로 표시
+      if (isMemberTypeMismatchMessage(message)) {
+        setErrorText("");
+        const mismatchToast =
+          tab === "NORMAL"
+            ? "회원 타입이 일치하지 않습니다. 딜러 회원은 딜러회원 탭에서 로그인해주세요."
+            : "회원 타입이 일치하지 않습니다. 일반 회원은 일반회원 탭에서 로그인해주세요.";
+        showToast({ message: mismatchToast, type: "info", duration: 3000 });
+      } else {
+        setErrorText(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -228,19 +261,27 @@ export default function LoginScreen() {
   const dealerHero = (
     <View
       style={isKeyboardVisible ? undefined : { flex: 1 }}
-      className={`px-5 pb-8 ${isKeyboardVisible ? "pt-4" : "pt-[30px]"}`}
+      className={`px-5 ${isKeyboardVisible ? "pt-4 pb-2" : "pt-[30px] pb-10"}`}
     >
       <Image
         source={{ uri: `${IMAGE_BASE_URL}/logo_white.png` }}
-        className="mb-3.5 h-[30px] w-[76px]"
+        className={`h-[30px] w-[76px] ${isKeyboardVisible ? "mb-2" : "mb-3.5"}`}
         contentFit="contain"
       />
-      <Text className="text-[36px] font-extrabold leading-[50px] text-white">
-        화물차 거래의
-      </Text>
-      <Text className="text-[36px] font-extrabold leading-[50px] text-white">
-        새로운 기준
-      </Text>
+      {isKeyboardVisible ? (
+        <Text className="text-[24px] font-extrabold leading-[32px] text-white">
+          화물차 거래의 새로운 기준
+        </Text>
+      ) : (
+        <>
+          <Text className="text-[36px] font-extrabold leading-[50px] text-white">
+            화물차 거래의
+          </Text>
+          <Text className="text-[36px] font-extrabold leading-[50px] text-white">
+            새로운 기준
+          </Text>
+        </>
+      )}
       {!isKeyboardVisible ? (
         <View className="mt-3 self-start rounded-full bg-white/20 px-4 py-1.5">
           <Text className="text-[14px] font-bold text-white">DEALER</Text>
@@ -253,21 +294,29 @@ export default function LoginScreen() {
     <View className={`px-5 ${isKeyboardVisible ? "pt-4 pb-2" : "pt-[30px]"}`}>
       <Image
         source={{ uri: `${IMAGE_BASE_URL}/logo_gra.png` }}
-        className="mb-3.5 h-[30px] w-[76px]"
+        className={`h-[30px] w-[76px] ${isKeyboardVisible ? "mb-2" : "mb-3.5"}`}
         contentFit="contain"
       />
-      <Text className="text-[36px] font-extrabold leading-[50px] text-gray900">
-        화물차 거래의
-      </Text>
-      <Text className="text-[36px] font-extrabold leading-[50px] text-gray900">
-        새로운 기준
-      </Text>
+      {isKeyboardVisible ? (
+        <Text className="text-[24px] font-extrabold leading-[32px] text-gray900">
+          화물차 거래의 새로운 기준
+        </Text>
+      ) : (
+        <>
+          <Text className="text-[36px] font-extrabold leading-[50px] text-gray900">
+            화물차 거래의
+          </Text>
+          <Text className="text-[36px] font-extrabold leading-[50px] text-gray900">
+            새로운 기준
+          </Text>
+        </>
+      )}
     </View>
   );
 
   const formSection = (
     <View
-      className={`px-4 ${!isDealer && isKeyboardVisible ? "pb-0" : "pb-4"}`}
+      className={`px-4 ${!isDealer && isKeyboardVisible ? "pb-0" : "pb-8"}`}
     >
       <LoginFormFields
         phoneNumber={phoneNumber}
@@ -337,13 +386,18 @@ export default function LoginScreen() {
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         showsVerticalScrollIndicator={false}
         bounces={false}
-        automaticallyAdjustKeyboardInsets
         contentContainerStyle={{
-          flexGrow: isKeyboardVisible ? 0 : 1,
+          flexGrow: 1,
+          paddingBottom: isKeyboardVisible ? keyboardHeight : 0,
         }}
       >
         {dealerHero}
-        <View className="mt-10 bg-white rounded-t-[20px] pt-8">
+        {isKeyboardVisible ? <View style={{ flex: 1 }} /> : null}
+        <View
+          className={`bg-white rounded-t-[20px] ${
+            isKeyboardVisible ? "pt-4" : "mt-3 pt-4"
+          }`}
+        >
           {formSection}
         </View>
       </ScrollView>
@@ -359,14 +413,14 @@ export default function LoginScreen() {
       keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       showsVerticalScrollIndicator={false}
       bounces={false}
-      automaticallyAdjustKeyboardInsets
       contentContainerStyle={{
-        flexGrow: isKeyboardVisible ? 0 : 1,
+        flexGrow: 1,
+        paddingBottom: isKeyboardVisible ? keyboardHeight : 0,
       }}
     >
       {normalHero}
-      {!isKeyboardVisible ? <View style={{ flex: 1 }} /> : null}
-      <View className={isKeyboardVisible ? "pt-20" : "pt-16"}>
+      <View style={{ flex: 1 }} />
+      <View className={isKeyboardVisible ? "pt-4" : "pt-16"}>
         {formSection}
       </View>
     </ScrollView>
@@ -496,7 +550,7 @@ function LoginFormFields({
 }) {
   return (
     <>
-      <View className="gap-[30px]">
+      <View className="gap-[18px]">
         <UnderlineTextInput
           value={phoneNumber}
           onChangeText={onChangePhoneNumber}

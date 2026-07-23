@@ -63,7 +63,13 @@ export const LicensePlateInput = React.memo(function LicensePlateInput({
         >
           <TextInput
             className="min-w-0 flex-1 py-0 text-[28px] font-semibold text-gray900"
-            style={{ includeFontPadding: false }}
+            style={{
+              includeFontPadding: false,
+              lineHeight: 36,
+              minHeight: 40,
+              textAlignVertical: "center",
+              paddingVertical: 0,
+            }}
             value={ownerInfo.licenseNumber}
             onChangeText={onChange}
             placeholder="경기24아6249"

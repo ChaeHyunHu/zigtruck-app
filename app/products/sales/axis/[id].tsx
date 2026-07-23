@@ -51,10 +51,10 @@ export default function AxisFormScreen() {
   };
 
   return (
-    <Screen variant="stack" className="flex-1 bg-white">
+    <Screen variant="stack" edges={["top"]} className="flex-1 bg-white">
       <SellCarRegistrationHeader title={title} />
       <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 24 }}>
-        <View className="flex-row items-start justify-between pt-6">
+        <View className="flex-row items-start justify-between">
           <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">
             가변축을 선택해주세요.
           </Text>

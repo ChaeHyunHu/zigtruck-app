@@ -465,6 +465,11 @@ export default function ManageScreen() {
     content: "",
     rightLabel: "확인",
   });
+  // 닫을 때 title/content를 즉시 비우면 페이드아웃 중 모달이 버튼만 남은
+  // 작은 박스로 줄었다 사라져 깜빡인다. open만 끄고 내용은 유지한다.
+  const closeConfirmModal = useCallback(() => {
+    setConfirmModal((prev) => ({ ...prev, open: false }));
+  }, []);
   const [alertModal, setAlertModal] = useState<{
     open: boolean;
     reason: string;
@@ -545,12 +550,16 @@ export default function ManageScreen() {
   }, [menuProduct, productMenuItems]);
 
   const loadMyProducts = useCallback(
-    async (refresh = false) => {
-      if (refresh) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-        setListFetchFailed(false);
+    async (refresh = false, silent = false) => {
+      // silent: 포커스 재진입·앱 복귀 시 백그라운드 갱신.
+      // RefreshControl(당겨진 스피너)이나 전체 로딩 오버레이를 띄우지 않는다.
+      if (!silent) {
+        if (refresh) {
+          setIsRefreshing(true);
+        } else {
+          setIsLoading(true);
+          setListFetchFailed(false);
+        }
       }
 
       try {
@@ -590,8 +599,10 @@ export default function ManageScreen() {
           });
         }
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (!silent) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
     [alert],
@@ -603,7 +614,9 @@ export default function ManageScreen() {
       consumePurchaseListDirty();
       focusVisitRef.current += 1;
       const isFirstFocus = focusVisitRef.current === 1;
-      void loadMyProducts(!isFirstFocus);
+      // 첫 진입은 로딩 오버레이로, 재진입은 무음 백그라운드 갱신
+      // (RefreshControl이 당겨진 상태로 보이는 현상 방지)
+      void loadMyProducts(!isFirstFocus, !isFirstFocus);
       // token/memberId는 의존성에서 제외: API 호출 중 토큰 자동 갱신으로
       // 콜백이 재생성되어 포커스 effect가 다시 실행되며 중복 리패치+깜빡임 발생
     }, [isAuthenticated, isInitializing, loadMyProducts]),
@@ -613,7 +626,7 @@ export default function ManageScreen() {
     if (isInitializing || !isAuthenticated) return;
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active" && isFocused) {
-        void loadMyProducts(true);
+        void loadMyProducts(true, true);
       }
     });
     return () => sub.remove();
@@ -737,8 +750,8 @@ export default function ManageScreen() {
     (item: ProductDetailResponse) => {
       setConfirmModal({
         open: true,
-        title: "차량을 정말 삭제하시겠어요?",
-        content: item.truckNumber ?? "",
+        title: item.truckNumber ?? "",
+        content: "차량을 정말 삭제하시겠어요?",
         rightLabel: "삭제하기",
         onConfirm: async () => {
           try {
@@ -746,12 +759,7 @@ export default function ManageScreen() {
             setMyProducts((prev) =>
               prev.filter((product) => product.id !== item.id),
             );
-            setConfirmModal({
-              open: false,
-              title: "",
-              content: "",
-              rightLabel: "확인",
-            });
+            closeConfirmModal();
             alert({ title: "완료", message: "차량이 삭제되었어요." });
           } catch {
             alert({ title: "오류", message: "차량 삭제에 실패했습니다." });
@@ -759,7 +767,7 @@ export default function ManageScreen() {
         },
       });
     },
-    [alert],
+    [alert, closeConfirmModal],
   );
 
   const openPriceEditor = useCallback((item: ProductDetailResponse) => {
@@ -1319,53 +1327,37 @@ export default function ManageScreen() {
         visible={confirmModal.open}
         transparent
         animationType="fade"
-        onRequestClose={() =>
-          setConfirmModal({
-            open: false,
-            title: "",
-            content: "",
-            rightLabel: "확인",
-          })
-        }
+        onRequestClose={closeConfirmModal}
       >
-        <View className="flex-1 items-center justify-center bg-black/35 p-5">
-          <View className="w-full rounded-xl bg-white p-4">
-            <Text className="text-[17px] font-bold text-gray900">
-              {confirmModal.title}
-            </Text>
+        <View className="flex-1 items-center justify-center bg-black/35 px-6">
+          <View className="w-full max-w-[320px] overflow-hidden rounded-xl bg-white">
+            {confirmModal.title ? (
+              <Text className="px-4 pb-3 pt-7 text-center text-[20px] font-bold text-gray900">
+                {confirmModal.title}
+              </Text>
+            ) : null}
             {confirmModal.content ? (
-              <Text className="mt-2 text-[14px] text-gray700">
+              <Text className="px-4 pb-6 text-center text-[15px] leading-[22px] text-gray700">
                 {confirmModal.content}
               </Text>
             ) : null}
-            <View className="mt-4 flex-row justify-end gap-2">
+            <View className="flex-row border-t border-gray300">
               <Pressable
-                className="rounded-md bg-gray200 px-4 py-2"
-                onPress={() =>
-                  setConfirmModal({
-                    open: false,
-                    title: "",
-                    content: "",
-                    rightLabel: "확인",
-                  })
-                }
+                className="min-h-[52px] flex-1 items-center justify-center"
+                onPress={closeConfirmModal}
               >
-                <Text className="font-semibold text-gray800">취소</Text>
+                <Text className="text-[16px] font-semibold text-gray600">
+                  취소
+                </Text>
               </Pressable>
               <Pressable
-                className="rounded-md bg-primary px-4 py-2"
+                className="min-h-[52px] flex-1 items-center justify-center border-l border-gray300"
                 onPress={() => {
                   if (confirmModal.onConfirm) confirmModal.onConfirm();
-                  else
-                    setConfirmModal({
-                      open: false,
-                      title: "",
-                      content: "",
-                      rightLabel: "확인",
-                    });
+                  else closeConfirmModal();
                 }}
               >
-                <Text className="font-bold text-white">
+                <Text className="text-[16px] font-semibold text-primary">
                   {confirmModal.rightLabel}
                 </Text>
               </Pressable>

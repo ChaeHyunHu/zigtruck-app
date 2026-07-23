@@ -24,6 +24,7 @@ import {
 import { CHAT_IMAGE } from "@/src/features/chat/chatMessageTypes";
 import { deleteChatRooms } from "@/src/api/chat/deleteChat";
 import { fetchChatRooms } from "@/src/api/chat/getChat";
+import { patchChatMessagesRead } from "@/src/api/chat/updateChat";
 import { appColors } from "@/src/constants/colors";
 import { ChatMessageList } from "@/src/features/chat/ChatMessageList";
 import { ChatRoomHeader } from "@/src/features/chat/ChatRoomHeader";
@@ -55,6 +56,7 @@ import {
   getChatRecipient,
   mergeChatMessages,
   normalizeChatMessageItem,
+  syncOutgoingReadFromServer,
   withConversationReadState,
   normalizeChatRoomDetail,
   socketPayloadToChatMessageItem,
@@ -98,7 +100,12 @@ export default function ChatRoomScreen() {
   }>();
   const insets = useSafeAreaInsets();
   const { memberId } = useAuth();
-  const { setActiveChatRoomId, subscribeRoomMessages, refreshList } = useChat();
+  const {
+    setActiveChatRoomId,
+    subscribeRoomMessages,
+    subscribeMemberSocketEvents,
+    refreshList,
+  } = useChat();
   const isDraftRoom = id === "draft";
   const roomId = isDraftRoom ? undefined : Number(id);
   const scrollRef = useRef<ScrollView>(null);
@@ -165,6 +172,12 @@ export default function ChatRoomScreen() {
       let data = normalizeChatRoomDetail(await fetchChatRooms(id));
       if (!isMountedRef.current || seq !== loadSeqRef.current) return;
 
+      // 상대가 읽기만 하고 답장 안 해도 서버 isRead 로 읽음 반영
+      syncOutgoingReadFromServer(
+        data.chatMessages,
+        Number(memberId),
+        Number(data.id ?? roomId),
+      );
       const normalizedMessages = (data.chatMessages ?? []).map((msg) =>
         normalizeChatMessageItem(msg, {
           memberId: Number(memberId),
@@ -190,6 +203,8 @@ export default function ChatRoomScreen() {
           activeRoomId,
         ),
       );
+      // 방 진입 시 상대 메시지 읽음 처리 → 상대에게 실시간 READ 브로드캐스트
+      markRoomReadRef.current(normalizedMessages);
     } catch {
       if (!isMountedRef.current || seq !== loadSeqRef.current) return;
       showAppAlert({ title: "오류", message: "채팅방을 불러오지 못했습니다.", onConfirm: () => router.back() });
@@ -240,6 +255,38 @@ export default function ChatRoomScreen() {
     setImageViewerOpen(true);
   }, []);
 
+  // 상대가 보낸 마지막 메시지를 서버에 "읽음"으로 PATCH 한다.
+  // 서버는 이 요청을 받아 상대방에게 READ 웹소켓 이벤트를 실시간 브로드캐스트하므로,
+  // 상대는 폴링(6초)을 기다리지 않고 즉시 "읽음"으로 바뀐다.
+  const lastReadPatchedIdRef = useRef(0);
+  const markRoomRead = useCallback(
+    (msgs: ChatMessageItem[]) => {
+      if (memberId == null) return;
+      let latestReceivedId = 0;
+      for (const m of msgs) {
+        if (m.tempId != null) continue;
+        if (Number(m.senderId) === Number(memberId)) continue;
+        if (Number.isFinite(m.id) && m.id > latestReceivedId) {
+          latestReceivedId = m.id;
+        }
+      }
+      if (latestReceivedId <= 0 || latestReceivedId === lastReadPatchedIdRef.current) {
+        return;
+      }
+      lastReadPatchedIdRef.current = latestReceivedId;
+      void patchChatMessagesRead(latestReceivedId).catch(() => {
+        // 실패 시 다음 기회에 다시 시도할 수 있도록 캐시 롤백
+        if (lastReadPatchedIdRef.current === latestReceivedId) {
+          lastReadPatchedIdRef.current = 0;
+        }
+      });
+    },
+    [memberId],
+  );
+
+  const markRoomReadRef = useRef(markRoomRead);
+  markRoomReadRef.current = markRoomRead;
+
   const appendIncomingMessage = useCallback(
     (data: ChatSocketPayload["data"]) => {
       if (!data) return;
@@ -267,6 +314,8 @@ export default function ChatRoomScreen() {
         if (memberId == null || roomId == null) return next;
         return withConversationReadState(next, Number(memberId), roomId);
       });
+      // 방에 있는 동안 새로 들어온 상대 메시지 즉시 읽음 처리 (상대에게 실시간 반영)
+      markRoomReadRef.current([incoming]);
       scrollToBottom(true);
     },
     [memberId, roomId, scrollToBottom],
@@ -275,10 +324,46 @@ export default function ChatRoomScreen() {
   const appendIncomingMessageRef = useRef(appendIncomingMessage);
   appendIncomingMessageRef.current = appendIncomingMessage;
 
+  // 읽음(READ) 이벤트 처리 — 방 소켓/멤버 소켓 어느 쪽으로 와도 상대가 읽으면
+  // 즉시 "읽음"으로 반영한다. 서버 payload 형태(배열/단일/필드명)가 달라도 견고하게 파싱.
+  const handleReadReceipts = useCallback(
+    (rawData: unknown) => {
+      if (roomId == null || !Number.isFinite(roomId) || memberId == null) return;
+      const list = Array.isArray(rawData)
+        ? rawData
+        : rawData != null
+          ? [rawData]
+          : [];
+      const readIds = list
+        .map((item) => {
+          const obj = (item ?? {}) as Record<string, unknown>;
+          return Number(
+            obj.id ?? obj.messageId ?? obj.chatMessageId ?? obj.chatId,
+          );
+        })
+        .filter((messageId) => Number.isFinite(messageId) && messageId > 0);
+      if (readIds.length === 0) return;
+      addReadReceiptIds(roomId, readIds);
+      setMessages((prev) =>
+        withConversationReadState(
+          applyReadReceipts(prev, readIds, Number(memberId), roomId),
+          Number(memberId),
+          roomId,
+        ),
+      );
+    },
+    [memberId, roomId],
+  );
+
+  const handleReadReceiptsRef = useRef(handleReadReceipts);
+  handleReadReceiptsRef.current = handleReadReceipts;
+
   const pollRoomMessages = useCallback(async () => {
     if (roomId == null || !Number.isFinite(roomId) || !isMountedRef.current) return;
     try {
       const data = normalizeChatRoomDetail(await fetchChatRooms(String(roomId)));
+      // 상대가 읽기만 하고 답장 안 해도 서버 isRead 로 읽음 반영
+      syncOutgoingReadFromServer(data.chatMessages, Number(memberId), roomId);
       const incoming = (data.chatMessages ?? []).map((msg) =>
         normalizeChatMessageItem(msg, {
           memberId: Number(memberId),
@@ -286,10 +371,26 @@ export default function ChatRoomScreen() {
         }),
       );
       setMessages((prev) => mergeChatMessages(prev, incoming, memberId, roomId));
+      // 폴링으로 새로 받은 상대 메시지도 읽음 처리 (상대에게 실시간 반영)
+      markRoomReadRef.current(incoming);
+      // 계약서 양수인/양도인 작성 완료 상태를 실시간 반영해 헤더 버튼 라벨을 갱신한다.
+      // (채팅방을 나갔다 들어오지 않아도 바로 "작성하기 → 보기"로 바뀌도록)
+      setRoom((prev) =>
+        prev
+          ? {
+              ...prev,
+              transferorCompleted: data.transferorCompleted,
+              transfereeCompleted: data.transfereeCompleted,
+            }
+          : prev,
+      );
     } catch {
       // ignore polling errors
     }
   }, [memberId, roomId]);
+
+  const pollRoomMessagesRef = useRef(pollRoomMessages);
+  pollRoomMessagesRef.current = pollRoomMessages;
 
   useFocusEffect(
     useCallback(() => {
@@ -304,27 +405,21 @@ export default function ChatRoomScreen() {
 
     const unsubscribe = subscribeRoomMessages(roomId, (message) => {
       appendIncomingMessageRef.current(message);
+      // 계약 완료 등으로 새 메시지가 오면 방 상태(계약서 작성 완료 여부)도 즉시 갱신
+      void pollRoomMessagesRef.current();
     });
 
     const roomSocket = connectChatRoomSocket({
       chatRoomId: roomId,
       memberId: Number(memberId),
       onEvent: (payload) => {
-        if (payload.changeType === "READ_CHAT_MESSAGES" && Array.isArray(payload.data)) {
-          const readIds = payload.data
-            .map((item) => Number((item as { id?: number }).id))
-            .filter((messageId) => Number.isFinite(messageId) && messageId > 0);
-          addReadReceiptIds(roomId, readIds);
-          setMessages((prev) =>
-            withConversationReadState(
-              applyReadReceipts(prev, readIds, memberId, roomId),
-              memberId,
-              roomId,
-            ),
-          );
+        if (payload.changeType && payload.changeType.includes("READ")) {
+          handleReadReceiptsRef.current(payload.data);
         }
         if (payload.changeType === "NEW_CHAT_MESSAGES" && payload.data) {
           appendIncomingMessageRef.current(payload.data);
+          // 계약 완료 등으로 새 메시지가 오면 방 상태도 즉시 갱신해 버튼 라벨 반영
+          void pollRoomMessagesRef.current();
         }
       },
     });
@@ -350,6 +445,17 @@ export default function ChatRoomScreen() {
       roomSocketRef.current = null;
     };
   }, [memberId, roomId, subscribeRoomMessages]);
+
+  // 멤버 소켓(/sub/members/{memberId})으로 오는 읽음 이벤트도 처리해 실시간 반영
+  useEffect(() => {
+    if (roomId == null || !Number.isFinite(roomId) || memberId == null) return;
+    const unsubscribe = subscribeMemberSocketEvents((payload) => {
+      if (payload.changeType && payload.changeType.includes("READ")) {
+        handleReadReceiptsRef.current(payload.data);
+      }
+    });
+    return unsubscribe;
+  }, [roomId, memberId, subscribeMemberSocketEvents]);
 
   useEffect(() => {
     if (roomId == null || !Number.isFinite(roomId) || isFetching) return;

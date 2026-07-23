@@ -1,4 +1,5 @@
 import {
+  addReadReceiptIds,
   resolveOutgoingReadState,
   syncReadReceiptsFromConversation,
 } from "@/src/features/chat/outgoingReadReceipts";
@@ -114,6 +115,35 @@ export function normalizeMessageReadState(
     ...message,
     isRead: resolveOutgoingReadState(message, memberId, roomId),
   };
+}
+
+/**
+ * 서버가 내려준 isRead(=상대가 읽음)를 읽음 receipt 로 반영한다.
+ * 답장이 오지 않아도 상대가 "읽기만" 하면 읽음 처리되도록, 원본(raw) 메시지의
+ * 서버 isRead 를 normalize 로 버려지기 전에 캐시에 반영한다.
+ * 내가 방금 보낸 메시지의 서버 self-echo 는 addReadReceiptIds 의 grace 로직이 걸러낸다.
+ */
+export function syncOutgoingReadFromServer(
+  rawMessages: unknown,
+  memberId?: number,
+  roomId?: number,
+) {
+  if (memberId == null || roomId == null || !Array.isArray(rawMessages)) return;
+  const ids: number[] = [];
+  for (const raw of rawMessages) {
+    const base = unwrapChatMessageResponse<Record<string, unknown>>(raw);
+    const senderId = resolveChatMessageSenderId(base);
+    if (senderId == null || Number(senderId) !== Number(memberId)) continue;
+    const id = Number(base.id);
+    if (!Number.isFinite(id) || id <= 0) continue;
+    const readFlag = base.isRead ?? base.read;
+    if (readFlag === true || readFlag === "true") {
+      ids.push(id);
+    }
+  }
+  if (ids.length > 0) {
+    addReadReceiptIds(roomId, ids);
+  }
 }
 
 export function withConversationReadState(

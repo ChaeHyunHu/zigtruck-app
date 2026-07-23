@@ -281,10 +281,6 @@ export default function AdditionalInfoFormScreen() {
       showAppAlert({ title: "입력 필요", message: "변속기, 주행거리, 연료, 마력을 입력해주세요." });
       return;
     }
-    if (isOneTon && !area1) {
-      showAppAlert({ title: "입력 필요", message: "활동지를 선택해주세요." });
-      return;
-    }
     try {
       await patch({
         id: productFormData.id,
@@ -348,12 +344,13 @@ export default function AdditionalInfoFormScreen() {
   }
 
   return (
-    <Screen variant="stack" className="flex-1 bg-white">
+    <Screen variant="stack" edges={["top"]} className="flex-1 bg-white">
       <View className="flex-1">
         <SellCarRegistrationHeader title={title} />
         <ScrollView
           className="flex-1 px-4 pt-6"
-          keyboardShouldPersistTaps="always"
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           nestedScrollEnabled
           contentContainerStyle={{ paddingBottom: 24 }}
         >
@@ -371,6 +368,7 @@ export default function AdditionalInfoFormScreen() {
             options={transmissionOptions}
             value={productFormData.transmission?.code ?? ""}
             onChange={(code) => {
+              Keyboard.dismiss();
               const found = transmissionOptions.find((item) => item.code === code);
               setProductFormData((prev) =>
                 prev
@@ -512,6 +510,7 @@ export default function AdditionalInfoFormScreen() {
       {picker !== null ? (
         <OptionPickerSheet
           visible
+          noModal
           title={pickerTitle}
           options={pickerOptions}
           selectedCode={pickerSelectedCode}

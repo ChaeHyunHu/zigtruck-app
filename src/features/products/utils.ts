@@ -260,12 +260,17 @@ const normalizeIsLicense = (value: unknown): number | undefined => {
 export const normalizeListItem = (item: any): ProductListItem | null => {
   const id = item?.id ?? item?.productId ?? item?.productsId;
   if (id === undefined || id === null) return null;
-  // 1톤~1.2톤 차량 활동지: area1(시/도) + area2(시/군/구)를 "경기도(수원시,용인시)" 형식으로 표기
+  // 1톤~1.2톤 차량 활동지: area1(시/도) + 지역(area2, area3)을
+  // "경기도(수원시, 용인시)" 형식으로 표기 (지역이 1개면 1개만 노출)
   const area1 = pickString(item?.area1);
   const area2 = pickString(item?.area2);
+  const area3 = pickString(item?.area3);
+  const regionDistricts = [area2, area3].filter(
+    (part): part is string => typeof part === "string" && part.length > 0,
+  );
   const region =
-    area1 && area2
-      ? `${area1}(${area2})`
+    area1 && regionDistricts.length > 0
+      ? `${area1}(${regionDistricts.join(", ")})`
       : pickString(
           item?.region ??
             area1 ??

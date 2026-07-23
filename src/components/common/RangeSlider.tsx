@@ -9,8 +9,8 @@ import {
 
 import { appColors } from "@/src/constants/colors";
 
-const THUMB_SIZE = 16;
-const THUMB_HIT = 44;
+const THUMB_SIZE = 26;
+const THUMB_HIT = 52;
 
 type Props = {
   min: number;
@@ -277,7 +277,7 @@ export function RangeSlider({
 
 const styles = StyleSheet.create({
   trackContainer: {
-    height: 44,
+    height: 52,
     justifyContent: "center",
   },
   track: {

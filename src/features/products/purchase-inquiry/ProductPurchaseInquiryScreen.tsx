@@ -431,6 +431,7 @@ export function ProductPurchaseInquiryScreen() {
 
           <FilterRadioSection
             label="가변축"
+            showCount={false}
             options={filterInfo.axis}
             selectedCode={form.axisCode || undefined}
             onSelect={(code) =>
@@ -440,6 +441,7 @@ export function ProductPurchaseInquiryScreen() {
 
           <FilterRadioSection
             label="변속기"
+            showCount={false}
             options={filterInfo.transmission}
             selectedCode={form.transmissionCode || undefined}
             onSelect={(code) =>

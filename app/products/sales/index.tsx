@@ -1,10 +1,11 @@
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { LoginRequiredView } from "@/src/components/auth/LoginRequiredView";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
   Modal,
+  Platform,
   Pressable,
   Text,
   TextInput,
@@ -12,8 +13,12 @@ import {
 } from "react-native";
 
 import { fetchCarRegister } from "@/src/api/products/carRegister";
+import { appColors } from "@/src/constants/colors";
 import { showAppAlert } from "@/src/providers/appDialog";
-import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
+import {
+  KeyboardAwareScrollView,
+  useKeyboardAwareScroll,
+} from "@/src/components/common/KeyboardAwareScrollView";
 import { Screen } from "@/src/components/common/Screen";
 import {
   PRODUCT_STATUS_BEFORE_SALE,
@@ -256,35 +261,21 @@ export default function ProductSalesEntryScreen() {
                 * 법인차량은 "(주)", "주식회사" 단어까지 정확히 입력해주세요.
               </Text>
             </View>
-            <View className="flex-row items-stretch gap-2">
-              <TextInput
-                className="h-[52px] flex-1 rounded-lg border border-gray300 px-4 text-[18px] text-gray900"
-                placeholder="예) 주식회사 OOO, 홍길동"
-                value={ownerInfo.name}
-                editable={!loading}
-                onChangeText={(value) => {
-                  setErrorInfo(undefined);
-                  setOwnerInfo((prev) => ({ ...prev, name: value }));
-                }}
-                returnKeyType="done"
-                onSubmitEditing={() => onClickGetData()}
-              />
-              <Pressable
-                onPress={onClickGetData}
-                disabled={loading}
-                className="h-[52px] items-center justify-center rounded-lg bg-primary px-6"
-                style={{ opacity: loading ? 0.6 : 1 }}
-              >
-                <Text className="text-[16px] font-bold text-white">조회</Text>
-              </Pressable>
-            </View>
-            {errorInfo?.ownerNameError ? (
-              <Text className="mt-2 text-[13px] text-red-500">
-                {errorInfo.ownerNameErrorMessage}
-              </Text>
-            ) : null}
+            <OwnerNameRow
+              name={ownerInfo.name}
+              loading={loading}
+              errorMessage={
+                errorInfo?.ownerNameError
+                  ? errorInfo.ownerNameErrorMessage
+                  : undefined
+              }
+              onChangeName={(value) => {
+                setErrorInfo(undefined);
+                setOwnerInfo((prev) => ({ ...prev, name: value }));
+              }}
+              onSubmit={onClickGetData}
+            />
           </KeyboardAwareScrollView>
-          {loading ? <CarRegisterLoadingOverlay /> : null}
         </View>
       ) : null}
 
@@ -299,6 +290,9 @@ export default function ProductSalesEntryScreen() {
           </Text>
         </View>
       ) : null}
+
+      {/* 조회 중 오버레이 — 헤더(뒤로가기)까지 덮도록 Screen 레벨에서 absoluteFill로 렌더 */}
+      {loading ? <CarRegisterLoadingOverlay /> : null}
 
       <Modal visible={confirmOpen} transparent animationType="fade">
         <View className="flex-1 items-center justify-center bg-black/40 px-6">
@@ -336,5 +330,96 @@ function IoniconsPlaceholder() {
     <View className="h-36 w-36 items-center justify-center rounded-full bg-gray200">
       <Text className="text-5xl text-gray500">!</Text>
     </View>
+  );
+}
+
+type OwnerNameRowProps = {
+  name: string;
+  loading: boolean;
+  errorMessage?: string;
+  onChangeName: (value: string) => void;
+  onSubmit: () => void;
+};
+
+/**
+ * 소유자명 입력 행. 포커스 시 input·조회 버튼이 키보드 위로 올라오도록
+ * KeyboardAwareScrollView의 ensureInputVisible을 사용한다.
+ */
+function OwnerNameRow({
+  name,
+  loading,
+  errorMessage,
+  onChangeName,
+  onSubmit,
+}: OwnerNameRowProps) {
+  const rowRef = useRef<View>(null);
+  const keyboardAware = useKeyboardAwareScroll();
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleFocus = useCallback(() => {
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    const node = rowRef.current;
+    if (keyboardAware?.isKeyboardVisible) {
+      keyboardAware.ensureInputVisible(node);
+    } else {
+      focusTimerRef.current = setTimeout(
+        () => keyboardAware?.ensureInputVisible(node),
+        Platform.OS === "ios" ? 350 : 400,
+      );
+    }
+  }, [keyboardAware]);
+
+  useEffect(() => {
+    return () => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    };
+  }, []);
+
+  return (
+    <>
+      <View
+        ref={rowRef}
+        collapsable={false}
+        className="flex-row items-stretch gap-2"
+      >
+        <View className="h-[52px] flex-1 flex-row items-center rounded-lg border border-gray300 px-4">
+          <TextInput
+            className="flex-1 text-[18px] text-gray900"
+            style={{
+              includeFontPadding: false,
+              lineHeight: 24,
+              paddingVertical: 0,
+              textAlignVertical: "center",
+            }}
+            placeholder="예) 주식회사 OOO, 홍길동"
+            placeholderTextColor={appColors.gray500}
+            value={name}
+            editable={!loading}
+            onChangeText={onChangeName}
+            onFocus={handleFocus}
+            returnKeyType="done"
+            onSubmitEditing={() => onSubmit()}
+          />
+        </View>
+        <Pressable
+          onPress={onSubmit}
+          disabled={loading || !name.trim()}
+          className={`h-[52px] items-center justify-center rounded-lg px-6 ${
+            loading || !name.trim() ? "bg-gray200" : "bg-primary"
+          }`}
+        >
+          <Text
+            className={`text-[16px] font-bold ${
+              loading || !name.trim() ? "text-gray500" : "text-white"
+            }`}
+          >
+            조회
+          </Text>
+        </Pressable>
+      </View>
+      {errorMessage ? (
+        <Text className="mt-2 text-[13px] text-red-500">{errorMessage}</Text>
+      ) : null}
+    </>
   );
 }

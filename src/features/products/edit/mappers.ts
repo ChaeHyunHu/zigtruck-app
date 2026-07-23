@@ -274,11 +274,16 @@ export function buildDetailPatchPayload(
     },
   };
 
+  const hasAccident =
+    form.accidentsHistory?.accident ?? form.accident ?? false;
+
   return {
     id: form.id,
-    accident: form.accidentsHistory?.accident ?? form.accident ?? false,
-    accidentContents:
-      form.accidentsHistory?.accidentContents ?? form.accidentContents ?? "",
+    accident: hasAccident,
+    // 폼에서는 값을 보존하지만, 사고 없음으로 저장할 때는 상세내용을 비워 보낸다.
+    accidentContents: hasAccident
+      ? form.accidentsHistory?.accidentContents ?? form.accidentContents ?? ""
+      : "",
     maintenanceData,
     transportGoods: form.transportGoods,
     transportStartLocate: form.transportStartLocate?.code,

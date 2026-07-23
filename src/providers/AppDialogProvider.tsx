@@ -53,29 +53,37 @@ export function AppDialogProvider({ children }: { children: React.ReactNode }) {
     setConfirmState({ ...options, visible: true });
   }, []);
 
+  // iOS: 네이티브 Modal(다이얼로그)이 dismiss 애니메이션 중일 때 콜백에서 화면 전환
+  // (router.replace 등)이 일어나면 모달이 orphaned 상태로 남아 이동한 화면의 터치가
+  // 막힌다. 모달이 완전히 닫힌 뒤 콜백을 실행한다.
+  const runAfterDismiss = useCallback((callback?: () => void) => {
+    if (!callback) return;
+    setTimeout(callback, 260);
+  }, []);
+
   const closeAlert = useCallback(() => {
     if (alertState.visible) {
       const onConfirm = alertState.onConfirm;
       setAlertState({ visible: false });
-      onConfirm?.();
+      runAfterDismiss(onConfirm);
     }
-  }, [alertState]);
+  }, [alertState, runAfterDismiss]);
 
   const closeConfirmLeft = useCallback(() => {
     if (confirmState.visible) {
       const onLeft = confirmState.onLeft;
       setConfirmState({ visible: false });
-      onLeft?.();
+      runAfterDismiss(onLeft);
     }
-  }, [confirmState]);
+  }, [confirmState, runAfterDismiss]);
 
   const closeConfirmRight = useCallback(() => {
     if (confirmState.visible) {
       const onRight = confirmState.onRight;
       setConfirmState({ visible: false });
-      onRight();
+      runAfterDismiss(onRight);
     }
-  }, [confirmState]);
+  }, [confirmState, runAfterDismiss]);
 
   const value = useMemo(() => ({ alert, confirm }), [alert, confirm]);
 

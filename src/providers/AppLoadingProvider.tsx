@@ -54,7 +54,10 @@ export function AppLoadingProvider({ children }: { children: React.ReactNode }) 
   return (
     <AppLoadingContext.Provider value={value}>
       {children}
-      <AppLoadingOverlay visible={visible} message={message} />
+      {/* iOS: 네이티브 Modal로 띄우면 다른 다이얼로그(AlertDialog 등) Modal이 닫히는
+          도중 로딩 오버레이 Modal이 present되며 orphaned 상태가 되어 화면 터치가
+          막힌다. 절대 위치 오버레이로 렌더해 모달 중첩 충돌을 원천 차단한다. */}
+      <AppLoadingOverlay visible={visible} message={message} embedded />
     </AppLoadingContext.Provider>
   );
 }

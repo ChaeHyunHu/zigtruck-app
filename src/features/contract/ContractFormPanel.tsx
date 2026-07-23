@@ -1,13 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Keyboard, Modal, Platform, Pressable, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { createContract, updateContract } from "@/src/api/contract";
@@ -16,6 +9,7 @@ import {
   BottomSheet,
   BottomSheetHeader,
 } from "@/src/components/common/BottomSheet";
+import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
 import { appColors } from "@/src/constants/colors";
 import { TRANSFEREE, TRANSFEROR } from "@/src/constants/contract";
 import {
@@ -212,10 +206,11 @@ export function ContractFormPanel({
 
   return (
     <>
-      <ScrollView
+      <KeyboardAwareScrollView
         className="flex-1 px-4"
-        contentContainerStyle={{ paddingTop: 12, paddingBottom: 100 }}
-        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingTop: 12 }}
+        footerInset={76}
+        stackedFooter
       >
         {isTransferor ? (
           <View className="gap-7">
@@ -364,24 +359,29 @@ export function ContractFormPanel({
             required
             value={String(contractInfo[regKey as keyof ContractInfo] ?? "")}
             onChangeText={(text) => {
-              const v = validateContractRegistrationNumber(text);
+              // 숫자와 '-'만 허용 (주민번호 000000-0000000 / 사업자번호 000-00-00000)
+              const sanitized = text.replace(/[^\d-]/g, "");
+              const v = validateContractRegistrationNumber(sanitized);
               setRegError(v.errorMessage);
-              setContractInfo((prev) => ({ ...prev, [regKey]: text }));
+              setContractInfo((prev) => ({ ...prev, [regKey]: sanitized }));
             }}
             placeholder="주민등록번호(사업자번호) 입력"
-            keyboardType="numeric"
+            keyboardType={
+              Platform.OS === "ios" ? "numbers-and-punctuation" : "phone-pad"
+            }
             error={regError}
             maxLength={14}
           />
           <ContractSignatureBox
             signatureUrl={signatureUrl}
             onPress={() => {
+              Keyboard.dismiss();
               setDraftSign(signatureUrl || null);
               setSignOpen(true);
             }}
           />
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <View className="border-t border-gray300 bg-white px-4 py-3">
         <Pressable

@@ -87,7 +87,7 @@ export default function LoadedFormScreen() {
   };
 
   return (
-    <Screen variant="stack" className="flex-1 bg-white">
+    <Screen variant="stack" edges={["top"]} className="flex-1 bg-white">
       <View className="flex-1">
         <SellCarRegistrationHeader title={title} />
         <ScrollView
@@ -96,7 +96,7 @@ export default function LoadedFormScreen() {
           nestedScrollEnabled
           contentContainerStyle={{ paddingBottom: 24 }}
         >
-        <View className="flex-row items-start justify-between pt-6">
+        <View className="flex-row items-start justify-between">
           <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">
             적재함 종류와{"\n"}길이(내측 길이)를 입력해주세요.
           </Text>

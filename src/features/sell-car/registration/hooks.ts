@@ -42,7 +42,23 @@ export const usePatchProduct = () => {
       try {
         const res = await patchProducts(request);
         const data = res.data ?? res;
-        setProductFormData((prev) => ({ ...(prev ?? {}), ...data, id: request.id }));
+        setProductFormData((prev) => {
+          const merged = { ...(prev ?? {}), ...data, id: request.id };
+          // 번호판 정보(license)와 판매 여부(isSaleLicense)는 최종 등록 시점에만
+          // 서버에 동기화된다. 중간 단계 patch 응답은 이 값을 false/null로 돌려보내
+          // 로컬에 저장해둔 입력값을 덮어쓰므로, 해당 patch 요청이 직접 지정하지
+          // 않은 경우에는 로컬 값을 그대로 유지한다.
+          if (data?.license == null && prev?.license != null) {
+            merged.license = prev.license;
+          }
+          const requestSetsSaleLicense =
+            Object.prototype.hasOwnProperty.call(request, "isSaleLicense") &&
+            (request as { isSaleLicense?: boolean }).isSaleLicense != null;
+          if (!requestSetsSaleLicense && prev?.isSaleLicense != null) {
+            merged.isSaleLicense = prev.isSaleLicense;
+          }
+          return merged;
+        });
         return data;
       } finally {
         setSaving(false);

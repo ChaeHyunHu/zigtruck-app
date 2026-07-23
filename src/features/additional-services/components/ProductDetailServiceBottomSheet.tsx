@@ -94,6 +94,10 @@ export function ProductDetailServiceBottomSheet({
   const scrollRef = useRef<ScrollView>(null);
   const sheetModalRef = useRef<BottomSheetRef>(null);
   const dismissSheet = useCallback(() => sheetModalRef.current?.dismiss(), []);
+  // 비로그인 시 시트를 먼저 닫고, 완전히 닫힌 뒤 로그인 안내를 띄우기 위한 플래그
+  const pendingLoginRef = useRef(false);
+  // 신청 완료 후 시트를 먼저 닫고, 완전히 닫힌 뒤 완료 안내를 띄우기 위한 메시지
+  const pendingSuccessRef = useRef<string | null>(null);
   const { isAuthenticated, profile } = useAuth();
   const capitalApply = useMemberApplyFlag("capital-counsel-service");
   const transferApply = useMemberApplyFlag("transfer-agency-service");
@@ -108,6 +112,18 @@ export function ProductDetailServiceBottomSheet({
     if (!visible) {
       setIsNearBottom(false);
       setConfirmOpen(false);
+      // 시트가 완전히 닫힌 뒤 로그인 안내(루트 Modal)를 띄운다.
+      // (닫히는 중 바로 띄우면 iOS Modal-on-Modal 충돌로 화면이 멈춤)
+      if (pendingLoginRef.current) {
+        pendingLoginRef.current = false;
+        setTimeout(() => promptLogin(), 300);
+      }
+      // 신청 완료 안내(루트 Modal)도 시트가 완전히 닫힌 뒤 띄운다.
+      if (pendingSuccessRef.current) {
+        const message = pendingSuccessRef.current;
+        pendingSuccessRef.current = null;
+        setTimeout(() => showAppAlert({ title: "완료", message }), 300);
+      }
     }
   }, [visible]);
 
@@ -130,8 +146,8 @@ export function ProductDetailServiceBottomSheet({
 
   const onPressApply = useCallback(() => {
     if (!isAuthenticated) {
+      pendingLoginRef.current = true;
       dismissSheet();
-      promptLogin();
       return;
     }
     if (!profile?.name?.trim() || !profile?.phoneNumber?.trim()) {
@@ -160,11 +176,10 @@ export function ProductDetailServiceBottomSheet({
         await createTransferAgencyServices(payload);
       }
       setIsAlreadyApply(true);
-      showAppAlert({
-        title: "완료",
-        message: config.successMessage,
-        onConfirm: dismissSheet,
-      });
+      // 시트를 먼저 닫고, 완전히 닫힌 뒤(visible=false) 완료 안내를 띄운다.
+      // (완료 알림 위에서 dismiss 하면 iOS Modal-on-Modal 충돌로 상세 화면 터치가 막힘)
+      pendingSuccessRef.current = config.successMessage;
+      dismissSheet();
     } catch (error: unknown) {
       const message =
         error && typeof error === "object" && "message" in error
@@ -215,6 +230,21 @@ export function ProductDetailServiceBottomSheet({
         onClose={onClose}
         sheetHeight={SHEET_HEIGHT}
         sheetStyle={{ backgroundColor: "#f5f5f5" }}
+        nestedSheets={
+          <ConfirmDialog
+            asOverlay
+            visible={confirmOpen}
+            title={truckName || undefined}
+            leftLabel="취소"
+            rightLabel="신청하기"
+            onLeft={() => setConfirmOpen(false)}
+            onRight={submitting ? undefined : onConfirmApply}
+          >
+            <Text className="text-center text-[16px] leading-[24px] text-gray800">
+              {config.confirmBody}
+            </Text>
+          </ConfirmDialog>
+        }
       >
           <View className="flex-1 bg-gray200">
             <View className="flex-row items-center justify-center border-b border-gray300 bg-white px-4 py-3">
@@ -283,19 +313,6 @@ export function ProductDetailServiceBottomSheet({
             </View>
           </View>
       </BottomSheet>
-
-      <ConfirmDialog
-        visible={confirmOpen}
-        title={truckName || undefined}
-        leftLabel="취소"
-        rightLabel="신청하기"
-        onLeft={() => setConfirmOpen(false)}
-        onRight={submitting ? undefined : onConfirmApply}
-      >
-        <Text className="text-center text-[16px] leading-[24px] text-gray800">
-          {config.confirmBody}
-        </Text>
-      </ConfirmDialog>
     </>
   );
 }

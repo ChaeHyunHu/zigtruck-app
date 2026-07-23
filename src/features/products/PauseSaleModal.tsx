@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -39,6 +41,14 @@ export function PauseSaleModal({
   const [comment, setComment] = useState("");
   const [reasonError, setReasonError] = useState(false);
   const [commentError, setCommentError] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const scrollToCommentField = () => {
+    // 추가 의견 textarea 가 스크롤 없이 바로 보이도록 하단으로 이동
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  };
 
   useEffect(() => {
     if (!visible) {
@@ -50,6 +60,12 @@ export function PauseSaleModal({
   }, [visible]);
 
   const showCommentField = selectedReasonCode === ETC_CODE;
+
+  useEffect(() => {
+    if (showCommentField) {
+      scrollToCommentField();
+    }
+  }, [showCommentField]);
 
   const handleClose = () => {
     if (loading) return;
@@ -84,9 +100,14 @@ export function PauseSaleModal({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      <View className="flex-1 items-center justify-center bg-black/35 px-5">
-        <View className="max-h-[85%] w-full overflow-hidden rounded-2xl bg-white">
+      <KeyboardAvoidingView
+        className="flex-1 bg-black/35"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View className="flex-1 items-center justify-center px-5">
+          <View className="max-h-[85%] w-full overflow-hidden rounded-2xl bg-white">
           <ScrollView
+            ref={scrollRef}
             className="px-5 pt-8"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -148,6 +169,7 @@ export function PauseSaleModal({
                     multiline
                     maxLength={MAX_COMMENT_LENGTH}
                     value={comment}
+                    onFocus={scrollToCommentField}
                     onChangeText={(text) => {
                       setComment(text);
                       if (text.trim()) setCommentError(false);
@@ -185,9 +207,10 @@ export function PauseSaleModal({
                 {loading ? "처리 중..." : "확인"}
               </Text>
             </Pressable>
+            </View>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

@@ -1,7 +1,24 @@
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Keyboard, ScrollView, Text, TextInput, View } from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  Keyboard,
+  Platform,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+} from "react-native";
 
+import {
+  KeyboardAwareScrollView,
+  useKeyboardAwareScroll,
+} from "@/src/components/common/KeyboardAwareScrollView";
 import { Screen } from "@/src/components/common/Screen";
 import { showAppAlert } from "@/src/providers/appDialog";
 import { SALESTYPE } from "@/src/constants/products";
@@ -38,6 +55,55 @@ const inputClassName =
 
 const multilineClassName =
   "min-h-[100px] rounded-lg border border-gray300 px-4 py-3 text-[16px] text-gray900";
+
+/**
+ * 포커스 시 입력 필드가 키보드 위로 올라오도록 KeyboardAwareScrollView의
+ * ensureInputVisible을 호출하는 TextInput 래퍼.
+ */
+function AwareTextInput(props: TextInputProps) {
+  const boxRef = useRef<View>(null);
+  const keyboardAware = useKeyboardAwareScroll();
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleFocus = useCallback<NonNullable<TextInputProps["onFocus"]>>(
+    (event) => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      const node = boxRef.current;
+      if (keyboardAware?.isKeyboardVisible) {
+        keyboardAware.ensureInputVisible(node);
+      } else {
+        focusTimerRef.current = setTimeout(
+          () => keyboardAware?.ensureInputVisible(node),
+          Platform.OS === "ios" ? 350 : 400,
+        );
+      }
+      props.onFocus?.(event);
+    },
+    [keyboardAware, props],
+  );
+
+  const handleChangeText = useCallback(
+    (text: string) => {
+      props.onChangeText?.(text);
+      if (keyboardAware?.isKeyboardVisible) {
+        keyboardAware.ensureInputVisible(boxRef.current);
+      }
+    },
+    [keyboardAware, props],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+    };
+  }, []);
+
+  return (
+    <View ref={boxRef} collapsable={false}>
+      <TextInput {...props} onFocus={handleFocus} onChangeText={handleChangeText} />
+    </View>
+  );
+}
 
 export default function DetailInfoFormScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -173,16 +239,15 @@ export default function DetailInfoFormScreen() {
   }
 
   return (
-    <Screen variant="stack" className="flex-1 bg-white">
+    <Screen variant="stack" edges={["top"]} className="flex-1 bg-white">
       <View className="flex-1">
         <SellCarRegistrationHeader title={title} />
-        <ScrollView
+        <KeyboardAwareScrollView
           className="flex-1 px-4 pt-6"
-          keyboardShouldPersistTaps="always"
           nestedScrollEnabled
           contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
         >
-        <View className="flex-row items-start justify-between pt-2">
+        <View className="flex-row items-start justify-between">
           <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">
             상세 정보를 입력해주세요.
           </Text>
@@ -194,36 +259,40 @@ export default function DetailInfoFormScreen() {
             label="사고유무"
             options={ACCIDENT_OPTIONS}
             value={String(accident)}
-            onChange={(code) => setAccident(code === "true")}
+            onChange={(code) => {
+              Keyboard.dismiss();
+              setAccident(code === "true");
+            }}
           />
 
-          <View>
-            <Text className="mb-2 text-[14px] font-medium text-gray700">
-              사고 상세내용
-              {accident ? <Text className="text-red-500"> (필수)</Text> : null}
-            </Text>
-            <TextInput
-              className={inputClassName}
-              placeholder="상세내용 입력"
-              editable={accident}
-              value={
-                productFormData.accidentsHistory?.accidentContents ??
-                productFormData.accidentContents ??
-                ""
-              }
-              onChangeText={(text) =>
-                setProductFormData((prev) =>
-                  prev
-                    ? {
-                        ...prev,
-                        accidentContents: text,
-                        accidentsHistory: { accident: true, accidentContents: text },
-                      }
-                    : prev,
-                )
-              }
-            />
-          </View>
+          {accident ? (
+            <View>
+              <Text className="mb-2 text-[14px] font-medium text-gray700">
+                사고 상세내용
+                <Text className="text-red-500"> (필수)</Text>
+              </Text>
+              <AwareTextInput
+                className={inputClassName}
+                placeholder="상세내용 입력"
+                value={
+                  productFormData.accidentsHistory?.accidentContents ??
+                  productFormData.accidentContents ??
+                  ""
+                }
+                onChangeText={(text) =>
+                  setProductFormData((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          accidentContents: text,
+                          accidentsHistory: { accident: true, accidentContents: text },
+                        }
+                      : prev,
+                  )
+                }
+              />
+            </View>
+          ) : null}
 
           <View>
             <Text className="mb-1 text-[14px] font-medium text-gray700">
@@ -244,7 +313,7 @@ export default function DetailInfoFormScreen() {
             <Text className="mb-2 text-[14px] font-medium text-gray700">
               운송물품 입력
             </Text>
-            <TextInput
+            <AwareTextInput
               className={inputClassName}
               placeholder="운송물품 입력"
               value={productFormData.transportGoods ?? ""}
@@ -293,6 +362,7 @@ export default function DetailInfoFormScreen() {
             options={tireOptions}
             value={productFormData.tireStatus?.code ?? ""}
             onChange={(code) => {
+              Keyboard.dismiss();
               const item = productEnum?.tireStatus?.find((opt) => opt.code === code);
               if (!item) return;
               setProductFormData((prev) =>
@@ -341,7 +411,7 @@ export default function DetailInfoFormScreen() {
                 * 개인 정보 보호를 위해 현재 전화번호 입력은 제한되어있습니다.
               </Text>
             </View>
-            <TextInput
+            <AwareTextInput
               className={multilineClassName}
               placeholder="상세설명 입력"
               multiline
@@ -355,7 +425,7 @@ export default function DetailInfoFormScreen() {
             />
           </View>
         </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         <DualFooterButtons
           onPressLeft={() =>
@@ -373,6 +443,7 @@ export default function DetailInfoFormScreen() {
       {routePicker !== null ? (
         <OptionPickerSheet
           visible
+          noModal
           title={routePicker === "transportStartLocate" ? "상차지 선택" : "하차지 선택"}
           options={routeOptions}
           selectedCode={

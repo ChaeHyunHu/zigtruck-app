@@ -5,7 +5,6 @@ import { ScrollView, View } from "react-native";
 import { getLicenseFilterInfo, type LicenseFilterInfo } from "@/src/api/license";
 import { Screen } from "@/src/components/common/Screen";
 import { LicenseCircleRadioGroup } from "@/src/features/license/components/LicenseCircleRadioGroup";
-import { LicenseSearchRangeSection } from "@/src/features/license/components/LicenseSearchRangeSection";
 import { LicenseSearchTypeRow } from "@/src/features/license/components/LicenseSearchTypeRow";
 import { useLicenseSearch } from "@/src/features/license/LicenseSearchContext";
 import { getCurrentYear } from "@/src/features/license/utils";
@@ -14,6 +13,7 @@ import {
   OptionPickerSheet,
   type PickerOption,
 } from "@/src/features/price-trend/OptionPickerSheet";
+import { FilterRangeSection } from "@/src/features/products/FilterSections";
 import { DualFooterButtons } from "@/src/features/sell-car/registration/DualFooterButtons";
 import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
 import { useScreenInsets } from "@/src/hooks/useScreenInsets";
@@ -77,7 +77,7 @@ export default function LicenseSearchScreen() {
         scrollEnabled={scrollEnabled}
         contentContainerStyle={{ paddingBottom: listPaddingBottom + 80 }}
       >
-        <LicenseSearchRangeSection
+        <FilterRangeSection
           label="연식"
           min={YEAR_MIN}
           max={yearMax}
@@ -106,14 +106,13 @@ export default function LicenseSearchScreen() {
           }
         />
 
-        <LicenseSearchRangeSection
+        <FilterRangeSection
           label="톤수"
           min={TONS_MIN}
           max={TONS_MAX}
           valueMin={params.minTons}
           valueMax={params.maxTons}
           unit="t"
-          keyboardType="decimal-pad"
           onDragStart={() => setScrollEnabled(false)}
           onDragEnd={() => setScrollEnabled(true)}
           onRangeCommit={(low, high) => {

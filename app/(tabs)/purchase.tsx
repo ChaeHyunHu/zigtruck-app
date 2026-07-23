@@ -144,6 +144,9 @@ export default function PurchaseScreen() {
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fetchGenerationRef = useRef(0);
   const keywordTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 필터 화면 등으로 이동하며 input을 blur할 때 발생하는 onBlur에서는
+  // 검색을 트리거하지 않도록 구분하는 플래그
+  const navigatingAwayRef = useRef(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const [isSortSheetOpen, setIsSortSheetOpen] = useState(false);
   const [keywordDraft, setKeywordDraft] = useState(
@@ -509,29 +512,65 @@ export default function PurchaseScreen() {
     );
   }, [filters.sort]);
 
-  const isKeywordPending =
-    keywordDraft.trim() !== (filters.keyword ?? "").trim();
-  const showSearchLoading = isSearching || isKeywordPending;
+  // 실제 검색 요청 중일 때만 로딩 인디케이터 노출 (타자 입력 중에는 표시하지 않음)
+  const showSearchLoading = isSearching;
   const showEmptyList =
     !showInitialLoading && !isSearching && visibleProducts.length === 0;
+
+  // 현재 입력값으로 즉시 검색을 적용 (디바운스 타이머는 취소)
+  const applyKeywordNow = useCallback(() => {
+    if (keywordTimerRef.current) {
+      clearTimeout(keywordTimerRef.current);
+      keywordTimerRef.current = null;
+    }
+    const value = keywordDraftRef.current.trim();
+    const nextKeyword = value || undefined;
+    setFilters((prev) =>
+      prev.keyword === nextKeyword ? prev : { ...prev, keyword: nextKeyword },
+    );
+  }, []);
 
   const onChangeKeyword = useCallback((value: string) => {
     setKeywordDraft(value);
     if (keywordTimerRef.current) clearTimeout(keywordTimerRef.current);
+    // 사용자가 3초 이상 입력을 멈추면 자동으로 실시간 검색
     keywordTimerRef.current = setTimeout(() => {
       setFilters((prev) => ({
         ...prev,
         keyword: value.trim() || undefined,
       }));
-    }, 400);
+    }, 3000);
   }, []);
 
+  // 키패드 검색 버튼: 즉시 검색하고 키패드 내림
+  const onSubmitSearch = useCallback(() => {
+    applyKeywordNow();
+    Keyboard.dismiss();
+  }, [applyKeywordNow]);
+
+  // 다른 곳을 눌러 키패드가 내려가면(blur) 즉시 검색 적용.
+  // 단, 필터 화면 등으로 이동하며 강제로 blur한 경우는 제외
+  const onBlurSearch = useCallback(() => {
+    if (navigatingAwayRef.current) {
+      navigatingAwayRef.current = false;
+      return;
+    }
+    applyKeywordNow();
+  }, [applyKeywordNow]);
+
   const onPressFilter = useCallback(() => {
+    // 필터 화면 진입 전 input 포커스를 해제해, 복귀 시 iOS가 포커스를
+    // 복원하며 키패드를 다시 띄우는 현상 방지
+    navigatingAwayRef.current = true;
+    Keyboard.dismiss();
+    searchInputRef.current?.blur();
+    const draft = keywordDraftRef.current.trim();
+    const nextFilters = { ...filtersRef.current, keyword: draft || undefined };
     router.push({
       pathname: "/product/filter",
-      params: filtersToParams(filters),
+      params: filtersToParams(nextFilters),
     });
-  }, [filters]);
+  }, []);
 
   const onPressSort = useCallback(() => {
     setIsSortSheetOpen(true);
@@ -617,6 +656,8 @@ export default function PurchaseScreen() {
             ref={searchInputRef}
             value={keywordDraft}
             onChangeText={onChangeKeyword}
+            onSubmitEditing={onSubmitSearch}
+            onBlur={onBlurSearch}
             placeholder="차량을 검색해보세요."
             placeholderTextColor="#bdbdbd"
             returnKeyType="search"
@@ -693,6 +734,8 @@ export default function PurchaseScreen() {
           }}
           ListEmptyComponent={showEmptyList ? ListEmpty : null}
           ListFooterComponent={ListFooter}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

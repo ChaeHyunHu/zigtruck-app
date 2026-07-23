@@ -1,7 +1,9 @@
-import { validateName } from "@/src/features/additional-services/validation";
-
 const registrationRegex = /^\d{6}-?\d{7}$/;
 const businessRegex = /^\d{3}-?\d{2}-?\d{5}$/;
+// 성명: 한글/영문만 허용 (공백·숫자·특수문자 불가)
+const contractNameRegex = /^[가-힣a-zA-Z]+$/;
+
+export const CONTRACT_NAME_VALIDATION_MESSAGE = "한글과 영문만 입력해주세요.";
 
 export function validateContractRegistrationNumber(value: string): {
   isValid: boolean;
@@ -30,8 +32,11 @@ export function validateContractName(value: string) {
   if (!value.trim()) {
     return { isValid: false, errorMessage: "성명은 필수값입니다." };
   }
-  if (!validateName(value)) {
+  if (/\s/.test(value)) {
     return { isValid: false, errorMessage: "올바른 성명이 아닙니다." };
+  }
+  if (!contractNameRegex.test(value)) {
+    return { isValid: false, errorMessage: CONTRACT_NAME_VALIDATION_MESSAGE };
   }
   return { isValid: true, errorMessage: "" };
 }

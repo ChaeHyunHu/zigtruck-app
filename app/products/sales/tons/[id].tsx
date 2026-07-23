@@ -41,10 +41,10 @@ export default function TonsFormScreen() {
   };
 
   return (
-    <Screen variant="stack" className="flex-1 bg-white">
+    <Screen variant="stack" edges={["top"]} className="flex-1 bg-white">
       <SellCarRegistrationHeader title={title} />
       <KeyboardAwareScrollView className="flex-1 px-4 pt-6" footerInset={88}>
-        <View className="flex-row items-start justify-between pt-6">
+        <View className="flex-row items-start justify-between">
           <Text className="flex-1 text-[24px] font-bold leading-[30px] text-gray800">
             톤수를{"\n"}입력해주세요.
           </Text>

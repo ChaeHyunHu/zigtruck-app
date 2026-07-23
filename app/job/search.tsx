@@ -11,12 +11,12 @@ import {
 } from "@/src/features/job/constants";
 import { useJobSearch } from "@/src/features/job/JobSearchContext";
 import type { JobEnumField, JobFilterInfo } from "@/src/features/job/types";
-import { LicenseSearchRangeSection } from "@/src/features/license/components/LicenseSearchRangeSection";
 import { sanitizeDecimalMax2 } from "@/src/features/price-trend/inputUtils";
 import {
   OptionPickerSheet,
   type PickerOption,
 } from "@/src/features/price-trend/OptionPickerSheet";
+import { FilterRangeSection } from "@/src/features/products/FilterSections";
 import { DualFooterButtons } from "@/src/features/sell-car/registration/DualFooterButtons";
 import { RegistrationHeader } from "@/src/features/sell-car/registration/RegistrationHeader";
 import { useScreenInsets } from "@/src/hooks/useScreenInsets";
@@ -36,13 +36,16 @@ export default function JobSearchScreen() {
   const [pickerKey, setPickerKey] = useState<FilterKey | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
 
-  const loadFilterInfo = useCallback(() => {
-    return getJobFilterInfo()
-      .then((res) => {
-        const payload = (res?.data ?? res) as { data?: JobFilterInfo } & JobFilterInfo;
-        setFilterInfo((payload?.data ?? payload) as JobFilterInfo);
-      })
-      .catch(() => undefined);
+  const loadFilterInfo = useCallback(async () => {
+    try {
+      const res = await getJobFilterInfo();
+      const payload = (res?.data ?? res) as { data?: JobFilterInfo } & JobFilterInfo;
+      const info = (payload?.data ?? payload) as JobFilterInfo;
+      setFilterInfo(info);
+      return info;
+    } catch {
+      return null;
+    }
   }, []);
 
   useEffect(() => {
@@ -50,11 +53,14 @@ export default function JobSearchScreen() {
   }, [loadFilterInfo]);
 
   const openPicker = useCallback(
-    (key: FilterKey) => {
-      // 필터 정보 로딩이 실패했거나 비어 있으면 다시 불러온 뒤 표시
-      if (!filterInfo || (filterInfo[key]?.length ?? 0) === 0) {
-        void loadFilterInfo();
+    async (key: FilterKey) => {
+      // 옵션이 아직 준비되지 않았으면 먼저 불러온 뒤 시트를 연다.
+      // (열린 뒤 옵션이 채워지며 높이가 바뀌면 시트가 두 번 올라오는 것처럼 보임)
+      let info = filterInfo;
+      if (!info || (info[key]?.length ?? 0) === 0) {
+        info = await loadFilterInfo();
       }
+      if (!info || (info[key]?.length ?? 0) === 0) return;
       setPickerKey(key);
     },
     [filterInfo, loadFilterInfo],
@@ -86,14 +92,13 @@ export default function JobSearchScreen() {
         scrollEnabled={scrollEnabled}
         contentContainerStyle={{ paddingBottom: listPaddingBottom + 88 }}
       >
-        <LicenseSearchRangeSection
+        <FilterRangeSection
           label="톤수"
           min={JOB_TONS_MIN}
           max={JOB_TONS_MAX}
           valueMin={String(params.minTons)}
           valueMax={String(params.maxTons)}
           unit="t"
-          keyboardType="decimal-pad"
           onDragStart={() => setScrollEnabled(false)}
           onDragEnd={() => setScrollEnabled(true)}
           onRangeCommit={(low, high) => {
@@ -120,19 +125,19 @@ export default function JobSearchScreen() {
         <JobSearchFilterRow
           label="근무 지역"
           selected={params.workingArea}
-          onPress={() => openPicker("workingArea")}
+          onPress={() => void openPicker("workingArea")}
           onRemove={() => clearEnum("workingArea")}
         />
         <JobSearchFilterRow
           label="근무 요일"
           selected={params.workingDays}
-          onPress={() => openPicker("workingDays")}
+          onPress={() => void openPicker("workingDays")}
           onRemove={() => clearEnum("workingDays")}
         />
         <JobSearchFilterRow
           label="근무 시간"
           selected={params.workingHours}
-          onPress={() => openPicker("workingHours")}
+          onPress={() => void openPicker("workingHours")}
           onRemove={() => clearEnum("workingHours")}
         />
       </ScrollView>

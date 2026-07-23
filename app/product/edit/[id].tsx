@@ -1,14 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
 import { Screen } from "@/src/components/common/Screen";
 import { showAppAlert } from "@/src/providers/appDialog";
 import {
   fetchAuthedProductDetail,
   fetchProductDetail,
 } from "@/src/api/products/getProducts";
-import { getProductEnum } from "@/src/api/products/carRegister";
+import {
+  fetchRegistrationProduct,
+  getProductEnum,
+} from "@/src/api/products/carRegister";
 import { patchProducts } from "@/src/api/public";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import { APPROVAL_STATUS_APPROVAL } from "@/src/constants/products";
@@ -98,15 +102,28 @@ export default function ProductEditScreen() {
   const loadDetail = useCallback(async () => {
     if (!id) return;
     try {
-      const raw = isAuthenticated
-        ? await fetchAuthedProductDetail(id).catch(() => fetchProductDetail(id))
-        : await fetchProductDetail(id);
+      const [raw, registrationProduct] = await Promise.all([
+        isAuthenticated
+          ? fetchAuthedProductDetail(id).catch(() => fetchProductDetail(id))
+          : fetchProductDetail(id),
+        // 상세 API 응답은 세부 모델/세부 적재함을 폼 형태({code,desc})로 주지 않아
+        // 값이 비어 재입력을 요구하게 된다. 등록 재개용 엔드포인트는 올바른 형태로
+        // 반환하므로 해당 값을 병합해 채운다.
+        fetchRegistrationProduct(id).catch(() => null),
+      ]);
       const normalized = normalizeDetail(raw, memberId);
       if (!normalized) {
         throw new Error("invalid product");
       }
       setDetail(normalized);
-      setEditForm(productDetailToEditForm(normalized, raw));
+      const mappedForm = productDetailToEditForm(normalized, raw);
+      const reg = registrationProduct as Partial<RegistrationProduct> | null;
+      setEditForm({
+        ...mappedForm,
+        modelDetail: reg?.modelDetail ?? mappedForm.modelDetail,
+        loaded: reg?.loaded ?? mappedForm.loaded,
+        loadedDetail: reg?.loadedDetail ?? mappedForm.loadedDetail,
+      });
       setImages(buildImagesStateFromDetail(normalized?.productsImage));
       setPriceInput(
         typeof normalized?.price === "number" ? normalized.price : undefined,
@@ -326,10 +343,12 @@ export default function ProductEditScreen() {
         <View className="flex-1 bg-white" />
       ) : (
         <View className="flex-1">
-          <ScrollView
+          <KeyboardAwareScrollView
             className="flex-1 bg-white"
             keyboardShouldPersistTaps="always"
             nestedScrollEnabled
+            footerInset={70}
+            stackedFooter
             contentContainerStyle={{ paddingBottom: 24 }}
           >
           {activeTab === "vehicle" ? (
@@ -377,7 +396,7 @@ export default function ProductEditScreen() {
               </View>
             </View>
           ) : null}
-          </ScrollView>
+          </KeyboardAwareScrollView>
         </View>
       )}
 

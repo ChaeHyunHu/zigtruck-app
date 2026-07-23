@@ -51,7 +51,10 @@ export function AppLoadingOverlay({
 
   if (embedded) {
     return (
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="auto">
+      <View
+        style={[StyleSheet.absoluteFillObject, styles.embeddedRoot]}
+        pointerEvents="auto"
+      >
         <OverlayContent message={message} />
       </View>
     );
@@ -75,5 +78,9 @@ export function AppLoadingOverlay({
 const styles = StyleSheet.create({
   modalRoot: {
     flex: 1,
+  },
+  embeddedRoot: {
+    zIndex: 9999,
+    elevation: 9999,
   },
 });

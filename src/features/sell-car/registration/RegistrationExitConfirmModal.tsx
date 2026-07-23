@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, Pressable, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type RegistrationExitConfirmModalProps = {
   visible: boolean;
@@ -12,14 +12,12 @@ export function RegistrationExitConfirmModal({
   onContinue,
   onExit,
 }: RegistrationExitConfirmModalProps) {
+  // RN Modal 대신 같은 화면 안 absoluteFill 오버레이로 렌더한다.
+  // 나가기 시 화면을 전환하는데, RN Modal이 dismiss 되는 도중 네비게이션하면
+  // iOS에서 투명 레이어가 남아 이동한 화면의 터치가 막히는(먹통) 문제가 있어서다.
+  if (!visible) return null;
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={onContinue}
-    >
+    <View style={[StyleSheet.absoluteFill, { zIndex: 2000, elevation: 2000 }]}>
       <View className="flex-1 items-center justify-center bg-black/40 px-8">
         <View className="w-full max-w-[320px] overflow-hidden rounded-2xl bg-white">
           <Text className="px-5 pb-2 pt-6 text-center text-[18px] font-bold text-gray900">
@@ -44,6 +42,6 @@ export function RegistrationExitConfirmModal({
           </View>
         </View>
       </View>
-    </Modal>
+    </View>
   );
 }

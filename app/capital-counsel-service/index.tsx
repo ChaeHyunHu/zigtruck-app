@@ -18,6 +18,9 @@ export default function CapitalCounselServiceScreen() {
       applyLabel="한도 조회 신청하기"
       completedLabel="한도 조회 신청완료"
       guide={<CapitalGuideView price={guidePrice} />}
+      showVehicleSelector={true}
+      vehicleLabel="상담할 차량 선택하기"
+      vehicleSelectPath="/capital-counsel-service/select"
       initialVehicle={initialVehicle}
       submitRequest={(payload) =>
         createCapitalCounselServices({

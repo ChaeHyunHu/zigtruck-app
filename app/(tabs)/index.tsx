@@ -32,6 +32,7 @@ import { SALES_TYPE_ASSURANCE } from "@/src/constants/products";
 import { IMAGE_BASE_URL, ZIGTRUCK_YOUTUBE_HOME_URL } from "@/src/constants/url";
 import {
   getCachedHomeBanners,
+  getStoredHomeBanners,
   preloadHomeBanners,
 } from "@/src/features/home/homeBannerCache";
 import { HomeBannerCarousel } from "@/src/features/home/HomeBannerCarousel";
@@ -251,6 +252,12 @@ export default function HomeScreen() {
     const cached = getCachedHomeBanners();
     if (cached) {
       setBanners(cached);
+    } else {
+      // 메모리 캐시가 없으면(앱 재실행 등) 저장된 배너로 먼저 즉시 렌더 → 이미지 늦게 뜨는 현상 방지
+      void getStoredHomeBanners().then((stored) => {
+        if (!mounted || !stored?.length) return;
+        setBanners((prev) => (prev.length ? prev : stored));
+      });
     }
 
     void preloadHomeBanners().then((bannerData) => {

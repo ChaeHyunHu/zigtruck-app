@@ -4,9 +4,10 @@ import { router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
+  Keyboard,
   Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   View,
@@ -48,6 +49,17 @@ export default function SettingsScreen() {
     [profile?.phoneNumber],
   );
 
+  // 입력값 실시간 검증: 띄어쓰기·특수문자가 있으면 오류 메시지 노출
+  const editingNameError = useMemo(() => {
+    if (!editingName.trim()) return "";
+    if (!validateMemberName(editingName)) return NAME_VALIDATION_MESSAGE;
+    if (editingName.length > 20) return NAME_VALIDATION_LENGTH_MESSAGE;
+    return "";
+  }, [editingName]);
+
+  const canSaveName =
+    editingName.trim().length > 0 && !editingNameError && !isSavingName;
+
   const onLogout = useCallback(() => {
     showAppConfirm({
       title: "로그아웃",
@@ -66,6 +78,11 @@ export default function SettingsScreen() {
     setIsNameModalOpen(true);
   };
 
+  const closeNameModal = useCallback(() => {
+    Keyboard.dismiss();
+    setIsNameModalOpen(false);
+  }, []);
+
   const onSaveName = async () => {
     const nextName = editingName.trim();
     if (!nextName) {
@@ -83,6 +100,9 @@ export default function SettingsScreen() {
       });
       return;
     }
+    // iOS: 키보드가 열린 상태로 Modal을 닫으면 화면 터치가 막히는 문제가 있어
+    // 저장 전에 키보드를 먼저 내린다.
+    Keyboard.dismiss();
     setIsSavingName(true);
     try {
       await updateProfileName(nextName);
@@ -222,47 +242,58 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
 
-      <Modal
-        visible={isNameModalOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsNameModalOpen(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-black/35 p-5">
-          <View className="w-full rounded-[14px] bg-white p-4">
-            <Text className="mb-3 text-[18px] font-bold text-gray900">
-              이름 변경
-            </Text>
-            <TextInput
-              value={editingName}
-              onChangeText={setEditingName}
-              className="h-[46px] rounded-[10px] border border-gray300 px-3 text-[16px] text-gray900"
-              placeholder="이름을 입력하세요"
-              placeholderTextColor={appColors.gray600}
-              maxLength={20}
-            />
-            <View className="mt-3 flex-row justify-end gap-2">
-              <Pressable
-                onPress={() => setIsNameModalOpen(false)}
-                className="h-[38px] min-w-[70px] items-center justify-center rounded-lg bg-gray100"
-              >
-                <Text className="font-semibold text-gray800">취소</Text>
-              </Pressable>
-              <Pressable
-                onPress={onSaveName}
-                disabled={isSavingName}
-                className="h-[38px] min-w-[70px] items-center justify-center rounded-lg bg-primary"
-              >
-                {isSavingName ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text className="font-bold text-white">저장</Text>
-                )}
-              </Pressable>
+      {isNameModalOpen ? (
+        <View
+          style={[StyleSheet.absoluteFill, { zIndex: 1000, elevation: 1000 }]}
+        >
+          <View className="flex-1 items-center justify-center bg-black/35 p-5">
+            <View className="w-full rounded-[14px] bg-white p-4">
+              <Text className="mb-3 text-[18px] font-bold text-gray900">
+                이름 변경
+              </Text>
+              <TextInput
+                value={editingName}
+                onChangeText={setEditingName}
+                className={`h-[46px] rounded-[10px] border px-3 text-[16px] text-gray900 ${
+                  editingNameError ? "border-danger" : "border-gray300"
+                }`}
+                placeholder="이름을 입력하세요"
+                placeholderTextColor={appColors.gray600}
+                maxLength={20}
+              />
+              {editingNameError ? (
+                <Text className="mt-2 text-[13px] text-danger">
+                  {editingNameError}
+                </Text>
+              ) : null}
+              <View className="mt-3 flex-row justify-end gap-2">
+                <Pressable
+                  onPress={closeNameModal}
+                  className="h-[38px] min-w-[70px] items-center justify-center rounded-lg bg-gray100"
+                >
+                  <Text className="font-semibold text-gray800">취소</Text>
+                </Pressable>
+                <Pressable
+                  onPress={onSaveName}
+                  disabled={!canSaveName}
+                  className="h-[38px] min-w-[70px] items-center justify-center rounded-lg"
+                  style={{
+                    backgroundColor: canSaveName
+                      ? appColors.primary
+                      : appColors.gray400,
+                  }}
+                >
+                  {isSavingName ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text className="font-bold text-white">저장</Text>
+                  )}
+                </Pressable>
+              </View>
             </View>
           </View>
         </View>
-      </Modal>
+      ) : null}
     </Screen>
   );
 }
