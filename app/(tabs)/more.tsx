@@ -13,7 +13,7 @@ import { navigateToLogin } from "@/src/lib/authNavigation";
 
 const serviceMenus = [
   {
-    title: "위탁판매 서비스",
+    title: "알선판매 서비스",
     icon: "car-outline" as const,
     path: "/one-stop-service",
   },

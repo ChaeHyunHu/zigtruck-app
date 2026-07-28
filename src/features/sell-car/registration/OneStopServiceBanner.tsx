@@ -18,7 +18,7 @@ export const OneStopServiceBanner = React.memo(function OneStopServiceBanner() {
             차량 판매에 어려움이 있으신가요?
           </Text>
           <Text className="mt-1 text-[16px] font-bold text-gray800">
-            위탁판매 서비스 신청하기
+            알선판매 서비스 신청하기
           </Text>
         </View>
       </View>

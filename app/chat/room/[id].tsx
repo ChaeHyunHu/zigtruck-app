@@ -334,19 +334,46 @@ export default function ChatRoomScreen() {
         : rawData != null
           ? [rawData]
           : [];
-      const readIds = list
-        .map((item) => {
-          const obj = (item ?? {}) as Record<string, unknown>;
-          return Number(
-            obj.id ?? obj.messageId ?? obj.chatMessageId ?? obj.chatId,
-          );
-        })
-        .filter((messageId) => Number.isFinite(messageId) && messageId > 0);
-      if (readIds.length === 0) return;
-      addReadReceiptIds(roomId, readIds);
+
+      // 상대가 읽은 게 확인된 id(즉시 반영)와, 읽은 사람 미상 id(self-echo grace 적용)를 분리한다.
+      const confirmedReadIds: number[] = [];
+      const unknownReaderIds: number[] = [];
+      for (const item of list) {
+        const obj = (item ?? {}) as Record<string, unknown>;
+        const messageId = Number(
+          obj.id ?? obj.messageId ?? obj.chatMessageId ?? obj.chatId,
+        );
+        if (!Number.isFinite(messageId) || messageId <= 0) continue;
+        // 읽은 사람 식별자(서버 payload 필드명이 달라도 견고하게 파싱). senderId 는 메시지
+        // 작성자(=나)이므로 reader 로 쓰지 않는다.
+        const readerRaw =
+          obj.readMemberId ??
+          obj.readerId ??
+          obj.readerMemberId ??
+          obj.readBy;
+        const readerId = readerRaw != null ? Number(readerRaw) : NaN;
+        if (Number.isFinite(readerId)) {
+          // 내가 읽은 것으로 오는 self-echo 는 무시, 상대가 읽은 것만 즉시 반영
+          if (Number(readerId) === Number(memberId)) continue;
+          confirmedReadIds.push(messageId);
+        } else {
+          unknownReaderIds.push(messageId);
+        }
+      }
+
+      if (confirmedReadIds.length === 0 && unknownReaderIds.length === 0) return;
+      if (confirmedReadIds.length > 0) {
+        addReadReceiptIds(roomId, confirmedReadIds, {
+          bypassSelfEchoGuard: true,
+        });
+      }
+      if (unknownReaderIds.length > 0) {
+        addReadReceiptIds(roomId, unknownReaderIds);
+      }
+      const allIds = [...confirmedReadIds, ...unknownReaderIds];
       setMessages((prev) =>
         withConversationReadState(
-          applyReadReceipts(prev, readIds, Number(memberId), roomId),
+          applyReadReceipts(prev, allIds, Number(memberId), roomId),
           Number(memberId),
           roomId,
         ),

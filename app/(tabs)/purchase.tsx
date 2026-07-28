@@ -39,6 +39,7 @@ import {
   hasActiveFilters,
   isClientOnlyProductSort,
   takePendingPurchaseFilterParams,
+  takePendingPurchaseInquiryParams,
 } from "@/src/features/products/filterUtils";
 import { consumePurchaseListDirty } from "@/src/features/products/productRefresh";
 import { PurchaseProductCard } from "@/src/features/products/PurchaseProductCard";
@@ -258,6 +259,19 @@ export default function PurchaseScreen() {
       requestAnimationFrame(() => {
         searchInputRef.current?.blur();
       });
+
+      // 필터 모달의 "구매 문의" 배너에서 넘어온 경우: 필터 모달이 닫히며 내차 구매로
+      // 복귀한 직후, 구매 문의 페이지를 일반 페이지로 push 한다.
+      const pendingInquiry = takePendingPurchaseInquiryParams();
+      if (pendingInquiry) {
+        requestAnimationFrame(() => {
+          router.push({
+            pathname: "/products/purchase/inquiry",
+            params: pendingInquiry as never,
+          });
+        });
+        return;
+      }
 
       const pending = takePendingPurchaseFilterParams();
       if (pending) {
@@ -708,8 +722,8 @@ export default function PurchaseScreen() {
             <View />
           )}
           <Pressable onPress={onPressSort} className="flex-row items-center">
-            <Ionicons name="swap-vertical" size={14} color="#737373" />
-            <Text className="ml-1 text-[12px] text-gray700">{sortLabel}</Text>
+            <Ionicons name="swap-vertical" size={16} color="#737373" />
+            <Text className="ml-1 text-[14px] text-gray700">{sortLabel}</Text>
           </Pressable>
         </View>
       </View>

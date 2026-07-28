@@ -1,4 +1,4 @@
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { Text } from "react-native";
 
@@ -18,6 +18,7 @@ import { ServiceApplyFormFields } from "./ServiceApplyFormFields";
 import { ServiceScreenLayout } from "./ServiceScreenLayout";
 import { useMemberApplyFlag } from "../hooks/useMemberApplyFlag";
 import { useServiceApplyForm } from "../hooks/useServiceApplyForm";
+import { takePendingSelectedVehicle } from "../pendingSelectedVehicle";
 import type { SelectedVehicleInfo } from "../types";
 
 type AdditionalServiceApplyScreenProps = {
@@ -25,7 +26,7 @@ type AdditionalServiceApplyScreenProps = {
   title: string;
   applyLabel: string;
   completedLabel: string;
-  guide: React.ReactNode;
+  guide: React.ReactNode | ((ctx: { productPrice?: number }) => React.ReactNode);
   footerBgClassName?: string;
   showVehicleSelector?: boolean;
   vehicleLabel?: string;
@@ -66,6 +67,17 @@ export function AdditionalServiceApplyScreen({
   const form = useServiceApplyForm(initialVehicle);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const applyVehicle = form.applyVehicle;
+
+  // 차량 선택 화면(router.back)에서 돌아왔을 때, 선택 결과를 현재 인스턴스에 반영한다.
+  // 화면을 새로 push/replace 하지 않으므로 스크롤 위치가 그대로 유지된다.
+  useFocusEffect(
+    useCallback(() => {
+      const pending = takePendingSelectedVehicle();
+      if (pending) applyVehicle(pending);
+    }, [applyVehicle]),
+  );
 
   const onPressVehicleSelect = useCallback(() => {
     if (!vehicleSelectPath) return;
@@ -134,7 +146,7 @@ export function AdditionalServiceApplyScreen({
       isSubmitDisabled={form.isSubmitDisabled || submitting}
       onPressApply={onPressApply}
     >
-      {guide}
+      {typeof guide === "function" ? guide({ productPrice: form.productPrice }) : guide}
       <ServiceApplyFormFields
         name={form.name}
         phoneNumber={form.phoneNumber}

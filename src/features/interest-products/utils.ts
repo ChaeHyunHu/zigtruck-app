@@ -61,7 +61,7 @@ export function getSalesTypeLabel(code?: string): string | undefined {
     case SALES_TYPE_NORMAL:
       return "직거래";
     case SALES_TYPE_CONSIGNMENT:
-      return "위탁판매";
+      return "알선판매";
     case SALES_TYPE_ASSURANCE:
       return "직트럭 상품용";
     default:

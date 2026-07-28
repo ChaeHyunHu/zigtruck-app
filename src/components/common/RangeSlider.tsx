@@ -11,6 +11,9 @@ import { appColors } from "@/src/constants/colors";
 
 const THUMB_SIZE = 26;
 const THUMB_HIT = 52;
+// 양쪽 끝 thumb가 페이지/섹션 가장자리에 붙지 않도록 트랙을 좌우로 들여쓴다.
+// (thumb 반지름만큼 들여쓰면 min/max 위치의 thumb 바깥선이 아래 input의 좌우 라인과 정확히 맞음)
+const SIDE_INSET = THUMB_SIZE / 2;
 
 type Props = {
   min: number;
@@ -279,6 +282,7 @@ const styles = StyleSheet.create({
   trackContainer: {
     height: 52,
     justifyContent: "center",
+    marginHorizontal: SIDE_INSET,
   },
   track: {
     height: 4,

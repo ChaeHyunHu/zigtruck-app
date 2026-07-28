@@ -20,18 +20,23 @@ export function ConfirmApplyModal({
 }: ConfirmApplyModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
-      <View className="flex-1 items-center justify-center bg-black/35 p-5">
-        <View className="w-full rounded-xl bg-white p-4">
-          {title ? (
-            <Text className="text-center text-[17px] font-bold text-gray900">{title}</Text>
-          ) : null}
-          <View className={title ? "mt-2" : ""}>{content}</View>
-          <View className="mt-4 flex-row justify-end gap-2">
-            <Pressable className="rounded-md bg-gray200 px-4 py-2" onPress={onCancel}>
-              <Text className="font-semibold text-gray800">취소</Text>
+      <View className="flex-1 items-center justify-center bg-black/35 px-8">
+        <View className="w-full max-w-[340px] overflow-hidden rounded-2xl bg-white">
+          <View className="items-center px-5 pb-7 pt-8">
+            {title ? (
+              <Text className="mb-2 text-center text-[17px] font-bold text-gray900">
+                {title}
+              </Text>
+            ) : null}
+            {content}
+          </View>
+          <View className="flex-row border-t border-gray200">
+            <Pressable className="flex-1 items-center py-4" onPress={onCancel}>
+              <Text className="text-[16px] font-medium text-gray500">취소</Text>
             </Pressable>
-            <Pressable className="rounded-md bg-primary px-4 py-2" onPress={onConfirm}>
-              <Text className="font-bold text-white">{rightLabel}</Text>
+            <View className="w-px bg-gray200" />
+            <Pressable className="flex-1 items-center py-4" onPress={onConfirm}>
+              <Text className="text-[16px] font-bold text-primary">{rightLabel}</Text>
             </Pressable>
           </View>
         </View>

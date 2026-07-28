@@ -88,21 +88,37 @@ function HomeProductCardComponent({
           className="overflow-hidden rounded-2xl bg-white"
           style={CARD_SHADOW}
         >
-          <View
-            className="w-full overflow-hidden bg-gray200"
-            style={{ height: imageHeight }}
-          >
-            <Image
-              source={{ uri: item.representImageUrl || "" }}
-              className="h-full w-full"
-              contentFit="cover"
-              transition={120}
-            />
-            {showAssuranceInspection ? (
-              <View className="absolute left-2 top-2">
-                <AssuranceInspectionBadge isMaintenance={isMaintenance} />
-              </View>
-            ) : null}
+          <View className="px-2 pt-2">
+            <View
+              className="w-full overflow-hidden rounded-xl bg-gray200"
+              style={{ height: imageHeight }}
+            >
+              <Image
+                source={{ uri: item.representImageUrl || "" }}
+                className="h-full w-full"
+                contentFit="cover"
+                transition={120}
+              />
+              {showAssuranceInspection ? (
+                <View className="absolute left-2 top-2">
+                  <AssuranceInspectionBadge isMaintenance={isMaintenance} />
+                </View>
+              ) : null}
+              {item.productsNumber !== undefined ? (
+                <View className="absolute bottom-2 left-2">
+                  <Text
+                    className="text-[11px] font-semibold text-white"
+                    style={{
+                      textShadowColor: "rgba(0,0,0,0.55)",
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 3,
+                    }}
+                  >
+                    매물번호 {toText(item.productsNumber, "-")}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
 
           <View className="px-3 pb-3.5 pt-3">

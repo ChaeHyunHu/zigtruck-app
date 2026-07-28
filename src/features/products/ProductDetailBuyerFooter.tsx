@@ -1,38 +1,39 @@
+import { ProductDetailServiceBottomSheet } from "@/src/features/additional-services/components/ProductDetailServiceBottomSheet";
+import { PurchaseAccompanyingServiceBottomSheet } from "@/src/features/additional-services/components/PurchaseAccompanyingServiceBottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ProductDetailServiceBottomSheet } from "@/src/features/additional-services/components/ProductDetailServiceBottomSheet";
-import { PurchaseAccompanyingServiceBottomSheet } from "@/src/features/additional-services/components/PurchaseAccompanyingServiceBottomSheet";
-import {
-  Linking,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { deleteInterestProducts, postProductInquiryCall } from "@/src/api/public";
-import { ACTUAL_REPRESENTATIVE_PHONE_NUMBER } from "@/src/features/additional-services/constants";
-import { navigateToProductChatSafely } from "@/src/features/chat/navigateToProductChat";
-import { showAppAlert } from "@/src/providers/appDialog";
 import {
-  createInterestProduct as registerInterestProduct,
-  invalidateInterestProductsCache,
-} from "@/src/features/interest-products/interestProductService";
+  deleteInterestProducts,
+  postProductInquiryCall,
+} from "@/src/api/public";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
 import {
   SALES_TYPE_ASSURANCE,
   SALES_TYPE_CONSIGNMENT,
 } from "@/src/constants/products";
+import { ACTUAL_REPRESENTATIVE_PHONE_NUMBER } from "@/src/features/additional-services/constants";
+import { navigateToProductChatSafely } from "@/src/features/chat/navigateToProductChat";
+import {
+  invalidateInterestProductsCache,
+  createInterestProduct as registerInterestProduct,
+} from "@/src/features/interest-products/interestProductService";
 import type { ProductDetail } from "@/src/features/products/types";
 import { enumCode } from "@/src/features/products/utils";
 import { useNotificationSettings } from "@/src/features/settings/useNotificationSettings";
 import { useAuth } from "@/src/hooks/useAuth";
 import { promptLogin } from "@/src/lib/authNavigation";
+import { showAppAlert } from "@/src/providers/appDialog";
 
 import { OwnerVerificationBottomSheet } from "./OwnerVerificationBottomSheet";
 import { ProductInquiryModal } from "./ProductInquiryModal";
-import { isDealerMember, resolveInquiryPhoneNumber } from "./productInquiryUtils";
+import {
+  isDealerMember,
+  resolveInquiryPhoneNumber,
+} from "./productInquiryUtils";
 
 type ProductDetailBuyerFooterProps = {
   product: ProductDetail;
@@ -45,9 +46,9 @@ export function ProductDetailBuyerFooter({
 }: ProductDetailBuyerFooterProps) {
   const { isAuthenticated, profile } = useAuth();
   const { settings, isLoaded } = useNotificationSettings();
-  const [interestProductId, setInterestProductId] = useState<number | null | undefined>(
-    product.interestedProductId ?? null,
-  );
+  const [interestProductId, setInterestProductId] = useState<
+    number | null | undefined
+  >(product.interestedProductId ?? null);
   const [isMutating, setIsMutating] = useState(false);
   const [likeConfirmOpen, setLikeConfirmOpen] = useState(false);
   const [ownerSheetOpen, setOwnerSheetOpen] = useState(false);
@@ -62,10 +63,12 @@ export function ProductDetailBuyerFooter({
   const isInterestProductOn = isLoaded ? settings.interestProduct : true;
   const salesTypeCode = enumCode(product.salesType);
   const isNotDirectProduct =
-    salesTypeCode === SALES_TYPE_ASSURANCE || salesTypeCode === SALES_TYPE_CONSIGNMENT;
+    salesTypeCode === SALES_TYPE_ASSURANCE ||
+    salesTypeCode === SALES_TYPE_CONSIGNMENT;
   const memberTypeCode = profile?.memberTypeCode;
   // 직거래 매물 + 로그인 회원이 딜러일 때: '차주에게 연락하기' 대신 본사 전화 문의
-  const isDealerDirectInquiry = !isNotDirectProduct && isDealerMember(memberTypeCode);
+  const isDealerDirectInquiry =
+    !isNotDirectProduct && isDealerMember(memberTypeCode);
 
   const createInterestProduct = useCallback(async () => {
     if (!isAuthenticated) {
@@ -82,7 +85,10 @@ export function ProductDetailBuyerFooter({
       }
       setLikeConfirmOpen(true);
     } catch {
-      showAppAlert({ title: "오류", message: "찜하기에 실패했습니다. 잠시 후 다시 시도해주세요." });
+      showAppAlert({
+        title: "오류",
+        message: "찜하기에 실패했습니다. 잠시 후 다시 시도해주세요.",
+      });
     } finally {
       setIsMutating(false);
     }
@@ -115,7 +121,12 @@ export function ProductDetailBuyerFooter({
     } else {
       createInterestProduct();
     }
-  }, [createInterestProduct, deleteInterestProduct, interestProductId, isAuthenticated]);
+  }, [
+    createInterestProduct,
+    deleteInterestProduct,
+    interestProductId,
+    isAuthenticated,
+  ]);
 
   const onPressPhone = useCallback(async () => {
     if (!isAuthenticated) {
@@ -204,9 +215,16 @@ export function ProductDetailBuyerFooter({
 
   return (
     <>
-      <SafeAreaView edges={["bottom"]} className="border-t border-gray300 bg-white">
+      <SafeAreaView
+        edges={["bottom"]}
+        className="border-t border-gray300 bg-white"
+      >
         <View className="flex-row items-center gap-2 px-4 py-3">
-          <Pressable onPress={onPressLike} className="items-center" disabled={isMutating}>
+          <Pressable
+            onPress={onPressLike}
+            className="items-center"
+            disabled={isMutating}
+          >
             <Ionicons
               name={interestProductId ? "heart" : "heart-outline"}
               size={22}
@@ -221,13 +239,17 @@ export function ProductDetailBuyerFooter({
                 onPress={onPressCapital}
                 className="flex-1 items-center justify-center rounded-md border border-gray300 py-3"
               >
-                <Text className="text-[14px] font-bold text-gray800">대출상담 신청하기</Text>
+                <Text className="text-[14px] font-bold text-gray800">
+                  대출상담 신청하기
+                </Text>
               </Pressable>
               <Pressable
                 onPress={onPressDirectPhone}
                 className="flex-1 items-center justify-center rounded-md bg-primary py-3"
               >
-                <Text className="text-[14px] font-bold text-white">전화 문의하기</Text>
+                <Text className="text-[14px] font-bold text-white">
+                  전화 문의하기
+                </Text>
               </Pressable>
             </>
           ) : (
@@ -236,21 +258,27 @@ export function ProductDetailBuyerFooter({
                 onPress={onPressPurchaseAccompanying}
                 className="flex-1 items-center justify-center rounded-md border border-gray300 py-3"
               >
-                <Text className="text-[14px] font-bold text-gray800">구매동행 서비스</Text>
+                <Text className="text-[14px] font-bold text-gray800">
+                  구매동행 서비스
+                </Text>
               </Pressable>
               {isDealerDirectInquiry ? (
                 <Pressable
                   onPress={onPressDealerHeadOfficeCall}
                   className="flex-1 items-center justify-center rounded-md bg-primary py-3"
                 >
-                  <Text className="text-[14px] font-bold text-white">전화 문의하기</Text>
+                  <Text className="text-[14px] font-bold text-white">
+                    전화 문의하기
+                  </Text>
                 </Pressable>
               ) : (
                 <Pressable
                   onPress={onPressContact}
                   className="flex-1 items-center justify-center rounded-md bg-primary py-3"
                 >
-                  <Text className="text-[14px] font-bold text-white">차주에게 연락하기</Text>
+                  <Text className="text-[14px] font-bold text-white">
+                    차주에게 연락하기
+                  </Text>
                 </Pressable>
               )}
             </>

@@ -16,6 +16,9 @@ export function useServiceApplyForm(vehicle?: SelectedVehicleInfo) {
   const [productId, setProductId] = useState<number | undefined>(vehicle?.productId);
   const [truckName, setTruckName] = useState(vehicle?.truckName ?? "");
   const [chatRoomId, setChatRoomId] = useState<number | undefined>(vehicle?.chatRoomId);
+  const [productPrice, setProductPrice] = useState<number | undefined>(
+    vehicle?.productPrice,
+  );
 
   useEffect(() => {
     if (profile?.name) setName(profile.name);
@@ -26,7 +29,13 @@ export function useServiceApplyForm(vehicle?: SelectedVehicleInfo) {
     if (vehicle?.productId) setProductId(vehicle.productId);
     if (vehicle?.truckName) setTruckName(vehicle.truckName);
     if (vehicle?.chatRoomId) setChatRoomId(vehicle.chatRoomId);
-  }, [vehicle?.chatRoomId, vehicle?.productId, vehicle?.truckName]);
+    if (vehicle?.productPrice) setProductPrice(vehicle.productPrice);
+  }, [
+    vehicle?.chatRoomId,
+    vehicle?.productId,
+    vehicle?.truckName,
+    vehicle?.productPrice,
+  ]);
 
   const runValidation = useCallback((nextName: string, nextPhone: string) => {
     const result = validateApplicantFields(nextName, nextPhone);
@@ -63,6 +72,7 @@ export function useServiceApplyForm(vehicle?: SelectedVehicleInfo) {
     setProductId(info.productId);
     setTruckName(info.truckName ?? "");
     setChatRoomId(info.chatRoomId);
+    setProductPrice(info.productPrice);
   }, []);
 
   return {
@@ -75,6 +85,7 @@ export function useServiceApplyForm(vehicle?: SelectedVehicleInfo) {
     productId,
     truckName,
     chatRoomId,
+    productPrice,
     isSubmitDisabled,
     onChangeName,
     onChangePhone,

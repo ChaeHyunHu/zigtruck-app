@@ -18,6 +18,7 @@ import { appColors } from "@/src/constants/colors";
 import { formatPrice } from "@/src/features/home/utils";
 
 import type { AdditionalServiceType } from "../constants";
+import { setPendingSelectedVehicle } from "../pendingSelectedVehicle";
 import type { ChatRoomListItem } from "../types";
 
 const GUIDE_BY_SERVICE: Record<
@@ -64,7 +65,6 @@ type SelectVehicleFromChatListProps = {
 
 export function SelectVehicleFromChatList({
   serviceType,
-  returnPath,
 }: SelectVehicleFromChatListProps) {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ chatRoomId?: string }>();
@@ -99,16 +99,17 @@ export function SelectVehicleFromChatList({
   const onSelectVehicle = useCallback(() => {
     const selected = chatRooms.find((item) => item.chatRoomId === selectedChatRoomId);
     if (!selected) return;
-    router.replace({
-      pathname: returnPath as "/purchase-accompanying-service",
-      params: {
-        productId: String(selected.productId ?? ""),
-        truckName: selected.truckName ?? "",
-        chatRoomId: String(selected.chatRoomId ?? ""),
-        productPrice: selected.price != null ? String(selected.price) : "",
-      },
+    // 새 인스턴스를 push/replace 하지 않고, 선택 결과만 임시 저장 후 뒤로가기(pop)한다.
+    // 이렇게 하면 이전 서비스 화면의 스크롤 위치와 상태가 유지되고,
+    // 네비게이션 스택에 서비스 화면이 중복 생성되지 않는다.
+    setPendingSelectedVehicle({
+      productId: selected.productId,
+      truckName: selected.truckName,
+      chatRoomId: selected.chatRoomId,
+      productPrice: selected.price ?? undefined,
     });
-  }, [chatRooms, returnPath, selectedChatRoomId]);
+    router.back();
+  }, [chatRooms, selectedChatRoomId]);
 
   return (
     <Screen variant="stack" className="flex-1 bg-white">

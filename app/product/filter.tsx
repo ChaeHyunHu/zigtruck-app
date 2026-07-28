@@ -47,6 +47,7 @@ import {
   filtersFromParams,
   filtersToParams,
   setPendingPurchaseFilterParams,
+  setPendingPurchaseInquiryParams,
 } from "@/src/features/products/filterUtils";
 import { MultiSelectChipField } from "@/src/features/products/MultiSelectChipField";
 import { parseFilterInfo } from "@/src/features/products/parseFilterInfo";
@@ -131,7 +132,10 @@ export default function ProductFilterScreen() {
         if (requestId !== filterInfoRequestRef.current) return;
         const parsed = parseFilterInfo(response?.data);
         setManufacturers(parsed.manufacturers);
-        setLoadedTypes(parsed.loadedTypes);
+        // 광폭윙바디(WIDEWINGBODY)는 사용자 선택지에서 제외
+        setLoadedTypes(
+          parsed.loadedTypes.filter((item) => item.code !== "WIDEWINGBODY"),
+        );
 
         const fetchCount = async (query: Record<string, string>) => {
           const countResponse = await getProductCount(query);
@@ -227,6 +231,16 @@ export default function ProductFilterScreen() {
     // 자동으로 뜨는 현상 방지
     Keyboard.dismiss();
     setPendingPurchaseFilterParams(filtersToParams(filters));
+    router.back();
+  }, [filters]);
+
+  const onPressPurchaseInquiry = useCallback(() => {
+    // 필터 화면은 모달(presentation: "modal")로 떠 있어, 여기서 바로 push 하면
+    // 구매 문의가 모달처럼 아래로 내려 사라지는 형태가 된다.
+    // 필터 모달을 닫아 내차 구매로 복귀시키고, 내차 구매에서 구매 문의를
+    // 일반 페이지로 push 하도록 위임한다. (뒤로가기 시 내차 구매로 이동)
+    Keyboard.dismiss();
+    setPendingPurchaseInquiryParams(filtersToParams(filters));
     router.back();
   }, [filters]);
 
@@ -466,6 +480,26 @@ export default function ProductFilterScreen() {
           onSelect={(code) => updateFilter("transmission", code)}
         />
       </KeyboardAwareScrollView>
+
+      {resultCount === 0 && !isCountLoading ? (
+        <Pressable
+          onPress={onPressPurchaseInquiry}
+          className="mx-4 mb-2 flex-row items-center rounded-[12px] bg-gray100 px-4 py-3"
+        >
+          <View className="mr-3 h-9 w-9 items-center justify-center rounded-full bg-white">
+            <Ionicons name="search" size={18} color="#737373" />
+          </View>
+          <View className="flex-1">
+            <Text className="text-[14px] font-bold text-gray900">
+              원하는 차량이 없으신가요?
+            </Text>
+            <Text className="mt-0.5 text-[13px] leading-[18px] text-gray600">
+              구매 문의를 남겨주시면, 원하는 차량을 찾아드릴게요.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#9e9e9e" />
+        </Pressable>
+      ) : null}
 
       <View className="border-t border-gray200 bg-white px-4 py-3">
         <View className="flex-row gap-2">

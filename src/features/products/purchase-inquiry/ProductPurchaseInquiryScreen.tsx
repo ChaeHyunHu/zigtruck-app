@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   Text,
@@ -19,6 +18,7 @@ import { Screen } from "@/src/components/common/Screen";
 import { appColors } from "@/src/constants/colors";
 import { validateApplicantFields } from "@/src/features/additional-services/validation";
 import { FilterOptionSheet } from "@/src/features/products/FilterOptionSheet";
+import { ProductEditOptionSheet } from "@/src/features/products/edit/ProductEditOptionSheet";
 import { MultiSelectChipField } from "@/src/features/products/MultiSelectChipField";
 import {
   FILTER_DISTANCE_MAX,
@@ -34,7 +34,6 @@ import {
 } from "@/src/features/products/FilterSections";
 import { clampNumber, filtersFromParams } from "@/src/features/products/filterUtils";
 import { parseFilterInfo } from "@/src/features/products/parseFilterInfo";
-import type { FilterOptionItem } from "@/src/features/products/filterTypes";
 import {
   buildInterestNotificationFromPurchaseInquiry,
   buildProductPurchasingInquiryRequest,
@@ -126,14 +125,6 @@ export function ProductPurchaseInquiryScreen() {
 
   const loadedLabel =
     loadedOptions.find((item) => item.code === form.loadedCode)?.label ?? "";
-
-  const pickerOptions: FilterOptionItem[] = useMemo(() => {
-    if (picker === "loaded") return loadedOptions;
-    if (picker === "axis") return filterInfo.axis;
-    if (picker === "transmission") return filterInfo.transmission;
-    if (picker === "manufacturer") return filterInfo.manufacturers;
-    return [];
-  }, [filterInfo, loadedOptions, picker]);
 
   const minLengthExceeded = Number(form.minLoadedInnerLength) > MAX_LOADED_INNER_LENGTH;
   const maxLengthExceeded = Number(form.maxLoadedInnerLength) > MAX_LOADED_INNER_LENGTH;
@@ -227,6 +218,7 @@ export function ProductPurchaseInquiryScreen() {
               setNameError(v.nameErrorMessage);
             }}
             placeholder="신청자명을 입력해주세요"
+            placeholderTextColor={appColors.gray500}
             className="h-12 rounded-lg border border-gray300 px-3 text-[15px] text-gray900"
           />
           {nameError ? <Text className="mt-1 text-[13px] text-red-500">{nameError}</Text> : null}
@@ -241,6 +233,7 @@ export function ProductPurchaseInquiryScreen() {
                 setPhoneError(v.phoneErrorMessage);
               }}
               placeholder="휴대폰 번호를 입력해주세요"
+              placeholderTextColor={appColors.gray500}
               keyboardType="phone-pad"
               maxLength={11}
               className="h-12 rounded-lg border border-gray300 px-3 text-[15px] text-gray900"
@@ -271,8 +264,9 @@ export function ProductPurchaseInquiryScreen() {
                     setForm((prev) => ({ ...prev, minLoadedInnerLength: v }))
                   }
                   placeholder="최소"
+                  placeholderTextColor={appColors.gray500}
                   keyboardType="decimal-pad"
-                  className={`h-12 rounded-lg border px-3 text-[15px] ${
+                  className={`h-12 rounded-lg border px-3 text-[15px] text-gray900 ${
                     minLengthExceeded ? "border-danger" : "border-gray300"
                   }`}
                 />
@@ -286,8 +280,9 @@ export function ProductPurchaseInquiryScreen() {
                     setForm((prev) => ({ ...prev, maxLoadedInnerLength: v }))
                   }
                   placeholder="최대"
+                  placeholderTextColor={appColors.gray500}
                   keyboardType="decimal-pad"
-                  className={`h-12 rounded-lg border px-3 text-[15px] ${
+                  className={`h-12 rounded-lg border px-3 text-[15px] text-gray900 ${
                     maxLengthExceeded ? "border-danger" : "border-gray300"
                   }`}
                 />
@@ -461,76 +456,20 @@ export function ProductPurchaseInquiryScreen() {
         safeAreaBottom={false}
       />
 
-      {picker ? (
-        <View className="absolute inset-0 bg-black/40">
-          <Pressable className="flex-1" onPress={() => setPicker(null)} />
-          <View className="max-h-[50%] rounded-t-2xl bg-white px-4 pb-8 pt-4">
-            <Text className="mb-3 text-center text-[16px] font-semibold text-gray900">
-              {picker === "loaded"
-                ? "적재함 종류"
-                : picker === "axis"
-                  ? "가변축"
-                  : picker === "transmission"
-                    ? "변속기"
-                    : "제조사"}
-            </Text>
-            <ScrollView>
-              {loadingFilter ? (
-                <ActivityIndicator color={appColors.primary} />
-              ) : (
-                pickerOptions.map((option) => {
-                  const selected =
-                    picker === "loaded"
-                      ? form.loadedCode === option.code
-                      : picker === "axis"
-                        ? form.axisCode === option.code
-                        : picker === "transmission"
-                          ? form.transmissionCode === option.code
-                          : form.manufacturerIds.includes(option.code);
-                  return (
-                    <Pressable
-                      key={option.code}
-                      onPress={() => {
-                        if (picker === "loaded") {
-                          setForm((prev) => ({ ...prev, loadedCode: option.code }));
-                          setPicker(null);
-                        } else if (picker === "axis") {
-                          setForm((prev) => ({ ...prev, axisCode: option.code }));
-                          setPicker(null);
-                        } else if (picker === "transmission") {
-                          setForm((prev) => ({ ...prev, transmissionCode: option.code }));
-                          setPicker(null);
-                        } else {
-                          setForm((prev) => {
-                            const exists = prev.manufacturerIds.includes(option.code);
-                            const manufacturerIds = exists
-                              ? prev.manufacturerIds.filter((c) => c !== option.code)
-                              : [...prev.manufacturerIds, option.code];
-                            return { ...prev, manufacturerIds };
-                          });
-                        }
-                      }}
-                      className={`mb-2 rounded-lg border px-4 py-3 ${
-                        selected ? "border-primary bg-blue-50" : "border-gray300"
-                      }`}
-                    >
-                      <Text className="text-[15px] text-gray900">{option.label}</Text>
-                    </Pressable>
-                  );
-                })
-              )}
-            </ScrollView>
-            {picker === "manufacturer" ? (
-              <Pressable
-                onPress={() => setPicker(null)}
-                className="mt-3 h-12 items-center justify-center rounded-lg bg-primary"
-              >
-                <Text className="text-[16px] font-semibold text-white">적용</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        </View>
-      ) : null}
+      <ProductEditOptionSheet
+        visible={picker === "loaded"}
+        title="적재함 종류"
+        options={loadedOptions.map((item) => ({
+          code: item.code,
+          desc: item.label,
+        }))}
+        selectedCode={form.loadedCode || undefined}
+        onClose={() => setPicker(null)}
+        onSelect={(item) => {
+          setForm((prev) => ({ ...prev, loadedCode: item.code }));
+          setPicker(null);
+        }}
+      />
 
       <FilterOptionSheet
         visible={manufacturerSheetOpen}

@@ -1,17 +1,22 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Keyboard, Modal, Platform, Pressable, Text, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 import { createContract, updateContract } from "@/src/api/contract";
-import { showAppAlert } from "@/src/providers/appDialog";
 import {
   BottomSheet,
   BottomSheetHeader,
 } from "@/src/components/common/BottomSheet";
 import { KeyboardAwareScrollView } from "@/src/components/common/KeyboardAwareScrollView";
 import { appColors } from "@/src/constants/colors";
-import { TRANSFEREE, TRANSFEROR } from "@/src/constants/contract";
+import { TRANSFEROR } from "@/src/constants/contract";
 import {
   ContractChevronSuffix,
   ContractSignatureBox,
@@ -22,7 +27,10 @@ import {
   clearSignaturePad,
   SignaturePadWebView,
 } from "@/src/features/contract/SignaturePadWebView";
-import type { ContractInfo, ContractRequest } from "@/src/features/contract/types";
+import type {
+  ContractInfo,
+  ContractRequest,
+} from "@/src/features/contract/types";
 import {
   validateContractName,
   validateContractRegistrationNumber,
@@ -33,6 +41,7 @@ import { DriveDateCalendarPicker } from "@/src/features/drive/components/DriveDa
 import { formatYYYYMMDD } from "@/src/features/drive/driveDateUtils";
 import { formatNumberWithComma } from "@/src/features/home/utils";
 import { useAppSafeAreaInsets } from "@/src/hooks/useAppSafeAreaInsets";
+import { showAppAlert } from "@/src/providers/appDialog";
 
 type Props = {
   chatRoomId: string;
@@ -63,9 +72,8 @@ export function ContractFormPanel({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [addressOpen, setAddressOpen] = useState(false);
   const [signOpen, setSignOpen] = useState(false);
-  const [paymentDateField, setPaymentDateField] = useState<PaymentDateField | null>(
-    null,
-  );
+  const [paymentDateField, setPaymentDateField] =
+    useState<PaymentDateField | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [nameError, setNameError] = useState("");
   const [regError, setRegError] = useState("");
@@ -77,9 +85,15 @@ export function ContractFormPanel({
   const isTransferor = contractWriterType === TRANSFEROR;
   const addressKey = isTransferor ? "transferorAddress" : "transfereeAddress";
   const nameKey = isTransferor ? "transferorName" : "transfereeName";
-  const phoneKey = isTransferor ? "transferorPhoneNumber" : "transfereePhoneNumber";
-  const regKey = isTransferor ? "transferorRegistrationNumber" : "transfereeRegistrationNumber";
-  const signKey = isTransferor ? "transferorSignImageUrl" : "transfereeSignImageUrl";
+  const phoneKey = isTransferor
+    ? "transferorPhoneNumber"
+    : "transfereePhoneNumber";
+  const regKey = isTransferor
+    ? "transferorRegistrationNumber"
+    : "transfereeRegistrationNumber";
+  const signKey = isTransferor
+    ? "transferorSignImageUrl"
+    : "transfereeSignImageUrl";
   const insets = useAppSafeAreaInsets();
 
   const signatureUrl = contractInfo[signKey as keyof ContractInfo] as string;
@@ -126,24 +140,33 @@ export function ContractFormPanel({
         !nameError &&
         !regError;
       if (contractInfo.balance) return base && contractInfo.balancePaymentDate;
-      if (contractInfo.intermediatePayment) return base && contractInfo.intermediatePaymentDate;
+      if (contractInfo.intermediatePayment)
+        return base && contractInfo.intermediatePaymentDate;
       return Boolean(base);
     }
     return Boolean(
       contractInfo.transfereeAddress &&
-        contractInfo.transfereeName &&
-        contractInfo.transfereePhoneNumber &&
-        contractInfo.transfereeRegistrationNumber &&
-        contractInfo.transfereeSignImageUrl &&
-        !nameError &&
-        !regError,
+      contractInfo.transfereeName &&
+      contractInfo.transfereePhoneNumber &&
+      contractInfo.transfereeRegistrationNumber &&
+      contractInfo.transfereeSignImageUrl &&
+      !nameError &&
+      !regError,
     );
-  }, [contractInfo, downPaymentError, isTransferor, nameError, regError, tradingError]);
+  }, [
+    contractInfo,
+    downPaymentError,
+    isTransferor,
+    nameError,
+    regError,
+    tradingError,
+  ]);
 
   const buildRequest = useCallback((): ContractRequest => {
     if (isTransferor) {
       return {
-        balance: contractInfo.balance != null ? Number(contractInfo.balance) : null,
+        balance:
+          contractInfo.balance != null ? Number(contractInfo.balance) : null,
         balancePaymentDate: contractInfo.balancePaymentDate,
         carName: contractInfo.carName,
         carNumber: contractInfo.carNumber,
@@ -163,7 +186,8 @@ export function ContractFormPanel({
         transferorAddress: contractInfo.transferorAddress,
         transferorName: contractInfo.transferorName,
         transferorPhoneNumber: contractInfo.transferorPhoneNumber,
-        transferorRegistrationNumber: contractInfo.transferorRegistrationNumber.replace(/-/g, ""),
+        transferorRegistrationNumber:
+          contractInfo.transferorRegistrationNumber.replace(/-/g, ""),
         transferorSignImageUrl: contractInfo.transferorSignImageUrl,
         year: contractInfo.year,
         additionalConditions: contractInfo.additionalConditions || "",
@@ -175,7 +199,8 @@ export function ContractFormPanel({
       transfereeAddress: contractInfo.transfereeAddress,
       transfereeName: contractInfo.transfereeName,
       transfereePhoneNumber: contractInfo.transfereePhoneNumber,
-      transfereeRegistrationNumber: contractInfo.transfereeRegistrationNumber.replace(/-/g, ""),
+      transfereeRegistrationNumber:
+        contractInfo.transfereeRegistrationNumber.replace(/-/g, ""),
       transfereeSignImageUrl: contractInfo.transfereeSignImageUrl,
     };
   }, [chatRoomId, contractInfo, contractWriterType, isTransferor]);
@@ -218,12 +243,19 @@ export function ContractFormPanel({
             <ContractUnderlineInput
               label="매매금액"
               required
-              value={contractInfo.tradingAmount ? formatNumberWithComma(contractInfo.tradingAmount) : ""}
+              value={
+                contractInfo.tradingAmount
+                  ? formatNumberWithComma(contractInfo.tradingAmount)
+                  : ""
+              }
               onChangeText={(text) => {
                 const v = digitsOnly(text);
                 const validation = validatePositiveAmount(v, "매매금액");
                 setTradingError(validation.errorMessage);
-                setContractInfo((prev) => ({ ...prev, tradingAmount: Number(v) || 0 }));
+                setContractInfo((prev) => ({
+                  ...prev,
+                  tradingAmount: Number(v) || 0,
+                }));
                 if (listProductPrice && v && Number(v) !== listProductPrice) {
                   setTradingError("");
                 }
@@ -233,20 +265,29 @@ export function ContractFormPanel({
               error={tradingError}
               suffix={<Text className="text-gray600">만원</Text>}
             />
-            {listProductPrice && Number(contractInfo.tradingAmount) !== listProductPrice ? (
+            {listProductPrice &&
+            Number(contractInfo.tradingAmount) !== listProductPrice ? (
               <Text className="-mt-4 text-[13px] text-primary">
-                판매중인 금액과 계약서 상 매매금액이 다릅니다. 올바르게 입력했는지 다시 한번 확인해주세요.
+                판매중인 금액과 계약서 상 매매금액이 다릅니다. 올바르게
+                입력했는지 다시 한번 확인해주세요.
               </Text>
             ) : null}
             <ContractUnderlineInput
               label="계약금"
               required
-              value={contractInfo.downPayment ? formatNumberWithComma(contractInfo.downPayment) : ""}
+              value={
+                contractInfo.downPayment
+                  ? formatNumberWithComma(contractInfo.downPayment)
+                  : ""
+              }
               onChangeText={(text) => {
                 const v = digitsOnly(text);
                 const validation = validatePositiveAmount(v, "계약금");
                 setDownPaymentError(validation.errorMessage);
-                setContractInfo((prev) => ({ ...prev, downPayment: Number(v) || null }));
+                setContractInfo((prev) => ({
+                  ...prev,
+                  downPayment: Number(v) || null,
+                }));
               }}
               keyboardType="numeric"
               error={downPaymentError}
@@ -287,7 +328,11 @@ export function ContractFormPanel({
             />
             <ContractUnderlineInput
               label="잔금"
-              value={contractInfo.balance ? formatNumberWithComma(contractInfo.balance) : ""}
+              value={
+                contractInfo.balance
+                  ? formatNumberWithComma(contractInfo.balance)
+                  : ""
+              }
               onChangeText={(text) =>
                 setContractInfo((prev) => ({
                   ...prev,
@@ -310,7 +355,10 @@ export function ContractFormPanel({
                 label="특약사항"
                 value={contractInfo.additionalConditions}
                 onChangeText={(text) =>
-                  setContractInfo((prev) => ({ ...prev, additionalConditions: text }))
+                  setContractInfo((prev) => ({
+                    ...prev,
+                    additionalConditions: text,
+                  }))
                 }
                 placeholder="특약사항 입력"
               />
@@ -418,7 +466,9 @@ export function ContractFormPanel({
                 onPress={() => void onSave()}
                 className="h-12 flex-1 items-center justify-center"
               >
-                <Text className="text-[16px] font-semibold text-primary">저장하기</Text>
+                <Text className="text-[16px] font-semibold text-primary">
+                  저장하기
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -435,7 +485,11 @@ export function ContractFormPanel({
         }}
       />
 
-      <BottomSheet visible={addressOpen} onClose={() => setAddressOpen(false)} heightRatio={0.92}>
+      <BottomSheet
+        visible={addressOpen}
+        onClose={() => setAddressOpen(false)}
+        heightRatio={0.92}
+      >
         <BottomSheetHeader title="주소" onClose={() => setAddressOpen(false)} />
         <DaumPostcodeWebView
           onComplete={(result) => {

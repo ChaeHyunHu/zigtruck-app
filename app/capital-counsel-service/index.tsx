@@ -9,7 +9,6 @@ import { parseVehicleParams } from "@/src/features/additional-services/parseVehi
 export default function CapitalCounselServiceScreen() {
   const params = useLocalSearchParams();
   const initialVehicle = useMemo(() => parseVehicleParams(params), [params]);
-  const guidePrice = initialVehicle?.productPrice ?? 5000;
 
   return (
     <AdditionalServiceApplyScreen
@@ -17,7 +16,7 @@ export default function CapitalCounselServiceScreen() {
       title="화물차 대출 상담 서비스"
       applyLabel="한도 조회 신청하기"
       completedLabel="한도 조회 신청완료"
-      guide={<CapitalGuideView price={guidePrice} />}
+      guide={({ productPrice }) => <CapitalGuideView price={productPrice ?? 5000} />}
       showVehicleSelector={true}
       vehicleLabel="상담할 차량 선택하기"
       vehicleSelectPath="/capital-counsel-service/select"

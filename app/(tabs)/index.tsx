@@ -137,7 +137,7 @@ const serviceCards = [
     path: "/job",
   },
   {
-    title: "위탁판매 서비스",
+    title: "알선판매 서비스",
     subTitle: "거래절차가 복잡하다면?",
     icon: "sale_car_gra.gif",
     path: "/one-stop-service",

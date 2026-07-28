@@ -21,7 +21,7 @@ export function OneStopGuideSection() {
     <View>
       <View className="items-center px-4 pt-6">
         <Text className="pb-9 text-center text-[24px] font-bold text-gray900">
-          직거래 위탁판매 서비스란?
+          직거래 알선판매 서비스란?
         </Text>
         <Text className="text-center text-[15px] leading-[22px] text-gray800">
           차량 판매 등록, 구매자 상담,{"\n"}거래 완료 시점까지{"\n"}모든 판매 과정을

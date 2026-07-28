@@ -39,7 +39,7 @@ type LoginTab = "NORMAL" | "DEALER";
 const isMemberTypeMismatchMessage = (message?: string | null) =>
   Boolean(
     message &&
-      (message.includes("회원 타입") || message.includes("타입이 일치")),
+    (message.includes("회원 타입") || message.includes("타입이 일치")),
   );
 
 const TAB_GRADIENT = ["#535AFF", "#397AFF", "#10ACFF"] as const;

@@ -13,7 +13,7 @@ const roomSessionStartedAt = new Map<number, number>();
 const readReceiptIdsByRoom = new Map<number, Set<number>>();
 const outgoingSentAtById = new Map<number, number>();
 
-const SELF_ECHO_GRACE_MS = 5000;
+const SELF_ECHO_GRACE_MS = 1500;
 const SESSION_START_SKEW_MS = 60_000;
 
 export function ensureRoomSession(roomId: number) {
@@ -50,15 +50,22 @@ export function markOutgoingMessageSent(messageId: number | undefined) {
   outgoingSentAtById.set(id, Date.now());
 }
 
-export function addReadReceiptIds(roomId: number, messageIds: number[]) {
+export function addReadReceiptIds(
+  roomId: number,
+  messageIds: number[],
+  options?: { bypassSelfEchoGuard?: boolean },
+) {
   const ids = getReadReceiptIds(roomId);
   const now = Date.now();
   messageIds.forEach((id) => {
     if (!Number.isFinite(id) || id <= 0) return;
-    const sentAt = outgoingSentAtById.get(id);
-    if (sentAt != null && now - sentAt < SELF_ECHO_GRACE_MS) {
-      // 본인이 방금 send 한 메시지를 서버가 자동 read 처리해 돌려보낸 self-echo 는 무시
-      return;
+    // 읽은 사람이 상대라는 게 확인된 READ 이벤트는 grace 없이 즉시 반영한다.
+    if (!options?.bypassSelfEchoGuard) {
+      const sentAt = outgoingSentAtById.get(id);
+      if (sentAt != null && now - sentAt < SELF_ECHO_GRACE_MS) {
+        // 본인이 방금 send 한 메시지를 서버가 자동 read 처리해 돌려보낸 self-echo 는 무시
+        return;
+      }
     }
     ids.add(id);
   });

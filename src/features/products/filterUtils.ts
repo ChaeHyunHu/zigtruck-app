@@ -159,6 +159,27 @@ export const takePendingPurchaseFilterParams = (): Record<
   return params;
 };
 
+// 필터 모달에서 "구매 문의" 배너를 눌렀을 때, 필터 모달을 닫고(내차 구매로 복귀)
+// 내차 구매 화면에서 구매 문의 페이지로 push 하기 위한 임시 저장소.
+// 이렇게 하면 구매 문의는 모달이 아닌 일반 페이지로 열리고,
+// 구매 문의에서 뒤로가기 시 내차 구매 화면으로 돌아간다.
+let pendingPurchaseInquiryParams: Record<string, string> | null = null;
+
+export const setPendingPurchaseInquiryParams = (
+  params: Record<string, string>,
+) => {
+  pendingPurchaseInquiryParams = params;
+};
+
+export const takePendingPurchaseInquiryParams = (): Record<
+  string,
+  string
+> | null => {
+  const params = pendingPurchaseInquiryParams;
+  pendingPurchaseInquiryParams = null;
+  return params;
+};
+
 export const hasActiveFilters = (filters: ProductSearchFilters): boolean => {
   const defaults = createDefaultFilters();
   return (
@@ -176,7 +197,8 @@ export const hasActiveFilters = (filters: ProductSearchFilters): boolean => {
     Boolean(filters.axis) ||
     Boolean(filters.transmission) ||
     filters.onlyOneTon !== defaults.onlyOneTon ||
-    Boolean(filters.salesType)
+    Boolean(filters.salesType) ||
+    (filters.sort ?? defaults.sort) !== defaults.sort
   );
 };
 

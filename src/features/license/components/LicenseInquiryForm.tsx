@@ -1,5 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
 import {
   createLicenseListing,
@@ -8,6 +10,8 @@ import {
   type LicenseFilterInfo,
 } from "@/src/api/license";
 import { ConfirmDialog } from "@/src/components/common/ConfirmDialog";
+import { MenuBottomSheet } from "@/src/components/common/MenuBottomSheet";
+import { appColors } from "@/src/constants/colors";
 import { showAppAlert } from "@/src/providers/appDialog";
 import { LabeledTextInput } from "@/src/features/additional-services/components/LabeledTextInput";
 import {
@@ -21,17 +25,25 @@ import {
   getCurrentYear,
   getLicenseTypeDisplay,
 } from "@/src/features/license/utils";
-import { PriceInputField } from "@/src/features/sell-car/registration/PriceInputField";
+import { formatNumberWithComma } from "@/src/features/home/utils";
 import { PriceTrendSelectField } from "@/src/features/price-trend/PriceTrendSelectField";
 import {
   OptionPickerSheet,
   type PickerOption,
 } from "@/src/features/price-trend/OptionPickerSheet";
 import { sanitizeDecimalMax2 } from "@/src/features/price-trend/inputUtils";
+import { resolveImageUri } from "@/src/features/products/utils";
+import { uploadProductImage } from "@/src/features/sell-car/registration/uploadProductImage";
 import { useAuth } from "@/src/hooks/useAuth";
 import { promptLogin } from "@/src/lib/authNavigation";
+import {
+  launchImagePickerForSource,
+  type ImageSource,
+} from "@/src/utils/pickImageWithSource";
 
 type Mode = "purchase" | "sales";
+
+type UploadTarget = "certificate" | "license";
 
 type Props = {
   mode: Mode;
@@ -47,10 +59,16 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
   const [price, setPrice] = useState<number | undefined>();
   const [licenseSalesType, setLicenseSalesType] = useState("TRADE");
   const [licenseType, setLicenseType] = useState({ code: "", desc: "" });
+  const [insuranceRate, setInsuranceRate] = useState("");
+  const [fee, setFee] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerOptions, setPickerOptions] = useState<PickerOption[]>([]);
   const [successOpen, setSuccessOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [certificationImageUrl, setCertificationImageUrl] = useState("");
+  const [licenseImageUrl, setLicenseImageUrl] = useState("");
+  const [sourceTarget, setSourceTarget] = useState<UploadTarget | null>(null);
+  const [uploadingKey, setUploadingKey] = useState<UploadTarget | null>(null);
 
   const maxTons = useMemo(() => {
     const n = Number(tons);
@@ -95,12 +113,28 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
     setPickerOpen(true);
   }, [enumData, tons]);
 
+  const isRental = licenseSalesType !== "TRADE";
+
   const isValid = useMemo(() => {
     if (!year || !tons || !licenseSalesType) return false;
-    if (licenseSalesType === "TRADE" && !licenseType.code) return false;
+    if (isRental) {
+      if (!insuranceRate || !fee) return false;
+    } else if (!licenseType.code) {
+      return false;
+    }
     if (mode === "sales" && (!price || price <= 0)) return false;
     return true;
-  }, [licenseSalesType, licenseType.code, mode, price, tons, year]);
+  }, [
+    fee,
+    insuranceRate,
+    isRental,
+    licenseSalesType,
+    licenseType.code,
+    mode,
+    price,
+    tons,
+    year,
+  ]);
 
   const reset = () => {
     setYear("");
@@ -108,7 +142,39 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
     setPrice(undefined);
     setLicenseSalesType("TRADE");
     setLicenseType({ code: "", desc: "" });
+    setInsuranceRate("");
+    setFee("");
+    setCertificationImageUrl("");
+    setLicenseImageUrl("");
   };
+
+  const handlePickSource = useCallback(
+    async (source: ImageSource) => {
+      const target = sourceTarget;
+      setSourceTarget(null);
+      if (!target) return;
+
+      const result = await launchImagePickerForSource(source, { quality: 0.8 });
+      if (!result || result.canceled || !result.assets[0]) return;
+
+      const asset = result.assets[0];
+      try {
+        setUploadingKey(target);
+        const url = await uploadProductImage({
+          uri: asset.uri,
+          fileName: asset.fileName,
+          mimeType: asset.mimeType,
+        });
+        if (target === "certificate") setCertificationImageUrl(url);
+        else setLicenseImageUrl(url);
+      } catch {
+        showAppAlert({ title: "오류", message: "이미지 업로드에 실패했습니다." });
+      } finally {
+        setUploadingKey(null);
+      }
+    },
+    [sourceTarget],
+  );
 
   const submit = async () => {
     if (!isAuthenticated || !memberId) {
@@ -127,7 +193,9 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
           year,
           tons,
           licenseSalesType,
-          licenseType: licenseType.code || undefined,
+          licenseType: isRental ? undefined : licenseType.code || undefined,
+          insuranceRate: isRental ? insuranceRate : undefined,
+          fee: isRental ? fee : undefined,
           maxTons: String(maxTons),
         });
       } else {
@@ -136,11 +204,13 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
           year,
           tons,
           licenseSalesType,
-          licenseType: licenseType.code,
+          licenseType: isRental ? undefined : licenseType.code,
+          insuranceRate: isRental ? insuranceRate : undefined,
+          fee: isRental ? fee : undefined,
           price,
           maxTons: String(maxTons),
-          certificationImageUrl: "",
-          licenseImageUrl: "",
+          certificationImageUrl,
+          licenseImageUrl,
         });
       }
       setSuccessOpen(true);
@@ -188,7 +258,28 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
             value={licenseSalesType}
             onChange={setLicenseSalesType}
           />
-          {licenseSalesType === "TRADE" ? (
+          {isRental ? (
+            <>
+              <LabeledTextInput
+                label="보험요율"
+                required
+                placeholder="보험요율 입력"
+                value={insuranceRate}
+                unit="%"
+                keyboardType="decimal-pad"
+                onChangeText={(text) => setInsuranceRate(sanitizeDecimalMax2(text))}
+              />
+              <LabeledTextInput
+                label="지입료"
+                required
+                placeholder="지입료 입력"
+                value={fee}
+                unit="만원"
+                keyboardType="number-pad"
+                onChangeText={(text) => setFee(text.replace(/[^\d]/g, ""))}
+              />
+            </>
+          ) : (
             <PriceTrendSelectField
               label="번호판 종류"
               required
@@ -196,18 +287,39 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
               value={getLicenseTypeDisplay(licenseType, maxTons)}
               onPress={openLicenseTypePicker}
             />
-          ) : null}
+          )}
           {mode === "sales" ? (
-            <View>
-              <Text className="mb-2 text-[14px] font-semibold text-gray800">
-                판매 가격<Text className="font-normal text-danger"> (필수)</Text>
-              </Text>
-              <PriceInputField
-                value={price}
+            <>
+              <LabeledTextInput
+                label="판매 가격"
+                required
                 placeholder="판매 금액 입력"
-                onChangeValue={setPrice}
+                value={price ? formatNumberWithComma(price) : ""}
+                unit="만원"
+                keyboardType="number-pad"
+                onChangeText={(text) => {
+                  const digits = text.replace(/[^\d]/g, "");
+                  setPrice(digits ? Number(digits) : undefined);
+                }}
               />
-            </View>
+
+              <View className="flex-row gap-3">
+                <UploadBox
+                  label="차량등록증 업로드"
+                  uri={resolveImageUri(certificationImageUrl)}
+                  loading={uploadingKey === "certificate"}
+                  onPress={() => setSourceTarget("certificate")}
+                  onRemove={() => setCertificationImageUrl("")}
+                />
+                <UploadBox
+                  label="번호판 허가증 업로드"
+                  uri={resolveImageUri(licenseImageUrl)}
+                  loading={uploadingKey === "license"}
+                  onPress={() => setSourceTarget("license")}
+                  onRemove={() => setLicenseImageUrl("")}
+                />
+              </View>
+            </>
           ) : null}
         </View>
       </ScrollView>
@@ -247,6 +359,16 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
         }}
       />
 
+      <MenuBottomSheet
+        visible={sourceTarget !== null}
+        onClose={() => setSourceTarget(null)}
+        title="사진 첨부"
+        items={[
+          { label: "카메라로 촬영", onPress: () => handlePickSource("camera") },
+          { label: "갤러리에서 선택", onPress: () => handlePickSource("library") },
+        ]}
+      />
+
       <ConfirmDialog
         visible={successOpen}
         title={
@@ -269,5 +391,54 @@ export function LicenseInquiryForm({ mode, onSuccess }: Props) {
         </Text>
       </ConfirmDialog>
     </>
+  );
+}
+
+function UploadBox({
+  label,
+  uri,
+  loading,
+  onPress,
+  onRemove,
+}: {
+  label: string;
+  uri?: string;
+  loading?: boolean;
+  onPress: () => void;
+  onRemove: () => void;
+}) {
+  return (
+    <View className="flex-1">
+      <Text className="mb-2 text-[14px] font-semibold text-gray800">{label}</Text>
+      <Pressable
+        onPress={onPress}
+        disabled={loading}
+        className="h-[120px] items-center justify-center overflow-hidden rounded-[10px] border border-gray300 bg-gray100"
+      >
+        {loading ? (
+          <ActivityIndicator color={appColors.primary} />
+        ) : uri ? (
+          <>
+            <Image
+              source={{ uri }}
+              style={{ width: "100%", height: "100%" }}
+              contentFit="cover"
+            />
+            <Pressable
+              onPress={(event) => {
+                event.stopPropagation();
+                onRemove();
+              }}
+              hitSlop={8}
+              className="absolute right-2 top-2 h-7 w-7 items-center justify-center rounded-full bg-white/95"
+            >
+              <Ionicons name="close" size={18} color="#111" />
+            </Pressable>
+          </>
+        ) : (
+          <Ionicons name="arrow-up" size={30} color={appColors.gray500} />
+        )}
+      </Pressable>
+    </View>
   );
 }

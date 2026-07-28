@@ -15,7 +15,7 @@ export const SALES_TYPE_FILTER_OPTIONS = [
   { value: undefined, label: "전체차량" },
   { value: SALES_TYPE_NORMAL, label: "직거래 차량" },
   { value: SALES_TYPE_ASSURANCE, label: "직트럭 상품용" },
-  { value: SALES_TYPE_CONSIGNMENT, label: "위탁판매 차량" },
+  { value: SALES_TYPE_CONSIGNMENT, label: "알선판매 차량" },
 ] as const;
 
 export const PRODUCT_STATUS_BEFORE_SALE = "BEFORE_SALE";
